@@ -1,0 +1,27 @@
+<Window xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+        xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
+        Title='Seleccionar unidad organizativa'
+        WindowStartupLocation='CenterOwner'
+        Width='420'
+        Height='480'
+        MinWidth='320'
+        MinHeight='320'
+        FontFamily='Segoe UI'
+        FontSize='11'
+        Background='#F5F5F5'
+        ShowInTaskbar='False'>
+    <Grid Margin='12'>
+        <Grid.RowDefinitions>
+            <RowDefinition Height='Auto'/>
+            <RowDefinition Height='*'/>
+            <RowDefinition Height='Auto'/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row='0' Margin='0,0,0,8' TextWrapping='Wrap'
+                   Text='Seleccione una OU. Los equipos habilitados de esa OU se importarán al cerrar con Aceptar.'/>
+        <TreeView x:Name='OUTree' Grid.Row='1' Margin='0,0,0,12' BorderBrush='#CCCCCC' Background='White'/>
+        <StackPanel Grid.Row='2' Orientation='Horizontal' HorizontalAlignment='Right'>
+            <Button x:Name='OKButton' Content='Aceptar' Width='88' Margin='0,0,8,0' IsDefault='True'/>
+            <Button x:Name='CancelButton' Content='Cancelar' Width='88' IsCancel='True'/>
+        </StackPanel>
+    </Grid>
+</Window>
