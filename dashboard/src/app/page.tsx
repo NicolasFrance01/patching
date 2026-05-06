@@ -23,10 +23,10 @@ export default async function Home() {
       <div className="mx-auto max-w-7xl space-y-8">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-            Patching Command Center
+            Centro de Control de Parcheo
           </h1>
           <p className="mt-2 text-zinc-400">
-            Real-time monitoring of server updates and patching status.
+            Monitoreo en tiempo real del estado de actualizaciones de servidores.
           </p>
         </div>
 
