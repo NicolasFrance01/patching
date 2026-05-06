@@ -183,14 +183,14 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                       key={server.id}
                       className="hover:bg-white/[0.025] transition-colors"
                     >
-                      <td className="px-3 py-2.5 font-medium text-zinc-100 max-w-[160px]">
-                        <span className="block truncate" title={server.serverName}>
+                      <td className="px-3 py-2.5 font-medium text-zinc-100 min-w-[180px]">
+                        <span className="block" title={server.serverName}>
                           {server.serverName}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.ip ?? "N/A"}</td>
-                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell max-w-[180px]">
-                        <span className="block truncate" title={server.os ?? ""}>
+                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell min-w-[200px]">
+                        <span className="block" title={server.os ?? ""}>
                           {server.os && server.os !== "N/A" ? server.os : <span className="text-zinc-600">—</span>}
                         </span>
                       </td>
@@ -209,17 +209,17 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell max-w-[140px]">
-                        <span className="block truncate" title={server.installedKBs ?? ""}>
+                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[150px]">
+                        <span className="block break-words" title={server.installedKBs ?? ""}>
                           {server.installedKBs ?? "—"}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap hidden lg:table-cell">
                         {server.installDate ?? "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-rose-400/80 hidden xl:table-cell max-w-[180px]">
+                      <td className="px-3 py-2.5 text-rose-400/80 hidden xl:table-cell min-w-[200px]">
                         {isError ? (
-                          <span className="block truncate text-[10px]" title={server.errorDescription ?? ""}>
+                          <span className="block text-[10px] whitespace-normal" title={server.errorDescription ?? ""}>
                             {server.errorDescription}
                           </span>
                         ) : (

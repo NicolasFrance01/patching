@@ -1687,7 +1687,7 @@ $uiHash.ExportReportMenu.Add_Click({
         try {
             $JsonData = @($ReportData) | ConvertTo-Json -Depth 5 -Compress
             # NOTA: Cambiar esta URL por la de Vercel (ej: https://tu-repo.vercel.app/api/upload) cuando esté en producción
-            $DashboardUrl = "http://localhost:3000/api/upload" 
+            $DashboardUrl = "https://algeibapatching.vercel.app/api/upload" 
             
             Invoke-RestMethod -Uri $DashboardUrl -Method Post -Body $JsonData -ContentType "application/json" -ErrorAction Stop | Out-Null
             $UploadMsg = "`n`nDatos sincronizados exitosamente con el Dashboard."
