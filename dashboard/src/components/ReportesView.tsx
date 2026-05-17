@@ -181,10 +181,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Por Tipo ── */}
       {activeTab === "Por Tipo" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div key="tab-portipo" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="glass rounded-2xl p-5">
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">Servidores por tipo</h2>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="99%" height={280}>
               <BarChart data={byTypeData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} />
@@ -199,7 +199,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
           <div className="glass rounded-2xl p-5">
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">Distribución por tipo</h2>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="99%" height={280}>
               <PieChart>
                 <Pie data={byTypeData.map((d) => ({ name: d.name, value: d.total }))} cx="50%" cy="45%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value" stroke="none">
                   {byTypeData.map((entry, i) => <Cell key={i} fill={TYPE_COLORS[entry.name] ?? "#6b7280"} />)}
@@ -229,7 +229,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Errores por Sync ── */}
       {activeTab === "Errores por Sync" && (
-        <div className="space-y-4">
+        <div key="tab-errores" className="space-y-4">
           {!hasSyncHistory && (
             <InfoBanner text="Aún no hay syncs históricas registradas. Se mostrará el estado actual como referencia. El gráfico se irá llenando a medida que el proceso WUU.ps1 ejecute nuevas syncs." />
           )}
@@ -237,7 +237,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">
               {hasSyncHistory ? "Tendencia de errores por sincronización" : "Estado actual de servidores"}
             </h2>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="99%" height={300}>
               <LineChart data={errorTrendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#71717a" }} />
@@ -255,7 +255,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Listado de Syncs ── */}
       {activeTab === "Listado de Syncs" && (
-        <div className="space-y-3">
+        <div key="tab-listado" className="space-y-3">
           {!hasSyncHistory && syncListItems.length > 0 && (
             <InfoBanner text="No hay syncs históricas aún. Se muestra el estado actual de los servidores como snapshot de referencia." />
           )}
@@ -335,7 +335,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Top Errores ── */}
       {activeTab === "Top Errores" && (
-        <div className="glass rounded-2xl p-5">
+        <div key="tab-toperrores" className="glass rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-zinc-200 mb-1">
             {hasSyncHistory ? "Servidores con más fallas históricas" : "Servidores con errores (estado actual)"}
           </h2>
