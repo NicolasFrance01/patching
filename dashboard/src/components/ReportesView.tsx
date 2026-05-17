@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend, LineChart, Line, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
-import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { getServerInfo, SERVER_TYPES } from "@/lib/serverTypeMap";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 
 interface SyncRunData {
   id: string;
@@ -39,18 +39,32 @@ type Tab = (typeof TABS)[number];
 const TYPE_COLORS: Record<string, string> = {
   ASJ: "#6366f1", BSC: "#06b6d4", BSJ: "#10b981",
   Corp: "#f59e0b", NBERSA: "#ef4444", NBSF: "#8b5cf6", QUALIA: "#ec4899",
+  "Sin clasificar": "#52525b",
+};
+
+const tooltipStyle = {
+  contentStyle: { backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px" },
+  itemStyle: { color: "#e4e4e7" },
+  labelStyle: { color: "#a1a1aa" },
 };
 
 export default function ReportesView({ data }: ReportesViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Por Tipo");
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
 
+  const hasSyncHistory = data.syncRuns.length > 0;
+
   const enrichedServers = useMemo(() =>
-    data.currentServers.map((s) => ({ ...s, info: getServerInfo(s.serverName, s.ip) })),
+    data.currentServers.map((s) => ({
+      ...s,
+      info: getServerInfo(s.serverName, s.ip),
+      isError: !!(s.errorDescription && s.errorDescription !== "N/A"),
+      isNoData: !s.os || s.os === "N/A",
+    })),
     [data.currentServers]
   );
 
-  // --- Por Tipo ---
+  // ── Por Tipo ─────────────────────────────────────────────────────────────
   const byTypeData = useMemo(() => {
     const counts: Record<string, { total: number; ok: number; error: number; nodata: number }> = {};
     SERVER_TYPES.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0 }; });
@@ -60,68 +74,104 @@ export default function ReportesView({ data }: ReportesViewProps) {
       const key = s.info?.type ?? "Sin clasificar";
       if (!counts[key]) counts[key] = { total: 0, ok: 0, error: 0, nodata: 0 };
       counts[key].total++;
-      const isError = !!(s.errorDescription && s.errorDescription !== "N/A");
-      const isNoData = !s.os || s.os === "N/A";
-      if (isError) counts[key].error++;
-      else if (isNoData) counts[key].nodata++;
+      if (s.isError) counts[key].error++;
+      else if (s.isNoData) counts[key].nodata++;
       else counts[key].ok++;
     }
 
     return Object.entries(counts)
       .filter(([, v]) => v.total > 0)
-      .map(([name, v]) => ({ name, ...v, successRate: v.total > 0 ? Math.round((v.ok / v.total) * 100) : 0 }));
+      .map(([name, v]) => ({
+        name,
+        ...v,
+        successRate: v.total > 0 ? Math.round((v.ok / v.total) * 100) : 0,
+      }));
   }, [enrichedServers]);
 
-  const pieData = byTypeData.map((d) => ({ name: d.name, value: d.total }));
+  // ── Errores por Sync ──────────────────────────────────────────────────────
+  const errorTrendData = useMemo(() => {
+    if (hasSyncHistory) {
+      return data.syncRuns.slice().reverse().slice(-20).map((run) => ({
+        label: new Date(run.syncedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
+        hora: new Date(run.syncedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+        errores: run.errors,
+        ok: run.success,
+        sinDatos: run.noData,
+        total: run.total,
+      }));
+    }
+    // Fallback: build single point from current server state
+    const ok = enrichedServers.filter((s) => !s.isError && !s.isNoData).length;
+    const errores = enrichedServers.filter((s) => s.isError).length;
+    const sinDatos = enrichedServers.filter((s) => s.isNoData).length;
+    return [{
+      label: "Estado actual",
+      hora: new Date(data.currentServers[0]?.updatedAt ?? Date.now()).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+      errores, ok, sinDatos,
+      total: enrichedServers.length,
+    }];
+  }, [data.syncRuns, enrichedServers, hasSyncHistory, data.currentServers]);
 
-  // --- Errores por Sync ---
-  const errorTrendData = useMemo(() =>
-    data.syncRuns.slice().reverse().slice(-20).map((run) => ({
-      fecha: new Date(run.syncedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
-      hora: new Date(run.syncedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
-      errores: run.errors,
-      ok: run.success,
-      sinDatos: run.noData,
-      total: run.total,
-    })),
-    [data.syncRuns]
-  );
-
-  // --- Top Errores ---
+  // ── Top Errores ───────────────────────────────────────────────────────────
   const topErrors = useMemo(() => {
-    const counts: Record<string, { count: number; lastError: string; serverName: string }> = {};
-    for (const run of data.syncRuns) {
-      for (const r of run.records) {
-        if (r.status === "error") {
-          if (!counts[r.serverName]) {
-            counts[r.serverName] = { count: 0, lastError: r.errorDescription ?? "", serverName: r.serverName };
+    if (hasSyncHistory) {
+      const counts: Record<string, { count: number; lastError: string }> = {};
+      for (const run of data.syncRuns) {
+        for (const r of run.records) {
+          if (r.status === "error") {
+            if (!counts[r.serverName]) counts[r.serverName] = { count: 0, lastError: r.errorDescription ?? "" };
+            counts[r.serverName].count++;
+            counts[r.serverName].lastError = r.errorDescription ?? counts[r.serverName].lastError;
           }
-          counts[r.serverName].count++;
-          counts[r.serverName].lastError = r.errorDescription ?? counts[r.serverName].lastError;
         }
       }
+      return Object.entries(counts)
+        .map(([serverName, v]) => ({ serverName, ...v }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
     }
-    return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 20);
-  }, [data.syncRuns]);
+    // Fallback: servers currently with errors
+    return enrichedServers
+      .filter((s) => s.isError)
+      .map((s) => ({ serverName: s.serverName, count: 1, lastError: s.errorDescription ?? "" }))
+      .sort((a, b) => a.serverName.localeCompare(b.serverName))
+      .slice(0, 20);
+  }, [data.syncRuns, enrichedServers, hasSyncHistory]);
 
-  const tooltipStyle = {
-    contentStyle: { backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px" },
-    itemStyle: { color: "#e4e4e7" },
-    labelStyle: { color: "#a1a1aa" },
-  };
+  // ── Listado Syncs ─────────────────────────────────────────────────────────
+  // When no sync history, show current state as a synthetic snapshot
+  const syncListItems = useMemo(() => {
+    if (hasSyncHistory) return data.syncRuns;
+    if (enrichedServers.length === 0) return [];
+    const ok = enrichedServers.filter((s) => !s.isError && !s.isNoData).length;
+    const errors = enrichedServers.filter((s) => s.isError).length;
+    const noData = enrichedServers.filter((s) => s.isNoData).length;
+    return [{
+      id: "snapshot-current",
+      syncedAt: data.currentServers[0]?.updatedAt ?? new Date().toISOString(),
+      total: enrichedServers.length,
+      success: ok,
+      errors,
+      noData,
+      records: enrichedServers.map((s) => ({
+        serverName: s.serverName,
+        ip: s.ip,
+        status: s.isError ? "error" : s.isNoData ? "nodata" : "ok",
+        errorDescription: s.errorDescription,
+      })),
+    }];
+  }, [data.syncRuns, enrichedServers, hasSyncHistory, data.currentServers]);
 
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-zinc-900 rounded-xl w-fit border border-zinc-800">
+      <div className="flex flex-wrap gap-1 p-1 bg-zinc-900 rounded-xl w-fit border border-zinc-800">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === tab
-                ? "bg-indigo-600 text-white"
-                : "text-zinc-400 hover:text-zinc-200"
+              activeTab === tab ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             {tab}
@@ -129,7 +179,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         ))}
       </div>
 
-      {/* Por Tipo */}
+      {/* ── Por Tipo ── */}
       {activeTab === "Por Tipo" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="glass rounded-2xl p-5">
@@ -151,10 +201,8 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">Distribución por tipo</h2>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="45%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value" stroke="none">
-                  {pieData.map((entry, i) => (
-                    <Cell key={i} fill={TYPE_COLORS[entry.name] ?? "#6b7280"} />
-                  ))}
+                <Pie data={byTypeData.map((d) => ({ name: d.name, value: d.total }))} cx="50%" cy="45%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value" stroke="none">
+                  {byTypeData.map((entry, i) => <Cell key={i} fill={TYPE_COLORS[entry.name] ?? "#6b7280"} />)}
                 </Pie>
                 <Tooltip {...tooltipStyle} />
                 <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
@@ -169,9 +217,9 @@ export default function ReportesView({ data }: ReportesViewProps) {
                 <div key={d.name} className="flex items-center gap-3">
                   <span className="text-xs text-zinc-400 w-24 shrink-0">{d.name}</span>
                   <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${d.successRate}%` }} />
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.successRate}%` }} />
                   </div>
-                  <span className="text-xs text-zinc-400 w-16 text-right">{d.successRate}% <span className="text-zinc-600">({d.total})</span></span>
+                  <span className="text-xs text-zinc-400 w-20 text-right">{d.successRate}% <span className="text-zinc-600">({d.total})</span></span>
                 </div>
               ))}
             </div>
@@ -179,40 +227,45 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* Errores por Sync */}
+      {/* ── Errores por Sync ── */}
       {activeTab === "Errores por Sync" && (
-        <div className="space-y-5">
+        <div className="space-y-4">
+          {!hasSyncHistory && (
+            <InfoBanner text="Aún no hay syncs históricas registradas. Se mostrará el estado actual como referencia. El gráfico se irá llenando a medida que el proceso WUU.ps1 ejecute nuevas syncs." />
+          )}
           <div className="glass rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-4">Tendencia de errores por sincronización</h2>
-            {errorTrendData.length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-8">Sin datos de sincronizaciones aún.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={errorTrendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: "#71717a" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
-                  <Tooltip {...tooltipStyle} labelFormatter={(_, payload) => payload?.[0]?.payload?.hora ?? ""} />
-                  <Line type="monotone" dataKey="errores" name="Errores" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="ok" name="OK" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="sinDatos" name="Sin datos" stroke="#6b7280" strokeWidth={1} strokeDasharray="4 2" dot={false} />
-                  <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+            <h2 className="text-sm font-semibold text-zinc-200 mb-4">
+              {hasSyncHistory ? "Tendencia de errores por sincronización" : "Estado actual de servidores"}
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={errorTrendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#71717a" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
+                <Tooltip {...tooltipStyle} />
+                <Line type="monotone" dataKey="errores" name="Errores" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="ok" name="OK" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="sinDatos" name="Sin datos" stroke="#6b7280" strokeWidth={1} strokeDasharray="4 2" dot={false} />
+                <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {/* Listado de Syncs */}
+      {/* ── Listado de Syncs ── */}
       {activeTab === "Listado de Syncs" && (
         <div className="space-y-3">
-          {data.syncRuns.length === 0 && (
-            <div className="glass rounded-2xl p-12 text-center text-zinc-500">No hay sincronizaciones registradas.</div>
+          {!hasSyncHistory && syncListItems.length > 0 && (
+            <InfoBanner text="No hay syncs históricas aún. Se muestra el estado actual de los servidores como snapshot de referencia." />
           )}
-          {data.syncRuns.map((run) => {
+          {syncListItems.length === 0 && (
+            <div className="glass rounded-2xl p-12 text-center text-zinc-500">No hay datos disponibles.</div>
+          )}
+          {syncListItems.map((run) => {
             const successRate = run.total > 0 ? Math.round((run.success / run.total) * 100) : 0;
             const isOpen = expandedSync === run.id;
+            const isSynthetic = run.id === "snapshot-current";
             return (
               <div key={run.id} className="glass rounded-2xl overflow-hidden">
                 <button
@@ -222,8 +275,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
                   <div className="flex items-center gap-3">
                     {isOpen ? <ChevronDown className="w-4 h-4 text-indigo-400" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
                     <div className="text-left">
-                      <p className="text-sm font-medium text-zinc-200">{new Date(run.syncedAt).toLocaleString("es-AR")}</p>
-                      <p className="text-xs text-zinc-500">{run.total} servidores procesados</p>
+                      <p className="text-sm font-medium text-zinc-200">
+                        {isSynthetic ? "Estado actual (snapshot)" : new Date(run.syncedAt).toLocaleString("es-AR")}
+                      </p>
+                      <p className="text-xs text-zinc-500">{run.total} servidores</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 mr-2">
@@ -251,8 +306,8 @@ export default function ReportesView({ data }: ReportesViewProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800/40">
-                          {run.records.map((r) => (
-                            <tr key={r.serverName} className="hover:bg-white/[0.02]">
+                          {run.records.map((r, idx) => (
+                            <tr key={`${r.serverName}-${idx}`} className="hover:bg-white/[0.02]">
                               <td className="px-3 py-2 font-medium text-zinc-200">{r.serverName}</td>
                               <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>
                               <td className="px-3 py-2">
@@ -278,26 +333,29 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* Top Errores */}
+      {/* ── Top Errores ── */}
       {activeTab === "Top Errores" && (
         <div className="glass rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-200 mb-4">
-            Servidores con más fallas históricas
+          <h2 className="text-sm font-semibold text-zinc-200 mb-1">
+            {hasSyncHistory ? "Servidores con más fallas históricas" : "Servidores con errores (estado actual)"}
           </h2>
+          {!hasSyncHistory && (
+            <p className="text-xs text-zinc-600 mb-4">El ranking histórico se construirá a medida que se registren syncs.</p>
+          )}
           {topErrors.length === 0 ? (
-            <p className="text-zinc-500 text-sm text-center py-8">Sin errores registrados aún.</p>
+            <p className="text-zinc-500 text-sm text-center py-8">Sin errores registrados.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 mt-4">
               {topErrors.map((e, i) => (
                 <div key={e.serverName} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
-                  <span className={`text-xs font-bold w-5 text-center mt-0.5 ${i < 3 ? "text-rose-400" : "text-zinc-500"}`}>#{i + 1}</span>
+                  <span className={`text-xs font-bold w-5 text-center mt-0.5 shrink-0 ${i < 3 ? "text-rose-400" : "text-zinc-500"}`}>#{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-zinc-200">{e.serverName}</p>
                     <p className="text-[10px] text-zinc-600 mt-0.5 truncate">{e.lastError || "—"}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-rose-400">{e.count}</p>
-                    <p className="text-[10px] text-zinc-600">fallas</p>
+                    <p className="text-[10px] text-zinc-600">{hasSyncHistory ? "fallas" : "error"}</p>
                   </div>
                 </div>
               ))}
@@ -305,6 +363,15 @@ export default function ReportesView({ data }: ReportesViewProps) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function InfoBanner({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-xs text-indigo-300">
+      <Info className="w-4 h-4 shrink-0 mt-0.5" />
+      <p>{text}</p>
     </div>
   );
 }

@@ -12,10 +12,13 @@ interface DashboardViewProps {
 
 type StatusFilter = "all" | "ok" | "error" | "nodata";
 
+const AMBIENTES = ["Producción", "Desarrollo", "Test", "Sandbox"] as const;
+
 export default function DashboardView({ initialData }: DashboardViewProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<ServerType | "all">("all");
+  const [ambienteFilter, setAmbienteFilter] = useState<string>("all");
 
   const enriched = useMemo(() =>
     initialData.map((s) => ({
@@ -37,6 +40,21 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
     { name: "Sin datos", value: stats.noData, color: "#6b7280" },
   ].filter((d) => d.value > 0);
 
+  // Ambientes available for the currently selected type
+  const availableAmbientes = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of enriched) {
+      if (typeFilter !== "all" && s.info?.type !== typeFilter) continue;
+      const amb = s.info?.ambiente;
+      if (amb && AMBIENTES.includes(amb as any)) set.add(amb);
+    }
+    return AMBIENTES.filter((a) => set.has(a));
+  }, [enriched, typeFilter]);
+
+  // Reset ambiente when type changes and current ambiente is not available
+  const effectiveAmbiente = availableAmbientes.includes(ambienteFilter as any) || ambienteFilter === "all"
+    ? ambienteFilter : "all";
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return enriched.filter((s) => {
@@ -46,6 +64,7 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
       if (statusFilter === "error" && !isError) return false;
       if (statusFilter === "nodata" && !isNoData) return false;
       if (typeFilter !== "all" && s.info?.type !== typeFilter) return false;
+      if (effectiveAmbiente !== "all" && s.info?.ambiente !== effectiveAmbiente) return false;
       if (q) {
         return (
           s.serverName.toLowerCase().includes(q) ||
@@ -56,7 +75,7 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
       }
       return true;
     });
-  }, [enriched, search, statusFilter, typeFilter]);
+  }, [enriched, search, statusFilter, typeFilter, effectiveAmbiente]);
 
   const lastUpdated = enriched.length > 0
     ? new Date(enriched[0].updatedAt).toLocaleString("es-AR")
@@ -66,7 +85,12 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
     setStatusFilter((prev) => (prev === filter ? "all" : filter));
   }
 
-  const hasFilter = statusFilter !== "all" || typeFilter !== "all" || search;
+  function handleTypeChange(t: ServerType | "all") {
+    setTypeFilter(t);
+    setAmbienteFilter("all");
+  }
+
+  const hasFilter = statusFilter !== "all" || typeFilter !== "all" || effectiveAmbiente !== "all" || search;
 
   return (
     <div className="space-y-5">
@@ -106,75 +130,86 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
         />
       </div>
 
-      {/* Gráfico + Tabla */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Gráfico */}
-        <div className="glass rounded-2xl p-5 col-span-1 flex flex-col min-h-[300px]">
-          <h2 className="text-sm font-semibold text-zinc-200 mb-4">Resumen de Estado</h2>
+      {/* Layout principal: gráfico compacto + tabla dominante */}
+      <div className="flex flex-col xl:flex-row gap-5 items-start">
+
+        {/* Gráfico — columna lateral compacta */}
+        <div className="glass rounded-2xl p-5 w-full xl:w-64 shrink-0">
+          <h2 className="text-sm font-semibold text-zinc-200 mb-3">Resumen de Estado</h2>
           {stats.total > 0 ? (
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height={230}>
+            <>
+              <ResponsiveContainer width="100%" height={190}>
                 <PieChart>
-                  <Pie data={chartData} cx="50%" cy="45%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value" stroke="none">
+                  <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value" stroke="none">
                     {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "12px" }} itemStyle={{ color: "#e4e4e7" }} />
-                  <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
+                  <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px" }} itemStyle={{ color: "#e4e4e7" }} />
+                  <Legend iconType="circle" iconSize={7} formatter={(v) => <span className="text-zinc-400 text-[11px]">{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
+              {stats.noData > 0 && (
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-500 border-t border-zinc-800 pt-2">
+                  <AlertTriangle className="w-3 h-3 text-yellow-500 shrink-0" />
+                  <span><span className="text-yellow-400">{stats.noData}</span> sin OS</span>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">Sin datos disponibles.</div>
-          )}
-          {stats.noData > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500 border-t border-zinc-800 pt-3">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
-              <span><span className="text-yellow-400">{stats.noData}</span> servidores sin datos de OS</span>
-            </div>
+            <div className="h-40 flex items-center justify-center text-zinc-600 text-sm">Sin datos</div>
           )}
         </div>
 
-        {/* Tabla */}
-        <div className="glass rounded-2xl p-5 col-span-1 lg:col-span-2 flex flex-col">
-          {/* Filtros */}
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-zinc-200">
-                Detalle de Servidores
-                <span className="ml-2 text-xs font-normal text-zinc-500">({filtered.length} de {enriched.length})</span>
-              </h2>
-              <div className="flex items-center gap-2">
-                {hasFilter && (
-                  <button
-                    onClick={() => { setSearch(""); setStatusFilter("all"); setTypeFilter("all"); }}
-                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    <X className="w-3 h-3" /> Limpiar
-                  </button>
-                )}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                  <input
-                    type="text"
-                    placeholder="Buscar servidor, IP, OS..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 pr-4 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 w-full sm:w-52 transition-colors"
-                  />
-                </div>
+        {/* Tabla — ocupa todo el espacio restante */}
+        <div className="glass rounded-2xl p-5 flex-1 min-w-0 flex flex-col">
+          {/* Header + buscador */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <h2 className="text-sm font-semibold text-zinc-200 shrink-0">
+              Detalle de Servidores
+              <span className="ml-2 text-xs font-normal text-zinc-500">({filtered.length} de {enriched.length})</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              {hasFilter && (
+                <button
+                  onClick={() => { setSearch(""); setStatusFilter("all"); handleTypeChange("all"); }}
+                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
+                >
+                  <X className="w-3 h-3" /> Limpiar
+                </button>
+              )}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar servidor, IP, OS..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-4 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 w-full sm:w-52 transition-colors"
+                />
               </div>
-            </div>
-
-            {/* Filtro por tipo */}
-            <div className="flex flex-wrap gap-1.5">
-              <FilterPill label="Todos" active={typeFilter === "all"} onClick={() => setTypeFilter("all")} />
-              {SERVER_TYPES.map((t) => (
-                <FilterPill key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t)} />
-              ))}
             </div>
           </div>
 
-          <div className="overflow-auto flex-1 max-h-[400px]">
+          {/* Filtro por tipo */}
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <FilterPill label="Todos" active={typeFilter === "all"} onClick={() => handleTypeChange("all")} />
+            {SERVER_TYPES.map((t) => (
+              <FilterPill key={t} label={t} active={typeFilter === t} onClick={() => handleTypeChange(t)} />
+            ))}
+          </div>
+
+          {/* Filtro por ambiente — solo aparece cuando hay tipos disponibles */}
+          {availableAmbientes.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3 pl-0.5">
+              <span className="text-[10px] text-zinc-600 self-center mr-1">Ambiente:</span>
+              <FilterPill label="Todos" active={effectiveAmbiente === "all"} onClick={() => setAmbienteFilter("all")} small />
+              {availableAmbientes.map((a) => (
+                <FilterPill key={a} label={a} active={effectiveAmbiente === a} onClick={() => setAmbienteFilter(a)} small />
+              ))}
+            </div>
+          )}
+
+          {/* Tabla */}
+          <div className="overflow-auto flex-1 max-h-[560px]">
             <table className="w-full text-xs text-left">
               <thead className="sticky top-0 z-10 text-zinc-400 uppercase bg-zinc-950 border-b border-zinc-800">
                 <tr>
@@ -202,14 +237,12 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                       <td className="px-3 py-2.5 hidden sm:table-cell">
                         {s.info ? (
                           <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{s.info.type}</span>
-                        ) : (
-                          <span className="text-zinc-700 text-[10px]">—</span>
-                        )}
+                        ) : <span className="text-zinc-700 text-[10px]">—</span>}
                       </td>
                       <td className="px-3 py-2.5 hidden md:table-cell">
                         {s.info?.ambiente ? <AmbienteBadge ambiente={s.info.ambiente} /> : <span className="text-zinc-700">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell min-w-[180px]">
+                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell min-w-[160px]">
                         <span className="block" title={s.os ?? ""}>
                           {s.os && s.os !== "N/A" ? s.os : <span className="text-zinc-700">—</span>}
                         </span>
@@ -223,16 +256,14 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                           <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[130px]">
+                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[120px]">
                         <span className="block break-words" title={s.installedKBs ?? ""}>{s.installedKBs ?? "—"}</span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap hidden lg:table-cell">{s.installDate ?? "—"}</td>
                       <td className="px-3 py-2.5 text-rose-400/80 hidden xl:table-cell min-w-[180px]">
                         {isError ? (
                           <span className="block text-[10px] whitespace-normal" title={s.errorDescription ?? ""}>{s.errorDescription}</span>
-                        ) : (
-                          <span className="text-zinc-700">—</span>
-                        )}
+                        ) : <span className="text-zinc-700">—</span>}
                       </td>
                     </tr>
                   );
@@ -251,11 +282,13 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
   );
 }
 
-function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterPill({ label, active, onClick, small }: { label: string; active: boolean; onClick: () => void; small?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border ${
+      className={`rounded-md font-medium transition-colors border ${
+        small ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]"
+      } ${
         active
           ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
           : "bg-transparent text-zinc-500 border-zinc-700/50 hover:text-zinc-300 hover:border-zinc-600"
