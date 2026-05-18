@@ -51,6 +51,7 @@ const tooltipStyle = {
 export default function ReportesView({ data }: ReportesViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Por Tipo");
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
+  const [showUnclassified, setShowUnclassified] = useState(false);
 
   const hasSyncHistory = data.syncRuns.length > 0;
 
@@ -59,7 +60,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       ...s,
       info: getServerInfo(s.serverName, s.ip),
       isError: !!(s.errorDescription && s.errorDescription !== "N/A"),
-      isNoData: !s.os || s.os === "N/A",
+      isNoData: (!s.os || s.os === "N/A") && !(s.errorDescription && s.errorDescription !== "N/A"),
     })),
     [data.currentServers]
   );
@@ -213,15 +214,45 @@ export default function ReportesView({ data }: ReportesViewProps) {
           <div className="glass rounded-2xl p-5 lg:col-span-2">
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">Tasa de éxito por tipo</h2>
             <div className="space-y-2">
-              {byTypeData.sort((a, b) => b.total - a.total).map((d) => (
-                <div key={d.name} className="flex items-center gap-3">
-                  <span className="text-xs text-zinc-400 w-24 shrink-0">{d.name}</span>
-                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.successRate}%` }} />
+              {byTypeData.sort((a, b) => b.total - a.total).map((d) => {
+                const isUnclassified = d.name === "Sin clasificar";
+                const unclassifiedServers = isUnclassified
+                  ? enrichedServers.filter((s) => !s.info)
+                  : [];
+                return (
+                  <div key={d.name}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-400 w-24 shrink-0">{d.name}</span>
+                      <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.successRate}%` }} />
+                      </div>
+                      <span className="text-xs text-zinc-400 w-20 text-right">
+                        {d.successRate}% <span className="text-zinc-600">({d.total})</span>
+                      </span>
+                      {isUnclassified && d.total > 0 && (
+                        <button
+                          onClick={() => setShowUnclassified((v) => !v)}
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors ml-1 underline underline-offset-2 shrink-0"
+                        >
+                          {showUnclassified ? "ocultar" : "ver cuáles"}
+                        </button>
+                      )}
+                    </div>
+                    {isUnclassified && showUnclassified && unclassifiedServers.length > 0 && (
+                      <div className="mt-2 ml-27 pl-1 border-l border-zinc-700/50 space-y-1">
+                        {unclassifiedServers.map((s) => (
+                          <div key={s.id} className="flex items-center gap-3 text-[10px] text-zinc-500">
+                            <span className="font-medium text-zinc-400 w-48 truncate">{s.serverName}</span>
+                            <span className="text-zinc-600">{s.ip ?? "sin IP"}</span>
+                            {s.isError && <span className="text-rose-400/70">error</span>}
+                            {s.isNoData && <span className="text-zinc-600">sin OS</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs text-zinc-400 w-20 text-right">{d.successRate}% <span className="text-zinc-600">({d.total})</span></span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
