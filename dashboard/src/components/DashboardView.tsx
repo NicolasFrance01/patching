@@ -28,8 +28,9 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
 
   const stats = useMemo(() => {
     const total = enriched.length;
-    const errors = enriched.filter((s) => s.errorDescription && s.errorDescription !== "N/A").length;
-    const noData = enriched.filter((s) => !s.os || s.os === "N/A").length;
+    // Mutually exclusive buckets — priority: error > noData > ok
+    const errors  = enriched.filter((s) => !!(s.errorDescription && s.errorDescription !== "N/A")).length;
+    const noData  = enriched.filter((s) => (!s.os || s.os === "N/A") && !(s.errorDescription && s.errorDescription !== "N/A")).length;
     const success = total - errors - noData;
     return { total, success, errors, noData, successRate: total > 0 ? Math.round((success / total) * 100) : 0 };
   }, [enriched]);
@@ -58,10 +59,10 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return enriched.filter((s) => {
-      const isError = !!(s.errorDescription && s.errorDescription !== "N/A");
-      const isNoData = !s.os || s.os === "N/A";
-      if (statusFilter === "ok" && (isError || isNoData)) return false;
-      if (statusFilter === "error" && !isError) return false;
+      const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
+      const isNoData = (!s.os || s.os === "N/A") && !isError;
+      if (statusFilter === "ok"     && (isError || isNoData)) return false;
+      if (statusFilter === "error"  && !isError) return false;
       if (statusFilter === "nodata" && !isNoData) return false;
       if (typeFilter !== "all" && s.info?.type !== typeFilter) return false;
       if (effectiveAmbiente !== "all" && s.info?.ambiente !== effectiveAmbiente) return false;
@@ -226,8 +227,8 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
                 {filtered.map((s) => {
-                  const isError = !!(s.errorDescription && s.errorDescription !== "N/A");
-                  const isNoData = !s.os || s.os === "N/A";
+                  const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
+                  const isNoData = (!s.os || s.os === "N/A") && !isError;
                   return (
                     <tr key={s.id} className="hover:bg-white/[0.025] transition-colors">
                       <td className="px-3 py-2.5 font-medium text-zinc-100 min-w-[160px]">
