@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, memo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
@@ -33,6 +33,10 @@ interface ReportesViewProps {
   data: { syncRuns: SyncRunData[]; currentServers: ServerData[] };
 }
 
+type ByTypeItem = {
+  name: string; total: number; ok: number; error: number; nodata: number; successRate: number;
+};
+
 const TABS = ["Por Tipo", "Errores por Sync", "Listado de Syncs", "Top Errores"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -48,12 +52,92 @@ const tooltipStyle = {
   labelStyle: { color: "#a1a1aa" },
 };
 
+// Isolated in its own memo so Recharts doesn't re-render when parent state changes
+const ByTypeCharts = memo(function ByTypeCharts({ byTypeData }: { byTypeData: ByTypeItem[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="glass rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-zinc-200 mb-4">Servidores por tipo</h2>
+        <div style={{ height: 280 }}>
+          {mounted && (
+            <ResponsiveContainer width="99%" height={280}>
+              <BarChart data={byTypeData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
+                <Tooltip {...tooltipStyle} />
+                <Bar dataKey="ok" name="OK" stackId="a" fill="#10b981" />
+                <Bar dataKey="error" name="Error" stackId="a" fill="#ef4444" />
+                <Bar dataKey="nodata" name="Sin datos" stackId="a" fill="#3f3f46" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-zinc-200 mb-4">Distribución por tipo</h2>
+        <div style={{ height: 280 }}>
+          {mounted && (
+            <ResponsiveContainer width="99%" height={280}>
+              <PieChart>
+                <Pie
+                  data={byTypeData.map((d) => ({ name: d.name, value: d.total }))}
+                  cx="50%" cy="45%" innerRadius={60} outerRadius={90}
+                  paddingAngle={3} dataKey="value" stroke="none"
+                >
+                  {byTypeData.map((entry, i) => <Cell key={i} fill={TYPE_COLORS[entry.name] ?? "#6b7280"} />)}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+                <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ErrorTrendChart = memo(function ErrorTrendChart({ data }: { data: object[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  return (
+    <div style={{ height: 300 }}>
+      {mounted && (
+        <ResponsiveContainer width="99%" height={300}>
+          <LineChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#71717a" }} />
+            <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
+            <Tooltip {...tooltipStyle} />
+            <Line type="monotone" dataKey="errores" name="Errores" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="ok" name="OK" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="sinDatos" name="Sin datos" stroke="#6b7280" strokeWidth={1} strokeDasharray="4 2" dot={false} />
+            <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+});
+
 export default function ReportesView({ data }: ReportesViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Por Tipo");
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
   const [showUnclassified, setShowUnclassified] = useState(false);
+  const [tabKey, setTabKey] = useState(0);
 
   const hasSyncHistory = data.syncRuns.length > 0;
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setTabKey((k) => k + 1);
+  };
 
   const enrichedServers = useMemo(() =>
     data.currentServers.map((s) => ({
@@ -65,8 +149,13 @@ export default function ReportesView({ data }: ReportesViewProps) {
     [data.currentServers]
   );
 
+  const unclassifiedServers = useMemo(
+    () => enrichedServers.filter((s) => !s.info),
+    [enrichedServers]
+  );
+
   // ── Por Tipo ─────────────────────────────────────────────────────────────
-  const byTypeData = useMemo(() => {
+  const byTypeData = useMemo((): ByTypeItem[] => {
     const counts: Record<string, { total: number; ok: number; error: number; nodata: number }> = {};
     SERVER_TYPES.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0 }; });
     counts["Sin clasificar"] = { total: 0, ok: 0, error: 0, nodata: 0 };
@@ -86,7 +175,8 @@ export default function ReportesView({ data }: ReportesViewProps) {
         name,
         ...v,
         successRate: v.total > 0 ? Math.round((v.ok / v.total) * 100) : 0,
-      }));
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [enrichedServers]);
 
   // ── Errores por Sync ──────────────────────────────────────────────────────
@@ -101,7 +191,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
         total: run.total,
       }));
     }
-    // Fallback: build single point from current server state
     const ok = enrichedServers.filter((s) => !s.isError && !s.isNoData).length;
     const errores = enrichedServers.filter((s) => s.isError).length;
     const sinDatos = enrichedServers.filter((s) => s.isNoData).length;
@@ -131,7 +220,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
         .sort((a, b) => b.count - a.count)
         .slice(0, 20);
     }
-    // Fallback: servers currently with errors
     return enrichedServers
       .filter((s) => s.isError)
       .map((s) => ({ serverName: s.serverName, count: 1, lastError: s.errorDescription ?? "" }))
@@ -140,7 +228,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
   }, [data.syncRuns, enrichedServers, hasSyncHistory]);
 
   // ── Listado Syncs ─────────────────────────────────────────────────────────
-  // When no sync history, show current state as a synthetic snapshot
   const syncListItems = useMemo(() => {
     if (hasSyncHistory) return data.syncRuns;
     if (enrichedServers.length === 0) return [];
@@ -170,7 +257,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         {TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               activeTab === tab ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-200"
             }`}
@@ -182,43 +269,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Por Tipo ── */}
       {activeTab === "Por Tipo" && (
-        <div key="tab-portipo" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="glass rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-4">Servidores por tipo</h2>
-            <ResponsiveContainer width="99%" height={280}>
-              <BarChart data={byTypeData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="ok" name="OK" stackId="a" fill="#10b981" />
-                <Bar dataKey="error" name="Error" stackId="a" fill="#ef4444" />
-                <Bar dataKey="nodata" name="Sin datos" stackId="a" fill="#3f3f46" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div key={`portipo-${tabKey}`} className="space-y-5">
+          <ByTypeCharts byTypeData={byTypeData} />
 
           <div className="glass rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-4">Distribución por tipo</h2>
-            <ResponsiveContainer width="99%" height={280}>
-              <PieChart>
-                <Pie data={byTypeData.map((d) => ({ name: d.name, value: d.total }))} cx="50%" cy="45%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value" stroke="none">
-                  {byTypeData.map((entry, i) => <Cell key={i} fill={TYPE_COLORS[entry.name] ?? "#6b7280"} />)}
-                </Pie>
-                <Tooltip {...tooltipStyle} />
-                <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="glass rounded-2xl p-5 lg:col-span-2">
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">Tasa de éxito por tipo</h2>
             <div className="space-y-2">
-              {byTypeData.sort((a, b) => b.total - a.total).map((d) => {
+              {byTypeData.map((d) => {
                 const isUnclassified = d.name === "Sin clasificar";
-                const unclassifiedServers = isUnclassified
-                  ? enrichedServers.filter((s) => !s.info)
-                  : [];
                 return (
                   <div key={d.name}>
                     <div className="flex items-center gap-3">
@@ -239,7 +297,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
                       )}
                     </div>
                     {isUnclassified && showUnclassified && unclassifiedServers.length > 0 && (
-                      <div className="mt-2 ml-27 pl-1 border-l border-zinc-700/50 space-y-1">
+                      <div className="mt-2 ml-28 pl-2 border-l border-zinc-700/50 space-y-1">
                         {unclassifiedServers.map((s) => (
                           <div key={s.id} className="flex items-center gap-3 text-[10px] text-zinc-500">
                             <span className="font-medium text-zinc-400 w-48 truncate">{s.serverName}</span>
@@ -260,7 +318,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Errores por Sync ── */}
       {activeTab === "Errores por Sync" && (
-        <div key="tab-errores" className="space-y-4">
+        <div key={`errores-${tabKey}`} className="space-y-4">
           {!hasSyncHistory && (
             <InfoBanner text="Aún no hay syncs históricas registradas. Se mostrará el estado actual como referencia. El gráfico se irá llenando a medida que el proceso WUU.ps1 ejecute nuevas syncs." />
           )}
@@ -268,25 +326,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-semibold text-zinc-200 mb-4">
               {hasSyncHistory ? "Tendencia de errores por sincronización" : "Estado actual de servidores"}
             </h2>
-            <ResponsiveContainer width="99%" height={300}>
-              <LineChart data={errorTrendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#71717a" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
-                <Tooltip {...tooltipStyle} />
-                <Line type="monotone" dataKey="errores" name="Errores" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="ok" name="OK" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="sinDatos" name="Sin datos" stroke="#6b7280" strokeWidth={1} strokeDasharray="4 2" dot={false} />
-                <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
-              </LineChart>
-            </ResponsiveContainer>
+            <ErrorTrendChart data={errorTrendData} />
           </div>
         </div>
       )}
 
       {/* ── Listado de Syncs ── */}
       {activeTab === "Listado de Syncs" && (
-        <div key="tab-listado" className="space-y-3">
+        <div key={`listado-${tabKey}`} className="space-y-3">
           {!hasSyncHistory && syncListItems.length > 0 && (
             <InfoBanner text="No hay syncs históricas aún. Se muestra el estado actual de los servidores como snapshot de referencia." />
           )}
@@ -366,7 +413,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Top Errores ── */}
       {activeTab === "Top Errores" && (
-        <div key="tab-toperrores" className="glass rounded-2xl p-5">
+        <div key={`toperrores-${tabKey}`} className="glass rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-zinc-200 mb-1">
             {hasSyncHistory ? "Servidores con más fallas históricas" : "Servidores con errores (estado actual)"}
           </h2>
