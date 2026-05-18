@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -11,56 +12,59 @@ export async function POST(req: Request) {
 
     const validItems = data.filter((item) => item.Servidor);
 
-    // Create a SyncRun to group all records from this sync
-    const syncRun = await prisma.syncRun.create({ data: { total: validItems.length } });
-
+    // 1. Compute all statuses in JS — no DB needed
     let success = 0, errors = 0, noData = 0;
-    const results = [];
-
-    for (const item of validItems) {
-      const isError = item.Descripcion_Error && item.Descripcion_Error !== "N/A";
-      const isNoData = !item.Sistema_Operativo || item.Sistema_Operativo === "N/A";
+    const items = validItems.map((item) => {
+      const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
+      const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
       const status = isError ? "error" : isNoData ? "nodata" : "ok";
-
       if (status === "ok") success++;
       else if (status === "error") errors++;
       else noData++;
-
-      const payload = {
-        domain: item.Dominio ?? null,
-        ip: item.IP ?? null,
-        os: item.Sistema_Operativo ?? null,
-        installDate: item.Fecha_Instalacion ?? null,
-        installedKBs: item.KBs_Instaladas ?? null,
-        errorDescription: item.Descripcion_Error ?? null,
+      return {
+        serverName: item.Servidor as string,
+        domain: (item.Dominio as string) ?? null,
+        ip: (item.IP as string) ?? null,
+        os: (item.Sistema_Operativo as string) ?? null,
+        installDate: (item.Fecha_Instalacion as string) ?? null,
+        installedKBs: (item.KBs_Instaladas as string) ?? null,
+        errorDescription: (item.Descripcion_Error as string) ?? null,
+        status,
       };
-
-      const [serverStatus] = await Promise.all([
-        prisma.serverStatus.upsert({
-          where: { serverName: item.Servidor },
-          update: payload,
-          create: { serverName: item.Servidor, ...payload },
-        }),
-        prisma.syncHistory.create({
-          data: {
-            syncRunId: syncRun.id,
-            serverName: item.Servidor,
-            status,
-            ...payload,
-          },
-        }),
-      ]);
-
-      results.push(serverStatus);
-    }
-
-    // Update SyncRun counters
-    await prisma.syncRun.update({
-      where: { id: syncRun.id },
-      data: { success, errors, noData },
     });
 
-    return NextResponse.json({ success: true, count: results.length, syncRunId: syncRun.id });
+    // 2. Create SyncRun with pre-computed counts — 1 query
+    const syncRun = await prisma.syncRun.create({
+      data: { total: items.length, success, errors, noData },
+    });
+
+    // 3. Batch insert SyncHistory + batch upsert ServerStatus in parallel — 2 queries total
+    await Promise.all([
+      prisma.syncHistory.createMany({
+        data: items.map(({ status, serverName, domain, ip, os, installDate, installedKBs, errorDescription }) => ({
+          syncRunId: syncRun.id,
+          serverName, domain, ip, os, installDate, installedKBs, errorDescription, status,
+        })),
+      }),
+      prisma.$executeRaw`
+        INSERT INTO "ServerStatus"
+          (id, "serverName", domain, ip, os, "installDate", "installedKBs", "errorDescription", "updatedAt", "createdAt")
+        VALUES
+          ${Prisma.join(items.map((v) =>
+            Prisma.sql`(gen_random_uuid(), ${v.serverName}, ${v.domain}, ${v.ip}, ${v.os}, ${v.installDate}, ${v.installedKBs}, ${v.errorDescription}, NOW(), NOW())`
+          ))}
+        ON CONFLICT ("serverName") DO UPDATE SET
+          domain            = EXCLUDED.domain,
+          ip                = EXCLUDED.ip,
+          os                = EXCLUDED.os,
+          "installDate"     = EXCLUDED."installDate",
+          "installedKBs"    = EXCLUDED."installedKBs",
+          "errorDescription"= EXCLUDED."errorDescription",
+          "updatedAt"       = NOW()
+      `,
+    ]);
+
+    return NextResponse.json({ success: true, count: items.length, syncRunId: syncRun.id });
   } catch (error: any) {
     console.error("Upload API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
