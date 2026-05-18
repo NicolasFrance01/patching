@@ -149,10 +149,18 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                 </PieChart>
               </ResponsiveContainer>
               {stats.noData > 0 && (
-                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-500 border-t border-zinc-800 pt-2">
+                <button
+                  onClick={() => handleCardClick("nodata")}
+                  className={`mt-2 w-full flex items-center gap-1.5 text-[11px] border-t border-zinc-800 pt-2 transition-colors rounded-b-sm ${
+                    statusFilter === "nodata"
+                      ? "text-yellow-300"
+                      : "text-zinc-500 hover:text-yellow-400"
+                  }`}
+                >
                   <AlertTriangle className="w-3 h-3 text-yellow-500 shrink-0" />
-                  <span><span className="text-yellow-400">{stats.noData}</span> sin OS</span>
-                </div>
+                  <span><span className="text-yellow-400 font-semibold">{stats.noData}</span> sin OS</span>
+                  <span className="ml-auto text-[10px] opacity-60">{statusFilter === "nodata" ? "✓ activo" : "ver lista →"}</span>
+                </button>
               )}
             </>
           ) : (
