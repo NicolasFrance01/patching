@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import HistorialView from "@/components/HistorialView";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function HistorialPage() {
   const syncRuns = await prisma.syncRun.findMany({

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import DashboardView from "@/components/DashboardView";
 import { ServerStatus } from "@/types";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const raw = await prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } });

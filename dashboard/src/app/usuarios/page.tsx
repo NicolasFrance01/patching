@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import UsuariosView from "@/components/UsuariosView";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage() {
   const session = await getServerSession(authOptions);

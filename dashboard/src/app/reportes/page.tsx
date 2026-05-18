@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import ReportesView from "@/components/ReportesView";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function ReportesPage() {
   const [syncRuns, currentServers] = await Promise.all([
