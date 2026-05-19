@@ -6,6 +6,7 @@ export interface ServerStatus {
   os: string | null;
   installDate: string | null;
   installedKBs: string | null;
+  rebootDate: string | null;
   errorDescription: string | null;
   updatedAt: Date;
   createdAt: Date;

@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { getServerInfo, SERVER_TYPES } from "@/lib/serverTypeMap";
 import { ChevronDown, ChevronRight, Info, Search, Download } from "lucide-react";
+import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
 
 interface SyncRunData {
   id: string;
@@ -445,16 +446,25 @@ export default function ReportesView({ data }: ReportesViewProps) {
                 .filter((g) => !errorSearch || g.message.toLowerCase().includes(errorSearch.toLowerCase()))
                 .map((g, i) => {
                   const isSelected = selectedError === g.message;
-                  const csvContent = ["Servidor", ...g.servers].join("\n");
-                  const downloadCsv = () => {
-                    const blob = new Blob([`Servidor\n${g.servers.join("\n")}`], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `error_${i + 1}_servidores.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  };
+                  const stamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
+
+                  const buildRows = (): ExportRow[] => g.servers.map((srv) => {
+                    const s = enrichedServers.find((e) => e.serverName === srv);
+                    return {
+                      servidor: srv,
+                      dominio: "—",
+                      ip: s?.ip ?? "—",
+                      tipo: s?.info?.type ?? "Sin clasificar",
+                      ambiente: s?.info?.ambiente ?? "—",
+                      os: s?.os && s.os !== "N/A" ? s.os : "—",
+                      fechaInstalacion: s?.installDate ?? "—",
+                      kbsInstaladas: s?.installedKBs ?? "—",
+                      fechaReinicio: "—",
+                      estado: "Error",
+                      error: g.message,
+                    };
+                  });
+
                   return (
                     <div key={g.message}>
                       <button
@@ -481,12 +491,20 @@ export default function ReportesView({ data }: ReportesViewProps) {
                         <div className="px-5 pb-4 bg-zinc-900/40">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-[10px] text-zinc-500">{g.servers.length} servidor{g.servers.length !== 1 ? "es" : ""} con este error</p>
-                            <button
-                              onClick={downloadCsv}
-                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-medium hover:bg-indigo-600/30 transition-colors"
-                            >
-                              <Download className="w-3 h-3" /> Descargar CSV
-                            </button>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => downloadCSV(buildRows(), `error_${stamp}.csv`)}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-medium hover:bg-indigo-600/30 transition-colors"
+                              >
+                                <Download className="w-3 h-3" /> CSV
+                              </button>
+                              <button
+                                onClick={() => downloadPDF(buildRows(), `error_${stamp}.pdf`, `Error: ${g.message.slice(0, 60)}`)}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-medium hover:bg-indigo-600/30 transition-colors"
+                              >
+                                <Download className="w-3 h-3" /> PDF
+                              </button>
+                            </div>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
                             {g.servers.map((srv) => (

@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { ServerStatus } from "@/types";
-import { CheckCircle2, XCircle, Search, X } from "lucide-react";
+import { CheckCircle2, XCircle, Search, X, Download } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
+import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
 
 interface DashboardViewProps {
   initialData: ServerStatus[];
@@ -82,6 +83,28 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
   }
 
   const hasFilter = statusFilter !== "all" || typeFilter !== "all" || effectiveAmbiente !== "all" || !!search;
+
+  function buildExportRows(): ExportRow[] {
+    return filtered.map((s) => {
+      const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
+      const isNoData = (!s.os || s.os === "N/A") && !isError;
+      return {
+        servidor: s.serverName,
+        dominio: s.domain ?? "—",
+        ip: s.ip ?? "—",
+        tipo: s.info?.type ?? "Sin clasificar",
+        ambiente: s.info?.ambiente ?? "—",
+        os: s.os && s.os !== "N/A" ? s.os : "—",
+        fechaInstalacion: s.installDate ?? "—",
+        kbsInstaladas: s.installedKBs ?? "—",
+        fechaReinicio: (s as any).rebootDate ?? "—",
+        estado: isError ? "Error" : isNoData ? "Sin OS" : "OK",
+        error: isError ? (s.errorDescription ?? "") : "—",
+      };
+    });
+  }
+
+  const stamp = () => new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "");
 
   return (
     <div className="space-y-5 p-6 md:p-8">
@@ -198,6 +221,20 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
               />
             </div>
             <span className="text-xs text-zinc-600">{filtered.length} de {stats.total}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => downloadCSV(buildExportRows(), `servidores_${stamp()}.csv`)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 text-[11px] transition-colors"
+              >
+                <Download className="w-3 h-3" /> CSV
+              </button>
+              <button
+                onClick={() => downloadPDF(buildExportRows(), `servidores_${stamp()}.pdf`, "Detalle de Servidores")}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 text-[11px] transition-colors"
+              >
+                <Download className="w-3 h-3" /> PDF
+              </button>
+            </div>
           </div>
 
           {/* Type + Ambiente filters — inside the table card */}
