@@ -78,6 +78,194 @@ function Write-Log {
     $logEntry | Export-Csv -Path $LogFile -Append -NoTypeInformation
 }
 
+function Get-DashboardUploadConfig {
+    $defaults = [PSCustomObject]@{
+        DashboardUrl             = 'https://algeibapatching.vercel.app/api/upload'
+        VercelProtectionBypass   = ''
+        UploadApiKey             = ''
+    }
+    $configPath = Join-Path $ScriptRoot 'WUU_Upload.config.json'
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        return $defaults
+    }
+    try {
+        $raw = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($raw.DashboardUrl) { $defaults.DashboardUrl = [string]$raw.DashboardUrl }
+        if ($raw.VercelProtectionBypass) { $defaults.VercelProtectionBypass = [string]$raw.VercelProtectionBypass }
+        if ($raw.UploadApiKey) { $defaults.UploadApiKey = [string]$raw.UploadApiKey }
+    }
+    catch {
+        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "No se pudo leer WUU_Upload.config.json: $($_.Exception.Message)"
+    }
+    return $defaults
+}
+
+function Get-HttpErrorDetail {
+    param($ErrorRecord)
+    $detail = [string]$ErrorRecord.Exception.Message
+    $resp = $ErrorRecord.Exception.Response
+    if ($resp) {
+        try {
+            $status = [int]$resp.StatusCode
+            $detail = "$detail | HTTP $status"
+            $stream = $resp.GetResponseStream()
+            if ($stream) {
+                $reader = New-Object System.IO.StreamReader($stream)
+                $body = $reader.ReadToEnd()
+                $reader.Close()
+                if ($body -and $body.Trim()) {
+                    $bodyShort = if ($body.Length -gt 500) { $body.Substring(0, 500) + '...' } else { $body }
+                    $detail = "$detail | Body: $bodyShort"
+                }
+            }
+        }
+        catch {}
+    }
+    return $detail
+}
+
+function Get-UpdateEspecialFolderPath {
+    return (Join-Path $ScriptRoot 'Update Especial')
+}
+
+function Get-UpdateEspecialPackages {
+    $folder = Get-UpdateEspecialFolderPath
+    if (-not (Test-Path -LiteralPath $folder)) {
+        try {
+            New-Item -Path $folder -ItemType Directory -Force | Out-Null
+        }
+        catch {}
+        return @()
+    }
+    return @(
+        Get-ChildItem -LiteralPath $folder -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -match '^\.(msu|cab|exe)$' }
+    )
+}
+
+function Get-KbLabelFromPackageName {
+    param([string]$FileName)
+    if ($FileName -match '(KB\d+)') {
+        return $matches[1]
+    }
+    return [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+}
+
+function Select-UpdateEspecialPackage {
+    $packages = @(Get-UpdateEspecialPackages)
+    if ($packages.Count -eq 0) {
+        [System.Windows.MessageBox]::Show(
+            'La carpeta "Update Especial" esta vacia o no contiene paquetes (.msu, .cab, .exe).',
+            'Update Especial',
+            'OK',
+            'Warning'
+        ) | Out-Null
+        return $null
+    }
+    if ($packages.Count -eq 1) {
+        $single = $packages[0]
+        return [PSCustomObject]@{
+            FullName = $single.FullName
+            Name     = $single.Name
+            KbLabel  = (Get-KbLabelFromPackageName $single.Name)
+        }
+    }
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object System.Windows.Forms.OpenFileDialog
+    $dialog.Title = 'Seleccione el paquete Update Especial'
+    $dialog.InitialDirectory = (Get-UpdateEspecialFolderPath)
+    $dialog.Filter = 'Paquetes de actualizacion|*.msu;*.cab;*.exe|Todos los archivos|*.*'
+    $dialog.Multiselect = $false
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
+        return $null
+    }
+    $picked = Get-Item -LiteralPath $dialog.FileName
+    return [PSCustomObject]@{
+        FullName = $picked.FullName
+        Name     = $picked.Name
+        KbLabel  = (Get-KbLabelFromPackageName $picked.Name)
+    }
+}
+
+function Update-UpdateEspecialButtonState {
+    if (-not $uiHash.UpdateEspecialButton) {
+        return
+    }
+    $hasPackages = (@(Get-UpdateEspecialPackages)).Count -gt 0
+    $isRefreshing = $false
+    try { $isRefreshing = [bool]$uiHash.IsRefreshing } catch {}
+    $enabled = $hasPackages -and (-not $isRefreshing)
+    try {
+        $uiHash.UpdateEspecialButton.IsEnabled = $enabled
+    }
+    catch {}
+    if ($uiHash.UpdateEspecialContext) {
+        try { $uiHash.UpdateEspecialContext.IsEnabled = $enabled } catch {}
+    }
+}
+
+function Set-SpecialUpdateGridProgress {
+    param(
+        [Parameter(Mandatory)]$Computer,
+        [int]$Percent,
+        [string]$StatusText
+    )
+    $pct = [int][math]::Min(100, [math]::Max(0, $Percent))
+    $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+            $uiHash.Listview.Items.EditItem($Computer)
+            $Computer.DownloadPercent = "$pct%"
+            if ($StatusText) { $Computer.Status = $StatusText }
+            $Computer.Phase = 'DownloadingInstalling'
+            $uiHash.Listview.Items.CommitEdit()
+            $uiHash.Listview.Items.Refresh()
+        })
+}
+
+function Copy-PackageToRemoteTemp {
+    param(
+        [Parameter(Mandatory)][string]$ComputerName,
+        [Parameter(Mandatory)]$Computer,
+        [Parameter(Mandatory)][string]$SourcePath,
+        [Parameter(Mandatory)][string]$FileName
+    )
+    $remoteTemp = "\\$ComputerName\C$\Temp"
+    if (-not (Test-Path -LiteralPath $remoteTemp)) {
+        New-Item -Path $remoteTemp -ItemType Directory -Force | Out-Null
+    }
+    $destPath = Join-Path $remoteTemp $FileName
+    $sourceItem = Get-Item -LiteralPath $SourcePath
+    $totalBytes = [long]$sourceItem.Length
+    if ($totalBytes -le 0) {
+        Copy-Item -LiteralPath $SourcePath -Destination $destPath -Force
+        Set-SpecialUpdateGridProgress -Computer $Computer -Percent 50 -StatusText 'Copia a C:\Temp completada'
+        return $destPath
+    }
+
+    $bufferSize = 4MB
+    $buffer = New-Object byte[] $bufferSize
+    $readTotal = 0L
+    $srcStream = [System.IO.File]::OpenRead($SourcePath)
+    try {
+        $dstStream = [System.IO.File]::Create($destPath)
+        try {
+            while (($read = $srcStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $dstStream.Write($buffer, 0, $read)
+                $readTotal += $read
+                $copyPct = [int][math]::Floor(50.0 * $readTotal / $totalBytes)
+                Set-SpecialUpdateGridProgress -Computer $Computer -Percent $copyPct -StatusText "Copiando a C:\Temp ($copyPct%)..."
+            }
+        }
+        finally {
+            $dstStream.Dispose()
+        }
+    }
+    finally {
+        $srcStream.Dispose()
+    }
+    Set-SpecialUpdateGridProgress -Computer $Computer -Percent 50 -StatusText 'Copia a C:\Temp completada'
+    return $destPath
+}
+
 function Set-ComputerUpdatesStatus {
     param($Computer)
     $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
@@ -242,6 +430,7 @@ $UpdateCountersUiScript = {
             }
         }
         catch {}
+        try { Update-UpdateEspecialButtonState } catch {}
     }
     try {
         if ($dispatcher.CheckAccess()) {
@@ -277,6 +466,7 @@ function Set-MainActionControlsEnabled {
         $uiHash.StartButton,
         $uiHash.RestartSelectedButton,
         $uiHash.ReportButton,
+        $uiHash.UpdateEspecialButton,
         $uiHash.ReloadGroupsButton
     )
     foreach ($control in $controls) {
@@ -286,6 +476,9 @@ function Set-MainActionControlsEnabled {
     }
     if ($uiHash.StopRefreshButton) {
         $uiHash.StopRefreshButton.IsEnabled = if ($KeepStopEnabled) { $true } else { $Enabled }
+    }
+    if ($Enabled) {
+        Update-UpdateEspecialButtonState
     }
 }
 
@@ -669,6 +862,145 @@ $DownloadUpdates = {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Status = "Error occurred: $errMsg."
                 $computer.InstallErrors = "Download: $errMsg"
+                $uiHash.Listview.Items.CommitEdit()
+                $uiHash.Listview.Items.Refresh()
+            })
+    }
+}
+
+# Instalar paquete Update Especial (copia a C:\Temp e instala en remoto)
+$InstallSpecialUpdate = {
+    Param (
+        $Computer,
+        [string]$PackageLocalPath,
+        [string]$PackageFileName,
+        [string]$KbLabel
+    )
+    Try {
+        Set-Location $ScriptRoot
+        $serverName = [string]$Computer.Computer
+
+        $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                $uiHash.Listview.Items.EditItem($Computer)
+                $Computer.StartTime = Get-Date
+                $Computer.InstallErrors = ''
+                $Computer.Phase = 'DownloadingInstalling'
+                $Computer.DownloadPercent = '0%'
+                $Computer.Status = "Update Especial ($KbLabel): preparando..."
+                $uiHash.Listview.Items.CommitEdit()
+                $uiHash.Listview.Items.Refresh()
+            })
+
+        Write-Log -Computer $serverName -Action 'UpdateEspecial' -Result 'Info' -Details "Iniciando $KbLabel ($PackageFileName)"
+
+        $remoteTemp = "\\$serverName\C$\Temp"
+        $null = Copy-PackageToRemoteTemp -ComputerName $serverName -Computer $Computer -SourcePath $PackageLocalPath -FileName $PackageFileName
+        Set-Content -LiteralPath (Join-Path $remoteTemp 'WU-SpecialPackageName.txt') -Value $PackageFileName -Encoding ASCII -Force
+
+        $remoteScripts = "\\$serverName\C$\Admin\Scripts"
+        if (-not (Test-Path -Path $remoteScripts)) {
+            New-Item -Path $remoteScripts -ItemType Directory -Force | Out-Null
+        }
+        $progressUnc = Join-Path $remoteTemp 'WU-SpecialProgress.txt'
+        $resultUnc = Join-Path $remoteTemp 'WU-SpecialResult.txt'
+        Remove-Item -LiteralPath $progressUnc, $resultUnc -Force -ErrorAction SilentlyContinue
+
+        $installScriptLocal = Join-Path $ScriptRoot 'Scripts\Install-SpecialUpdate.ps1'
+        Copy-Item -LiteralPath $installScriptLocal -Destination (Join-Path $remoteScripts 'Install-SpecialUpdate.ps1') -Force
+
+        Set-SpecialUpdateGridProgress -Computer $Computer -Percent 52 -StatusText "Instalando $KbLabel en servidor remoto..."
+
+        $psexecCmd = 'echo . | powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Admin\Scripts\Install-SpecialUpdate.ps1'
+        $psexecArgs = @('-accepteula', '-nobanner', '-s', "\\$serverName", 'cmd.exe', '/c', $psexecCmd)
+        $installProc = Start-Process -FilePath $PsExecPath -ArgumentList $psexecArgs -WindowStyle Hidden -PassThru
+        $lastProgress = ''
+        while (-not $installProc.WaitForExit(700)) {
+            if (Test-Path -LiteralPath $progressUnc) {
+                $line = Get-Content -LiteralPath $progressUnc -Tail 1 -ErrorAction SilentlyContinue
+                if ($line -and $line -ne $lastProgress) {
+                    $lastProgress = $line
+                    $pct = 50
+                    $msg = $line
+                    if ($line -match '^(\d+)\|(.+)$') {
+                        $pct = [int]$matches[1]
+                        $msg = [string]$matches[2]
+                    }
+                    elseif ($line -match '(\d+)%') {
+                        $pct = [int]$matches[1]
+                    }
+                    $pct = [int][math]::Min(100, [math]::Max(50, $pct))
+                    Set-SpecialUpdateGridProgress -Computer $Computer -Percent $pct -StatusText $msg
+                }
+            }
+        }
+        $installExit = $installProc.ExitCode
+        Remove-Item (Join-Path $remoteScripts 'Install-SpecialUpdate.ps1') -Force -ErrorAction SilentlyContinue
+
+        if ($installExit -ne 0) {
+            $errFromFile = ''
+            if (Test-Path -LiteralPath $resultUnc) {
+                try {
+                    $res = Get-Content -LiteralPath $resultUnc -Raw | ConvertFrom-Json
+                    if ($res.Error) { $errFromFile = [string]$res.Error }
+                }
+                catch {}
+            }
+            Remove-Item -LiteralPath $progressUnc, $resultUnc, (Join-Path $remoteTemp 'WU-SpecialPackageName.txt') -Force -ErrorAction SilentlyContinue
+            throw $(if ($errFromFile) { $errFromFile } else { "PsExec finalizo con codigo $installExit" })
+        }
+
+        $rebootRequired = $false
+        if (Test-Path -LiteralPath $resultUnc) {
+            try {
+                $res = Get-Content -LiteralPath $resultUnc -Raw | ConvertFrom-Json
+                if ($null -ne $res.RebootRequired) {
+                    $rebootRequired = [bool]$res.RebootRequired
+                }
+            }
+            catch {}
+        }
+        Remove-Item -LiteralPath $progressUnc, $resultUnc, (Join-Path $remoteTemp 'WU-SpecialPackageName.txt') -Force -ErrorAction SilentlyContinue
+
+        $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                $uiHash.Listview.Items.EditItem($Computer)
+                $Computer.Status = "Update Especial ($KbLabel) completado."
+                $Computer.DownloadPercent = '100%'
+                $Computer.EndTime = Get-Date
+                if ($rebootRequired) {
+                    $Computer.RebootRequired = $true
+                    $Computer.Phase = 'RebootRequired'
+                }
+                else {
+                    $Computer.RebootRequired = $false
+                    $Computer.Phase = 'Updated'
+                }
+                $uiHash.Listview.Items.CommitEdit()
+                $uiHash.Listview.Items.Refresh()
+            })
+
+        if ($Computer.IsChecked) {
+            $selectedComputersSet[[string]$Computer.Computer] = $true
+            if ($Computer.RebootRequired) {
+                $pendingRebootSet[[string]$Computer.Computer] = $true
+            }
+            else {
+                $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+            }
+        }
+        & $UpdateCountersUiScript
+        Write-Log -Computer $serverName -Action 'UpdateEspecial' -Result 'Success' -Details "$KbLabel instalado correctamente."
+    }
+    Catch {
+        Write-Log -Computer $Computer.Computer -Action 'UpdateEspecial' -Result 'Error' -Details $_.Exception.Message
+        $errMsg = $_.Exception.Message
+        $rs = "\\$($Computer.Computer)\C$\Admin\Scripts"
+        Remove-Item "$rs\Install-SpecialUpdate.ps1" -Force -ErrorAction SilentlyContinue
+        $rt = "\\$($Computer.Computer)\C$\Temp"
+        Remove-Item "$rt\WU-SpecialProgress.txt", "$rt\WU-SpecialResult.txt", "$rt\WU-SpecialPackageName.txt" -Force -ErrorAction SilentlyContinue
+        $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                $uiHash.Listview.Items.EditItem($Computer)
+                $Computer.Status = "Update Especial error: $errMsg"
+                $Computer.InstallErrors = "UpdateEspecial: $errMsg"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
@@ -1456,6 +1788,7 @@ $uiHash.ClearSelectionButton = $uiHash.Window.FindName('ClearSelectionButton')
 $uiHash.StartButton = $uiHash.Window.FindName('StartButton')
 $uiHash.RestartSelectedButton = $uiHash.Window.FindName('RestartSelectedButton')
 $uiHash.ReportButton = $uiHash.Window.FindName('ReportButton')
+$uiHash.UpdateEspecialButton = $uiHash.Window.FindName('UpdateEspecialButton')
 $uiHash.StopRefreshButton = $uiHash.Window.FindName('StopRefreshButton')
 $uiHash.UpdateTargetsTextBlock = $uiHash.Window.FindName('UpdateTargetsTextBlock')
 $uiHash.PendingRebootTextBlock = $uiHash.Window.FindName('PendingRebootTextBlock')
@@ -1505,6 +1838,7 @@ $uiHash.WURestartServiceMenu = Resolve-UiName 'WURestartServiceMenu'
 $uiHash.WUStartServiceMenu = Resolve-UiName 'WUStartServiceMenu'
 $uiHash.WUStopServiceMenu = Resolve-UiName 'WUStopServiceMenu'
 $uiHash.ExportReportMenu = Resolve-UiName 'ExportReportMenu'
+$uiHash.UpdateEspecialContext = Resolve-UiName 'UpdateEspecialContext'
 $uiHash.IsRefreshing = $false
 #endregion Connect to controls
 
@@ -1587,6 +1921,7 @@ $eventWindowInit = { #Runs before opening window
             $uiHash.StatusTextBox.Text = "Seleccione un grupo para cargar servidores. Grupos detectados: $($groups.Count)"
         })
     Update-RestartSelectedButtonState
+    Update-UpdateEspecialButtonState
 }
 $eventWindowClose = { #Runs when WUU closes
     #Halt job processing
@@ -1729,6 +2064,53 @@ $eventReloadGroups = {
             $uiHash.StatusTextBox.Text = "Grupos recargados correctamente: $($groups.Count)"
         })
     Update-RestartSelectedButtonState
+    Update-UpdateEspecialButtonState
+}
+$eventUpdateEspecial = {
+    $targets = @(Get-CheckedComputers)
+    if ($targets.Count -eq 0) {
+        [System.Windows.MessageBox]::Show(
+            'Seleccione al menos un servidor en la grilla (checkbox).',
+            'Update Especial',
+            'OK',
+            'Warning'
+        ) | Out-Null
+        return
+    }
+    $package = Select-UpdateEspecialPackage
+    if (-not $package) {
+        Update-UpdateEspecialButtonState
+        return
+    }
+
+    $confirm = [System.Windows.MessageBox]::Show(
+        "Se instalara $($package.KbLabel) ($($package.Name)) en $($targets.Count) servidor(es).`n`nEl paquete se copiara a C:\Temp de cada equipo y se instalara remotamente.`n`nDesea continuar?",
+        'Update Especial',
+        'YesNo',
+        'Question'
+    )
+    if ($confirm -ne [System.Windows.MessageBoxResult]::Yes) {
+        return
+    }
+
+    $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+            $uiHash.StatusTextBox.Foreground = 'DarkBlue'
+            $uiHash.StatusTextBox.Text = "Update Especial ($($package.KbLabel)) en $($targets.Count) servidor(es)..."
+        })
+
+    foreach ($target in $targets) {
+        try {
+            Ensure-ComputerRunspace $target
+            $temp = '' | Select-Object PowerShell, Runspace
+            $temp.PowerShell = [powershell]::Create().AddScript($InstallSpecialUpdate).AddArgument($target).AddArgument($package.FullName).AddArgument($package.Name).AddArgument($package.KbLabel)
+            $temp.PowerShell.Runspace = $target.Runspace
+            $temp.Runspace = $temp.PowerShell.BeginInvoke()
+            $jobs.Add($temp) | Out-Null
+        }
+        catch {
+            Write-Log -Computer $target.Computer -Action 'UpdateEspecial' -Result 'Error' -Details $_.Exception.Message
+        }
+    }
 }
 $eventGroupChanged = {
     $selectedGroup = [string]$uiHash.GroupComboBox.SelectedItem
@@ -1926,7 +2308,7 @@ $eventStopAndRefresh = {
 
     $setControlsEnabled = {
         param([bool]$On)
-        $controlKeys = @('GroupComboBox','SelectAllButton','ClearSelectionButton','StartButton','RestartSelectedButton','ReportButton','ReloadGroupsButton')
+        $controlKeys = @('GroupComboBox','SelectAllButton','ClearSelectionButton','StartButton','RestartSelectedButton','ReportButton','UpdateEspecialButton','ReloadGroupsButton')
         foreach ($k in $controlKeys) {
             $ctrl = $stopRefreshUiRef[$k]
             if ($ctrl) { try { $ctrl.IsEnabled = $On } catch {} }
@@ -2403,20 +2785,29 @@ $eventExportReport = {
 
     $ReportData | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8 -Delimiter ","
 
-    # Enviar JSON al Dashboard Web (con preflight, timeouts mas largos y reintentos espaciados)
+    # Enviar JSON al Dashboard Web (config opcional: WUU_Upload.config.json junto a WUU.ps1)
     $UploadMsg = ''
-    $DashboardUrl = 'https://algeibapatching.vercel.app/api/upload'
+    $uploadConfig = Get-DashboardUploadConfig
+    $DashboardUrl = $uploadConfig.DashboardUrl
     if ([string]::IsNullOrWhiteSpace($DashboardUrl)) {
         $UploadMsg = "`n`nSincronizacion con Dashboard deshabilitada (URL vacia)."
         Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details 'Upload omitido: URL del dashboard sin configurar.'
     }
     else {
         try {
-            $JsonData = @($ReportData) | ConvertTo-Json -Depth 5 -Compress
+            # IMPORTANTE: usar -InputObject para evitar que el pipeline desempaque
+            # un List/array de un solo elemento y termine enviando un objeto JSON
+            # en lugar de un array, lo que provoca HTTP 400 en /api/upload.
+            $JsonData = ConvertTo-Json -InputObject $ReportData -Depth 5 -Compress
+            if (-not $JsonData.TrimStart().StartsWith('[')) {
+                $JsonData = '[' + $JsonData + ']'
+            }
+            Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details "Payload listo (items=$($ReportData.Count), bytes=$($JsonData.Length))."
             [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
             try { [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials } catch {}
 
-            # Preflight: confirmar resolucion DNS y handshake TCP antes de subir el payload.
+            # No abortar por preflight TCP: en redes corporativas el socket directo a :443 suele
+            # fallar aunque Invoke-RestMethod (proxy del sistema) funcione. Solo registramos aviso.
             $dashboardHost = ([System.Uri]$DashboardUrl).Host
             $dashboardPort = ([System.Uri]$DashboardUrl).Port
             if ($dashboardPort -le 0) { $dashboardPort = 443 }
@@ -2424,14 +2815,24 @@ $eventExportReport = {
             try {
                 $tcpClient = New-Object System.Net.Sockets.TcpClient
                 $iar = $tcpClient.BeginConnect($dashboardHost, $dashboardPort, $null, $null)
-                $preflightOk = $iar.AsyncWaitHandle.WaitOne(5000, $false) -and $tcpClient.Connected
+                $preflightOk = $iar.AsyncWaitHandle.WaitOne(15000, $false) -and $tcpClient.Connected
                 try { $tcpClient.Close() } catch {}
             }
             catch {
                 $preflightOk = $false
             }
             if (-not $preflightOk) {
-                throw "No se pudo abrir conexion TCP a $dashboardHost`:$dashboardPort en 5s (posible bloqueo de proxy/firewall)."
+                Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "Preflight TCP a ${dashboardHost}:$dashboardPort no respondio en 15s; se intenta subida HTTP igual (proxy/firewall corporativo)."
+            }
+
+            $uploadHeaders = @{
+                'User-Agent' = 'WUU-Patching-Client/1.0'
+            }
+            if (-not [string]::IsNullOrWhiteSpace($uploadConfig.VercelProtectionBypass)) {
+                $uploadHeaders['x-vercel-protection-bypass'] = $uploadConfig.VercelProtectionBypass
+            }
+            if (-not [string]::IsNullOrWhiteSpace($uploadConfig.UploadApiKey)) {
+                $uploadHeaders['x-api-key'] = $uploadConfig.UploadApiKey
             }
 
             Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details "Subiendo reporte (size=$([Math]::Ceiling(($JsonData.Length/1KB)))KB) a $DashboardUrl"
@@ -2444,7 +2845,7 @@ $eventExportReport = {
             for ($attempt = 1; $attempt -le $uploadAttempts; $attempt++) {
                 try {
                     $attemptSw = [System.Diagnostics.Stopwatch]::StartNew()
-                    Invoke-RestMethod -Uri $DashboardUrl -Method Post -Body $JsonData -ContentType 'application/json' -TimeoutSec $perAttemptTimeoutSec -ErrorAction Stop | Out-Null
+                    Invoke-RestMethod -Uri $DashboardUrl -Method Post -Body $JsonData -ContentType 'application/json' -Headers $uploadHeaders -TimeoutSec $perAttemptTimeoutSec -ErrorAction Stop | Out-Null
                     $attemptSw.Stop()
                     Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Success' -Details "Subida OK en intento $attempt ($([Math]::Round($attemptSw.Elapsed.TotalSeconds,1))s)."
                     $uploadOk = $true
@@ -2452,10 +2853,7 @@ $eventExportReport = {
                 }
                 catch {
                     $lastUploadError = $_
-                    $errDetail = $_.Exception.Message
-                    if ($_.Exception.InnerException -and $_.Exception.InnerException.Message) {
-                        $errDetail = "$errDetail | $($_.Exception.InnerException.Message)"
-                    }
+                    $errDetail = Get-HttpErrorDetail -ErrorRecord $_
                     Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "Intento $attempt fallo: $errDetail"
                     if ($attempt -lt $uploadAttempts) {
                         Start-Sleep -Seconds (5 * $attempt)
@@ -2470,14 +2868,18 @@ $eventExportReport = {
             $UploadMsg = "`n`nDatos sincronizados con el Dashboard en $([Math]::Round($stopWatch.Elapsed.TotalSeconds,1))s."
         }
         catch {
-            $uploadErrorText = $_.Exception.Message
-            if ($_.Exception.InnerException -and $_.Exception.InnerException.Message) {
-                $uploadErrorText = "$uploadErrorText | Detalle: $($_.Exception.InnerException.Message)"
-            }
+            $uploadErrorText = Get-HttpErrorDetail -ErrorRecord $_
             Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Error' -Details $uploadErrorText
+            $hint403 = ''
+            if ($uploadErrorText -match '\b403\b|Forbidden') {
+                $hint403 = "`n`nSi el codigo es 403: suele ser proteccion de Vercel o proxy/firewall corporativo." +
+                           "`nEn Vercel: Settings > Deployment Protection > copiar el bypass secret a WUU_Upload.config.json (VercelProtectionBypass)." +
+                           "`nO pedir a IT permitir POST a algeibapatching.vercel.app."
+            }
             $UploadMsg = "`n`nNo se pudo sincronizar con el Dashboard tras varios intentos:" +
                          "`nURL: $DashboardUrl" +
                          "`nDetalle: $uploadErrorText" +
+                         $hint403 +
                          "`n`nEl reporte CSV quedo guardado igualmente y se puede reintentar la subida mas tarde."
         }
     }
@@ -2495,6 +2897,7 @@ $uiHash.CheckUpdatesContext.Add_Click($eventGetUpdates) #Check For Updates (Cont
 $uiHash.DownloadUpdatesContext.Add_Click($eventDownloadUpdates) #Download Updates
 $uiHash.UpdateHistoryMenu.Add_Click($eventShowUpdateHistory) #Get Update History
 $uiHash.InstallUpdatesContext.Add_Click($eventInstallUpdates) #Install Updates
+if ($uiHash.UpdateEspecialContext) { $uiHash.UpdateEspecialContext.Add_Click($eventUpdateEspecial) }
 $uiHash.ReportStatusContext.Add_Click($eventReportStatus) #Report status to WSUS
 $uiHash.Listview.Add_MouseRightButtonUp($eventRightClick) #On Right Click
 $uiHash.RemoteDesktopContext.Add_Click( { mstsc.exe /v $uiHash.Listview.SelectedItems.Computer }) #RDP
@@ -2517,6 +2920,7 @@ $uiHash.ClearSelectionButton.Add_Click($eventClearChecked)
 $uiHash.StartButton.Add_Click($eventStartSelected)
 $uiHash.RestartSelectedButton.Add_Click($eventRestartSelected)
 $uiHash.ReportButton.Add_Click($eventExportReport)
+if ($uiHash.UpdateEspecialButton) { $uiHash.UpdateEspecialButton.Add_Click($eventUpdateEspecial) }
 $uiHash.StopRefreshButton.Add_Click($eventStopAndRefresh)
 #endregion       
 

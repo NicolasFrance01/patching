@@ -117,6 +117,8 @@
                     <ColumnDefinition Width='Auto'/>
                     <ColumnDefinition Width='10'/>
                     <ColumnDefinition Width='Auto'/>
+                    <ColumnDefinition Width='10'/>
+                    <ColumnDefinition Width='Auto'/>
                     <ColumnDefinition Width='*'/>
                 </Grid.ColumnDefinitions>
 
@@ -127,8 +129,9 @@
                 <Button x:Name='StartButton' Grid.Column='7' Content='&#x25B6; Iniciar' Padding='12,4' Background='#E6F2FF' FontWeight='SemiBold'/>
                 <Button x:Name='RestartSelectedButton' Grid.Column='9' Content='&#x21BB; Reiniciar seleccionados' Padding='12,4' IsEnabled='False'/>
                 <Button x:Name='ReportButton' Grid.Column='11' Content='&#x2261; Reporte' Padding='12,4'/>
-                <Button x:Name='ReloadGroupsButton' Grid.Column='13' Content='&#x27F3; Recargar grupos' Padding='12,4' ToolTip='Recarga los grupos desde CSV en la carpeta Servidores'/>
-                <Button x:Name='StopRefreshButton' Grid.Column='15' Content='&#x25A0; Detener y refrescar' Padding='12,4' Background='#FFEFEF'/>
+                <Button x:Name='UpdateEspecialButton' Grid.Column='13' Content='&#x2B07; Update Especial' Padding='12,4' IsEnabled='False' ToolTip='Instala el paquete de la carpeta Update Especial en los servidores seleccionados'/>
+                <Button x:Name='ReloadGroupsButton' Grid.Column='15' Content='&#x27F3; Recargar grupos' Padding='12,4' ToolTip='Recarga los grupos desde CSV en la carpeta Servidores'/>
+                <Button x:Name='StopRefreshButton' Grid.Column='17' Content='&#x25A0; Detener y refrescar' Padding='12,4' Background='#FFEFEF'/>
             </Grid>
         </Border>
 
@@ -220,6 +223,7 @@
                             <MenuItem x:Name='CheckUpdatesContext' Header='Check For Updates'/>
                             <MenuItem x:Name='DownloadUpdatesContext' Header='Download Updates'/>
                             <MenuItem x:Name='InstallUpdatesContext' Header='Install Updates'/>
+                            <MenuItem x:Name='UpdateEspecialContext' Header='Update Especial' ToolTip='Instala el paquete de la carpeta Update Especial'/>
                             <MenuItem x:Name='ReportStatusContext' Header='Report Status to WSUS' ToolTip='Runs wuauclt /reportnow on the remote computer'/>
                             <MenuItem x:Name='RestartContext' Header='Restart Computer'/>
                             <Separator />

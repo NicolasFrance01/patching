@@ -1,0 +1,5 @@
+{
+  "DashboardUrl": "https://algeibapatching.vercel.app/api/upload",
+  "VercelProtectionBypass": "PEGAR_AQUI_EL_SECRET_DE_VERCEL_DEPLOYMENT_PROTECTION",
+  "UploadApiKey": ""
+}

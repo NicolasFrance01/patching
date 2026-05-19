@@ -1,0 +1,5 @@
+Coloque aqui el paquete de la actualizacion especial (.msu, .cab o .exe).
+
+Ejemplo de nombre: KB5034123-x64.msu
+
+El boton "Update Especial" en WUU permanecera deshabilitado mientras esta carpeta este vacia.
