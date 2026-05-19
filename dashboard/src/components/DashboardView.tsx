@@ -132,62 +132,6 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
         </div>
       </div>
 
-      {/* Type filter pills */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => handleTypeChange("all")}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            typeFilter === "all"
-              ? "bg-indigo-600 text-white"
-              : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-          }`}
-        >
-          Todos los tipos
-        </button>
-        {SERVER_TYPES.map((t) => (
-          <button
-            key={t}
-            onClick={() => handleTypeChange(t)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              typeFilter === t
-                ? "bg-indigo-600 text-white"
-                : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Ambiente sub-filter */}
-      {availableAmbientes.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          <button
-            onClick={() => setAmbienteFilter("all")}
-            className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-              effectiveAmbiente === "all"
-                ? "bg-zinc-600 text-white"
-                : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            Todos
-          </button>
-          {availableAmbientes.map((a) => (
-            <button
-              key={a}
-              onClick={() => setAmbienteFilter(a)}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                effectiveAmbiente === a
-                  ? "bg-zinc-600 text-white"
-                  : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {a}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Chart + Table */}
       <div className="flex flex-col xl:flex-row gap-5">
         {/* Pie chart */}
@@ -230,9 +174,11 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
         </div>
 
         {/* Table */}
-        <div className="glass rounded-2xl flex-1 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800/60">
-            <h2 className="text-sm font-semibold text-zinc-200 flex-1">Detalle de Servidores</h2>
+        <div className="glass rounded-2xl flex-1 overflow-hidden min-w-0">
+          {/* Table header */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800/60 flex-wrap gap-y-2">
+            <h2 className="text-sm font-semibold text-zinc-200">Detalle de Servidores</h2>
+            <div className="flex-1" />
             {hasFilter && (
               <button
                 onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setAmbienteFilter("all"); setSearch(""); }}
@@ -248,30 +194,88 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                 placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 py-1.5 bg-zinc-900 border border-zinc-700/50 rounded-lg text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 w-44"
+                className="pl-8 pr-3 py-1.5 bg-zinc-900 border border-zinc-700/50 rounded-lg text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 w-40"
               />
             </div>
             <span className="text-xs text-zinc-600">{filtered.length} de {stats.total}</span>
           </div>
 
-          <div className="overflow-auto max-h-[560px]">
-            <table className="w-full text-xs text-left">
+          {/* Type + Ambiente filters — inside the table card */}
+          <div className="px-4 py-2.5 border-b border-zinc-800/40 space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => handleTypeChange("all")}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                  typeFilter === "all"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Todos los tipos
+              </button>
+              {SERVER_TYPES.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTypeChange(t)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                    typeFilter === t
+                      ? "bg-indigo-600 text-white"
+                      : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {availableAmbientes.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <button
+                  onClick={() => setAmbienteFilter("all")}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                    effectiveAmbiente === "all"
+                      ? "bg-zinc-600 text-white"
+                      : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  Todos
+                </button>
+                {availableAmbientes.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => setAmbienteFilter(a)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                      effectiveAmbiente === a
+                        ? "bg-zinc-600 text-white"
+                        : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Table — horizontally scrollable, no truncation */}
+          <div className="overflow-auto max-h-[520px]">
+            <table className="min-w-full text-xs text-left whitespace-nowrap">
               <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur text-zinc-400 uppercase text-[10px]">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Servidor</th>
-                  <th className="px-4 py-2.5 font-medium hidden sm:table-cell">IP</th>
-                  <th className="px-4 py-2.5 font-medium hidden md:table-cell">Tipo</th>
-                  <th className="px-4 py-2.5 font-medium hidden lg:table-cell">Ambiente</th>
-                  <th className="px-4 py-2.5 font-medium hidden md:table-cell">OS</th>
-                  <th className="px-4 py-2.5 font-medium hidden lg:table-cell">KB instalada</th>
+                  <th className="px-4 py-2.5 font-medium">IP</th>
+                  <th className="px-4 py-2.5 font-medium">Tipo</th>
+                  <th className="px-4 py-2.5 font-medium">Ambiente</th>
+                  <th className="px-4 py-2.5 font-medium">OS</th>
+                  <th className="px-4 py-2.5 font-medium">KB instalada</th>
                   <th className="px-4 py-2.5 font-medium">Estado</th>
-                  <th className="px-4 py-2.5 font-medium hidden xl:table-cell">Error</th>
+                  <th className="px-4 py-2.5 font-medium">Error</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/40">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-zinc-600">
+                    <td colSpan={8} className="px-4 py-12 text-center text-zinc-600 whitespace-normal">
                       Sin resultados para los filtros aplicados.
                     </td>
                   </tr>
@@ -281,9 +285,9 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                     const isNoData = (!s.os || s.os === "N/A") && !isError;
                     return (
                       <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-2.5 font-medium text-zinc-200 max-w-[180px] truncate">{s.serverName}</td>
-                        <td className="px-4 py-2.5 text-zinc-400 hidden sm:table-cell font-mono">{s.ip ?? "—"}</td>
-                        <td className="px-4 py-2.5 hidden md:table-cell">
+                        <td className="px-4 py-2.5 font-medium text-zinc-200">{s.serverName}</td>
+                        <td className="px-4 py-2.5 text-zinc-400 font-mono">{s.ip ?? "—"}</td>
+                        <td className="px-4 py-2.5">
                           {s.info?.type ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                               {s.info.type}
@@ -292,9 +296,9 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                             <span className="text-zinc-600">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-400 hidden lg:table-cell text-[10px]">{s.info?.ambiente ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-zinc-400 hidden md:table-cell max-w-[140px] truncate">{s.os && s.os !== "N/A" ? s.os : "—"}</td>
-                        <td className="px-4 py-2.5 text-zinc-400 hidden lg:table-cell text-[10px] max-w-[120px] truncate">
+                        <td className="px-4 py-2.5 text-zinc-400 text-[11px]">{s.info?.ambiente ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-zinc-400">{s.os && s.os !== "N/A" ? s.os : "—"}</td>
+                        <td className="px-4 py-2.5 text-zinc-400 text-[11px]">
                           {s.installedKBs && s.installedKBs !== "N/A" && s.installedKBs !== "Ninguna/No detectada" ? s.installedKBs : "—"}
                         </td>
                         <td className="px-4 py-2.5">
@@ -306,7 +310,7 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-rose-400/70 hidden xl:table-cell text-[10px] max-w-[200px] truncate">
+                        <td className="px-4 py-2.5 text-rose-400/70 text-[11px]">
                           {isError ? s.errorDescription : "—"}
                         </td>
                       </tr>

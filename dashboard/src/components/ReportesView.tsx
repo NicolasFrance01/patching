@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { getServerInfo, SERVER_TYPES } from "@/lib/serverTypeMap";
-import { ChevronDown, ChevronRight, Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Info, Search, Download } from "lucide-react";
 
 interface SyncRunData {
   id: string;
@@ -131,6 +131,8 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
   const [showUnclassified, setShowUnclassified] = useState(false);
   const [tabKey, setTabKey] = useState(0);
+  const [errorSearch, setErrorSearch] = useState("");
+  const [selectedError, setSelectedError] = useState<string | null>(null);
 
   const hasSyncHistory = data.syncRuns.length > 0;
 
@@ -202,29 +204,29 @@ export default function ReportesView({ data }: ReportesViewProps) {
     }];
   }, [data.syncRuns, enrichedServers, hasSyncHistory, data.currentServers]);
 
-  // ── Top Errores ───────────────────────────────────────────────────────────
-  const topErrors = useMemo(() => {
+  // ── Top Errores — grouped by error message ────────────────────────────────
+  const errorGroups = useMemo(() => {
+    const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      const counts: Record<string, { count: number; lastError: string }> = {};
       for (const run of data.syncRuns) {
         for (const r of run.records) {
-          if (r.status === "error") {
-            if (!counts[r.serverName]) counts[r.serverName] = { count: 0, lastError: r.errorDescription ?? "" };
-            counts[r.serverName].count++;
-            counts[r.serverName].lastError = r.errorDescription ?? counts[r.serverName].lastError;
+          if (r.status === "error" && r.errorDescription) {
+            if (!map[r.errorDescription]) map[r.errorDescription] = new Set();
+            map[r.errorDescription].add(r.serverName);
           }
         }
       }
-      return Object.entries(counts)
-        .map(([serverName, v]) => ({ serverName, ...v }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+    } else {
+      for (const s of enrichedServers) {
+        if (s.isError && s.errorDescription) {
+          if (!map[s.errorDescription]) map[s.errorDescription] = new Set();
+          map[s.errorDescription].add(s.serverName);
+        }
+      }
     }
-    return enrichedServers
-      .filter((s) => s.isError)
-      .map((s) => ({ serverName: s.serverName, count: 1, lastError: s.errorDescription ?? "" }))
-      .sort((a, b) => a.serverName.localeCompare(b.serverName))
-      .slice(0, 20);
+    return Object.entries(map)
+      .map(([message, servers]) => ({ message, servers: Array.from(servers).sort(), count: servers.size }))
+      .sort((a, b) => b.count - a.count);
   }, [data.syncRuns, enrichedServers, hasSyncHistory]);
 
   // ── Listado Syncs ─────────────────────────────────────────────────────────
@@ -413,30 +415,91 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
       {/* ── Top Errores ── */}
       {activeTab === "Top Errores" && (
-        <div key={`toperrores-${tabKey}`} className="glass rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-200 mb-1">
-            {hasSyncHistory ? "Servidores con más fallas históricas" : "Servidores con errores (estado actual)"}
-          </h2>
-          {!hasSyncHistory && (
-            <p className="text-xs text-zinc-600 mb-4">El ranking histórico se construirá a medida que se registren syncs.</p>
-          )}
-          {topErrors.length === 0 ? (
-            <p className="text-zinc-500 text-sm text-center py-8">Sin errores registrados.</p>
+        <div key={`toperrores-${tabKey}`} className="glass rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-800/60">
+            <div className="flex-1">
+              <h2 className="text-sm font-semibold text-zinc-200">
+                {hasSyncHistory ? "Errores por mensaje" : "Errores actuales por mensaje"}
+              </h2>
+              {!hasSyncHistory && (
+                <p className="text-[10px] text-zinc-600 mt-0.5">El historial se irá acumulando con cada sync del WUU.</p>
+              )}
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+              <input
+                type="text"
+                placeholder="Buscar error..."
+                value={errorSearch}
+                onChange={(e) => { setErrorSearch(e.target.value); setSelectedError(null); }}
+                className="pl-8 pr-3 py-1.5 bg-zinc-900 border border-zinc-700/50 rounded-lg text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 w-52"
+              />
+            </div>
+          </div>
+
+          {errorGroups.length === 0 ? (
+            <p className="text-zinc-500 text-sm text-center py-12">Sin errores registrados.</p>
           ) : (
-            <div className="space-y-2 mt-4">
-              {topErrors.map((e, i) => (
-                <div key={e.serverName} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
-                  <span className={`text-xs font-bold w-5 text-center mt-0.5 shrink-0 ${i < 3 ? "text-rose-400" : "text-zinc-500"}`}>#{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-zinc-200">{e.serverName}</p>
-                    <p className="text-[10px] text-zinc-600 mt-0.5 truncate">{e.lastError || "—"}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-rose-400">{e.count}</p>
-                    <p className="text-[10px] text-zinc-600">{hasSyncHistory ? "fallas" : "error"}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="divide-y divide-zinc-800/40">
+              {errorGroups
+                .filter((g) => !errorSearch || g.message.toLowerCase().includes(errorSearch.toLowerCase()))
+                .map((g, i) => {
+                  const isSelected = selectedError === g.message;
+                  const csvContent = ["Servidor", ...g.servers].join("\n");
+                  const downloadCsv = () => {
+                    const blob = new Blob([`Servidor\n${g.servers.join("\n")}`], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `error_${i + 1}_servidores.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  };
+                  return (
+                    <div key={g.message}>
+                      <button
+                        className="w-full flex items-start gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors text-left"
+                        onClick={() => setSelectedError(isSelected ? null : g.message)}
+                      >
+                        <span className={`text-xs font-bold w-5 text-center mt-0.5 shrink-0 ${i < 3 ? "text-rose-400" : "text-zinc-600"}`}>#{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-zinc-300 break-words">{g.message}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 ml-3">
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-rose-400">{g.count}</p>
+                            <p className="text-[10px] text-zinc-600">servidor{g.count !== 1 ? "es" : ""}</p>
+                          </div>
+                          {isSelected
+                            ? <ChevronDown className="w-4 h-4 text-indigo-400" />
+                            : <ChevronRight className="w-4 h-4 text-zinc-600" />
+                          }
+                        </div>
+                      </button>
+
+                      {isSelected && (
+                        <div className="px-5 pb-4 bg-zinc-900/40">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] text-zinc-500">{g.servers.length} servidor{g.servers.length !== 1 ? "es" : ""} con este error</p>
+                            <button
+                              onClick={downloadCsv}
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-medium hover:bg-indigo-600/30 transition-colors"
+                            >
+                              <Download className="w-3 h-3" /> Descargar CSV
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+                            {g.servers.map((srv) => (
+                              <div key={srv} className="px-2 py-1 rounded bg-zinc-800/60 text-[10px] text-zinc-300 font-mono truncate" title={srv}>
+                                {srv}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
