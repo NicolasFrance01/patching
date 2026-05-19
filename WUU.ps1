@@ -221,6 +221,136 @@ function Set-SpecialUpdateGridProgress {
         })
 }
 
+function ConvertFrom-ReportInfoPayload {
+    param($Payload)
+    if (-not $Payload) { return $null }
+    $lastBoot = $null
+    $lastInstall = $null
+    if ($Payload.LastBoot) {
+        try { $lastBoot = [datetime]$Payload.LastBoot } catch {}
+    }
+    if ($Payload.LastInstall) {
+        try { $lastInstall = [datetime]$Payload.LastInstall } catch {}
+    }
+    return [PSCustomObject]@{
+        Domain      = if ($Payload.Domain) { [string]$Payload.Domain } else { 'N/A' }
+        IP          = if ($Payload.IP) { [string]$Payload.IP } else { 'N/A' }
+        OS          = if ($Payload.OS) { [string]$Payload.OS } else { 'N/A' }
+        LastBoot    = $lastBoot
+        LastInstall = $lastInstall
+        KBsToday    = if ($Payload.KBsToday) { [string]$Payload.KBsToday } else { 'Ninguna/No detectada' }
+        Error       = if ($Payload.Error) { [string]$Payload.Error } else { $null }
+    }
+}
+
+function Get-RemoteReportInfo {
+    param(
+        [Parameter(Mandatory)][string]$ComputerName
+    )
+
+    $reportScriptBlock = {
+        $domain = $null
+        $osCaption = $null
+        $lastBoot = $null
+        $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+        if ($cs) { $domain = $cs.Domain }
+        $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+        if ($osInfo) {
+            $osCaption = $osInfo.Caption
+            if ($osInfo.LastBootUpTime) { $lastBoot = [datetime]$osInfo.LastBootUpTime }
+        }
+        $ips = @()
+        try {
+            $ips = @(
+                Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                Where-Object { $_.IPAddress -and $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
+                Select-Object -ExpandProperty IPAddress -Unique
+            )
+        }
+        catch {}
+        if ($ips.Count -eq 0) {
+            Get-CimInstance Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True' -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                    foreach ($addr in @($_.IPAddress)) {
+                        if ($addr -and $addr -notlike '127.*' -and $addr -match '^\d+\.\d+\.\d+\.\d+$') {
+                            $ips += $addr
+                        }
+                    }
+                }
+            $ips = @($ips | Select-Object -Unique)
+        }
+        $hotFixes = @(Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.InstalledOn })
+        $latestInstall = $null
+        if ($hotFixes.Count -gt 0) {
+            $latestInstall = ($hotFixes | Sort-Object InstalledOn -Descending | Select-Object -First 1).InstalledOn
+        }
+        $today = (Get-Date).Date
+        $kbsToday = @(
+            $hotFixes |
+            Where-Object { ([datetime]$_.InstalledOn).Date -ge $today } |
+            Select-Object -ExpandProperty HotFixID -Unique
+        )
+        [PSCustomObject]@{
+            Domain      = if ($domain) { $domain } else { 'N/A' }
+            IP          = if ($ips.Count -gt 0) { ($ips -join ', ') } else { 'N/A' }
+            OS          = if ($osCaption) { $osCaption } else { 'N/A' }
+            LastBoot    = $lastBoot
+            LastInstall = $latestInstall
+            KBsToday    = if ($kbsToday.Count -gt 0) { $kbsToday -join ', ' } else { 'Ninguna/No detectada' }
+            Error       = $null
+        }
+    }
+
+    if (Test-Connection -ComputerName $ComputerName -Count 1 -Quiet) {
+        try {
+            $winRmResult = Invoke-Command -ComputerName $ComputerName -ScriptBlock $reportScriptBlock -ErrorAction Stop
+            if ($winRmResult) {
+                return $winRmResult
+            }
+        }
+        catch {
+            Write-Verbose "WinRM reporte fallo en ${ComputerName}: $($_.Exception.Message)"
+        }
+    }
+
+    $adminShare = "\\$ComputerName\C$"
+    if (-not (Test-Path -LiteralPath $adminShare)) {
+        throw "No hay conectividad WinRM ni acceso administrativo a $adminShare"
+    }
+
+    $remoteScripts = "\\$ComputerName\C$\Admin\Scripts"
+    $remoteTemp = "\\$ComputerName\C$\Temp"
+    $resultUnc = Join-Path $remoteTemp 'WU-ReportInfo.json'
+    if (-not (Test-Path -LiteralPath $remoteScripts)) {
+        New-Item -Path $remoteScripts -ItemType Directory -Force | Out-Null
+    }
+    if (-not (Test-Path -LiteralPath $remoteTemp)) {
+        New-Item -Path $remoteTemp -ItemType Directory -Force | Out-Null
+    }
+    Remove-Item -LiteralPath $resultUnc -Force -ErrorAction SilentlyContinue
+
+    $localScript = Join-Path $ScriptRoot 'Scripts\Get-ReportInfo.ps1'
+    Copy-Item -LiteralPath $localScript -Destination (Join-Path $remoteScripts 'Get-ReportInfo.ps1') -Force
+
+    $psexecCmd = 'echo . | powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Admin\Scripts\Get-ReportInfo.ps1'
+    $exitCode = 0
+    $null = & $PsExecPath -accepteula -nobanner -s "\\$ComputerName" cmd.exe /c $psexecCmd 2>&1
+    $exitCode = $LASTEXITCODE
+    Remove-Item (Join-Path $remoteScripts 'Get-ReportInfo.ps1') -Force -ErrorAction SilentlyContinue
+
+    if (-not (Test-Path -LiteralPath $resultUnc)) {
+        if ($exitCode -ne 0) {
+            throw "PsExec Get-ReportInfo finalizo con codigo $exitCode"
+        }
+        throw 'No se genero WU-ReportInfo.json en el servidor remoto'
+    }
+
+    $rawJson = Get-Content -LiteralPath $resultUnc -Raw -Encoding UTF8
+    Remove-Item -LiteralPath $resultUnc -Force -ErrorAction SilentlyContinue
+    $parsed = $rawJson | ConvertFrom-Json
+    return ConvertFrom-ReportInfoPayload -Payload $parsed
+}
+
 function Copy-PackageToRemoteTemp {
     param(
         [Parameter(Mandatory)][string]$ComputerName,
@@ -2719,48 +2849,20 @@ $eventExportReport = {
         $DescripcionError = if ($target.InstallErrors) { [string]$target.InstallErrors } else { 'N/A' }
 
         try {
-            if (Test-Connection -ComputerName $Computer -Count 1 -Quiet) {
-                $remoteInfo = Invoke-Command -ComputerName $Computer -ScriptBlock {
-                    $domain = (Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).Domain
-                    $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-                    $ips = @(
-                        Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-                        Where-Object { $_.IPAddress -and $_.IPAddress -notlike '169.254*' } |
-                        Select-Object -ExpandProperty IPAddress
-                    )
-                    $hotFixes = @(Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.InstalledOn })
-                    $lastBoot = if ($osInfo) { [datetime]$osInfo.LastBootUpTime } else { $null }
-                    $latestInstall = $null
-                    if ($hotFixes.Count -gt 0) {
-                        $latestInstall = ($hotFixes | Sort-Object InstalledOn -Descending | Select-Object -First 1).InstalledOn
-                    }
-                    $today = (Get-Date).Date
-                    $kbsToday = @(
-                        $hotFixes |
-                        Where-Object { ([datetime]$_.InstalledOn).Date -ge $today } |
-                        Select-Object -ExpandProperty HotFixID
-                    )
-                    [PSCustomObject]@{
-                        Domain = if ($domain) { $domain } else { 'N/A' }
-                        IP = if ($ips.Count -gt 0) { ($ips -join ', ') } else { 'N/A' }
-                        OS = if ($osInfo) { $osInfo.Caption } else { 'N/A' }
-                        LastBoot = $lastBoot
-                        LastInstall = $latestInstall
-                        KBsToday = if ($kbsToday.Count -gt 0) { $kbsToday -join ', ' } else { 'Ninguna/No detectada' }
-                    }
-                } -ErrorAction Stop
-
-                if ($remoteInfo) {
-                    $Domain = $remoteInfo.Domain
-                    $IP = $remoteInfo.IP
-                    $OS = $remoteInfo.OS
-                    if ($remoteInfo.LastInstall) {
-                        $FechaInstalacion = ([datetime]$remoteInfo.LastInstall).ToString('dd/MM/yyyy')
-                    }
-                    if ($remoteInfo.LastBoot) {
-                        $FechaReinicio = ([datetime]$remoteInfo.LastBoot).ToString('dd/MM/yyyy HH:mm')
-                    }
-                    $KBsInstaladas = [string]$remoteInfo.KBsToday
+            $remoteInfo = Get-RemoteReportInfo -ComputerName $Computer
+            if ($remoteInfo) {
+                $Domain = $remoteInfo.Domain
+                $IP = $remoteInfo.IP
+                $OS = $remoteInfo.OS
+                if ($remoteInfo.LastInstall) {
+                    $FechaInstalacion = ([datetime]$remoteInfo.LastInstall).ToString('dd/MM/yyyy')
+                }
+                if ($remoteInfo.LastBoot) {
+                    $FechaReinicio = ([datetime]$remoteInfo.LastBoot).ToString('dd/MM/yyyy HH:mm')
+                }
+                $KBsInstaladas = [string]$remoteInfo.KBsToday
+                if ($remoteInfo.Error -and $DescripcionError -eq 'N/A') {
+                    $DescripcionError = [string]$remoteInfo.Error
                 }
             }
         }

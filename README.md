@@ -17,7 +17,8 @@ La herramienta esta orientada a escenarios corporativos donde se requiere:
 - **Capa de orquestacion**: `WUU.ps1`.
 - **Capa de interfaz**: `WUU.xaml` y `OUPicker.xaml`.
 - **Capa de ejecucion remota**: scripts en `Scripts\`.
-- **Capa de observabilidad**: `WUU_Log.csv` + reporte CSV + sincronizacion JSON.
+- **Capa de parches especiales**: carpeta `Update Especial\` + `Scripts\Install-SpecialUpdate.ps1`.
+- **Capa de observabilidad**: `WUU_Log.csv` + reporte CSV + sincronizacion JSON al dashboard.
 
 ## Requisitos tecnicos
 
@@ -40,8 +41,9 @@ powershell.exe -STA -File .\WUU.ps1
 3. Seleccionar grupo y validar carga de hosts en grilla.
 4. Marcar servidores objetivo (`Sel`).
 5. Ejecutar `Iniciar` para ciclo de actualizacion.
-6. Ejecutar `Reiniciar seleccionados` cuando aplique.
-7. Emitir `Reporte` para evidencia local y sincronizacion remota.
+6. (Opcional) Ejecutar `Update Especial` para instalar un KB/paquete puntual desde `Update Especial\`.
+7. Ejecutar `Reiniciar seleccionados` cuando aplique.
+8. Emitir `Reporte` para evidencia local y sincronizacion remota.
 
 ## Interfaz y semantica de estados
 
@@ -52,6 +54,7 @@ Botones principales:
 - `Iniciar`
 - `Reiniciar seleccionados`
 - `Reporte`
+- `Update Especial` (habilitado solo si `Update Especial\` contiene paquetes `.msu`, `.cab` o `.exe`)
 - `Recargar grupos`
 - `Detener y refrescar`
 
@@ -157,6 +160,55 @@ Funcionamiento:
 - Ejecuta instalador COM (`CreateUpdateInstaller().Install()`).
 - Devuelve conteo de instalaciones exitosas y expone error ante excepcion.
 
+### `Scripts\Install-SpecialUpdate.ps1`
+
+Objetivo:
+
+- Instalar un paquete puntual copiado previamente en `C:\Temp` del servidor remoto.
+
+Funcionamiento:
+
+- Lee el nombre del paquete desde `C:\Temp\WU-SpecialPackageName.txt`.
+- Instala segun extension:
+  - `.msu` → `wusa.exe /quiet /norestart`
+  - `.cab` → `dism /Online /Add-Package`
+  - `.exe` → instalador silencioso (`/quiet /norestart`)
+- Publica progreso en `C:\Temp\WU-SpecialProgress.txt` (formato `porcentaje|mensaje`).
+- Escribe resultado JSON en `C:\Temp\WU-SpecialResult.txt`.
+
+### `Scripts\Get-ReportInfo.ps1`
+
+Objetivo:
+
+- Recolectar metadatos del host remoto para el reporte CSV.
+
+Funcionamiento:
+
+- Consulta dominio, SO, IPs IPv4 (excluye loopback y APIPA), ultimo reinicio, ultima fecha de hotfix y KBs instaladas hoy.
+- Usa respaldo WMI (`Win32_NetworkAdapterConfiguration`) si `Get-NetIPAddress` no esta disponible.
+- Escribe JSON en `C:\Temp\WU-ReportInfo.json`.
+
+## Update Especial
+
+Carpeta de entrada:
+
+- `Update Especial\` (colocar aqui el paquete a desplegar, por ejemplo `KB5034123-x64.msu`).
+
+Flujo desde la UI:
+
+1. Marcar servidores en la grilla (`Sel`).
+2. Clic en `Update Especial` (o menu contextual **Update Especial**).
+3. Si hay varios paquetes en la carpeta, seleccionar uno en el dialogo.
+4. Por cada servidor:
+   - **0–50%** en columna `Download %`: copia del paquete a `C:\Temp` (crea la carpeta si no existe).
+   - **50–100%**: instalacion remota via PsExec.
+5. Al finalizar, la fila queda en verde (`Updated`) o naranja parpadeante si requiere reinicio.
+
+Notas:
+
+- El boton permanece **deshabilitado** mientras `Update Especial\` este vacia.
+- Requiere los mismos permisos que el resto de WUU (`\\servidor\C$` + PsExec).
+
 ## Reporte tecnico
 
 Salida local:
@@ -174,22 +226,74 @@ Campos:
 - `Fecha_Reinicio`
 - `Descripcion_Error`
 
-Fuentes de datos remotas:
+Recoleccion de datos (`Get-RemoteReportInfo` en `WUU.ps1`):
 
-- `Get-CimInstance Win32_ComputerSystem`: obtiene metadatos del equipo, principalmente el dominio (`Domain`) para identificar contexto AD/tenant.
-- `Get-CimInstance Win32_OperatingSystem`: obtiene informacion del sistema operativo (nombre/version) y `LastBootUpTime` para calcular la fecha/hora del ultimo reinicio.
-- `Get-NetIPAddress -AddressFamily IPv4`: enumera direcciones IPv4 activas para registrar conectividad de red del host en el reporte.
-- `Get-HotFix`: consulta hotfixes/KBs instalados, utilizado para derivar la ultima fecha de instalacion y el conjunto de KBs instaladas en la ventana analizada.
+1. **Intento WinRM** (`Invoke-Command`) si el host responde y WinRM esta habilitado.
+2. **Respaldo PsExec** (recomendado en entornos corporativos): ejecuta `Scripts\Get-ReportInfo.ps1` y lee `C:\Temp\WU-ReportInfo.json` via recurso administrativo.
 
-Sincronizacion:
+Fuentes de datos en el servidor remoto:
 
-- Serializacion JSON del reporte y POST a endpoint dashboard (`/api/upload`), con reintentos y log de error local.
+- `Win32_ComputerSystem` → dominio.
+- `Win32_OperatingSystem` → sistema operativo y `LastBootUpTime` (ultimo reinicio).
+- `Get-NetIPAddress` / WMI → direcciones IPv4 (sin `127.x` ni APIPA).
+- `Get-HotFix` → ultima fecha de instalacion y KBs instaladas **el dia de la corrida**.
+
+Campos del reporte:
+
+| Campo | Descripcion |
+|-------|-------------|
+| `Fecha_Instalacion` | Fecha del hotfix mas reciente instalado en el servidor |
+| `KBs_Instaladas` | KBs cuya fecha de instalacion es **hoy** (si no hubo parches hoy: `Ninguna/No detectada`) |
+| `Fecha_Reinicio` | Fecha/hora del ultimo arranque (`LastBootUpTime`) |
+
+Sincronizacion con dashboard:
+
+- Endpoint por defecto: `https://algeibapatching.vercel.app/api/upload`
+- Payload JSON en formato **array** de objetos (un elemento por servidor).
+- Reintentos automaticos y registro en `WUU_Log.csv` (`DashboardUpload`).
+- Configuracion opcional en `WUU_Upload.config.json` (copiar desde `WUU_Upload.config.example.json`):
+
+```json
+{
+  "DashboardUrl": "https://algeibapatching.vercel.app/api/upload",
+  "VercelProtectionBypass": "SECRET_DE_VERCEL_DEPLOYMENT_PROTECTION",
+  "UploadApiKey": ""
+}
+```
+
+Si la sincronizacion falla por red corporativa (timeout/403), el **CSV local se genera igualmente** en `Reportes\`.
+
+## Estructura de carpetas
+
+```
+ScriptAutomatization\
+├── WUU.ps1
+├── WUU.xaml
+├── OUPicker.xaml
+├── PsExec.exe
+├── WUU_Log.csv
+├── WUU_Upload.config.json          (opcional, ver ejemplo)
+├── WUU_Upload.config.example.json
+├── Servidores\                     (*.csv de grupos)
+├── Update Especial\                (paquetes .msu / .cab / .exe)
+├── Reportes\                       (CSV generados)
+├── Scripts\
+│   ├── Test-WUAgent.ps1
+│   ├── Repair-WUAgent.ps1
+│   ├── Download-Patches.ps1
+│   ├── Install-Patches.ps1
+│   ├── Install-SpecialUpdate.ps1
+│   └── Get-ReportInfo.ps1
+└── dashboard\                      (app web Next.js)
+```
 
 ## Archivos de salida y trazabilidad
 
 - `WUU_Log.csv`: eventos, errores y acciones por host.
 - `Reportes\*.csv`: evidencia operativa por corrida.
-- Archivos temporales remotos de progreso en `C:\Admin\Scripts\`.
+- Archivos temporales remotos:
+  - `C:\Admin\Scripts\` (descarga/instalacion WU estandar).
+  - `C:\Temp\` (Update Especial y metadatos de reporte).
 
 ## Conclusion
 
