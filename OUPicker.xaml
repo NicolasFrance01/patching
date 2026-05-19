@@ -17,7 +17,7 @@
             <RowDefinition Height='Auto'/>
         </Grid.RowDefinitions>
         <TextBlock Grid.Row='0' Margin='0,0,0,8' TextWrapping='Wrap'
-                   Text='Seleccione una OU. Los equipos habilitados de esa OU se importarán al cerrar con Aceptar.'/>
+                   Text='Seleccione una OU. Los equipos habilitados de esa OU se importaran al cerrar con Aceptar.'/>
         <TreeView x:Name='OUTree' Grid.Row='1' Margin='0,0,0,12' BorderBrush='#CCCCCC' Background='White'/>
         <StackPanel Grid.Row='2' Orientation='Horizontal' HorizontalAlignment='Right'>
             <Button x:Name='OKButton' Content='Aceptar' Width='88' Margin='0,0,8,0' IsDefault='True'/>

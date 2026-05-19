@@ -1,0 +1,63 @@
+"Timestamp","Computer","Action","Result","Details"
+"2026-04-29 17:11:58","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:12:00","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:12:34","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:12:39","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:22:07","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:22:09","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:22:43","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:22:51","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:45:03","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:45:04","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 17:45:35","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:45:40","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 17:47:42","SRVINTEG02T","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-04-29 17:51:59","BERFDSQL01T","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-04-29 18:04:45","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:04:47","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:05:17","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:05:23","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:05:59","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:06:01","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:06:28","BSFONBOARDMS01T","DownloadUpdates","Error","The variable '$ScriptRoot' cannot be retrieved because it has not been set."
+"2026-04-29 18:07:09","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:11:40","BERFDSQL01T","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-04-29 18:11:45","BERFDSQL01T","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-04-29 18:13:10","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:13:12","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:13:42","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:13:43","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-04-29 18:13:45","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:13:51","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:14:20","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-04-29 18:15:17","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-05-04 11:32:47","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-05-04 11:32:49","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-05-04 11:33:20","SRVDB01T","DownloadUpdates","Error","There is not enough space on the disk.
+"
+"2026-05-04 11:33:24","SRVDB01T","InstallUpdates","Error","There is not enough space on the disk.
+"
+"2026-05-12 12:24:29","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-05-12 12:24:30","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-05-12 12:24:59","BERABSDEV-W2019S01T","AddEntry","Error","Computer name too long"
+"2026-05-12 12:25:01","BERDEBMEDIAPP01T","AddEntry","Error","Computer name too long"
+"2026-05-12 13:26:42","VPRX-CLD2-07I","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-05-12 14:14:40","VPRX-CLD2-03I","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-05-12 15:12:56","VPRX-CLD2-03I","DownloadUpdates","Error","Stack empty."
+"2026-05-12 15:15:00","VPRX-CLD2-07I","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-05-12 15:15:52","VPRX-HBI-03I","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-05-12 16:10:09","VPRX-PROD-09I","InstallUpdates","Error","PsExec failed with error code 1"
+"2026-05-12 16:13:02","VPRX-PROD-05I","InstallUpdates","Error","PsExec failed with error code 1"

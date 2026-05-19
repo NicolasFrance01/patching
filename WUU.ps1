@@ -25,11 +25,14 @@ $runspaceHash = [hashtable]::Synchronized(@{ })
 $jobs = [system.collections.arraylist]::Synchronized((New-Object System.Collections.ArrayList))
 $jobCleanup = [hashtable]::Synchronized(@{ })
 $updatesHash = [hashtable]::Synchronized(@{ })
+$selectedComputersSet = [hashtable]::Synchronized(@{ })
+$pendingRebootSet = [hashtable]::Synchronized(@{ })
 #endregion Synchronized collections
 
 $ScriptRoot = Split-Path -Path $PSCommandPath -Parent
 $PsExecPath = Join-Path $ScriptRoot 'PsExec.exe'
 $LogFile = Join-Path $ScriptRoot 'WUU_Log.csv'
+$groupServersHash = [hashtable]::Synchronized(@{ })
 
 function Invoke-PsExec {
     param(
@@ -91,6 +94,253 @@ function Set-ComputerUpdatesStatus {
             $uiHash.Listview.Items.CommitEdit()
             $uiHash.Listview.Items.Refresh()
         })
+}
+
+function Set-ComputerPhase {
+    param(
+        [Parameter(Mandatory)] $Computer,
+        [Parameter(Mandatory)] [string]$Phase
+    )
+    $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+            $uiHash.Listview.Items.EditItem($Computer)
+            $Computer.Phase = $Phase
+            $uiHash.Listview.Items.CommitEdit()
+            $uiHash.Listview.Items.Refresh()
+        })
+}
+
+function Get-CheckedComputers {
+    return @($uiHash.Listview.Items | Where-Object { $_.IsChecked -eq $true })
+}
+
+function Ensure-ComputerRunspace {
+    param([Parameter(Mandatory)]$Computer)
+    if ($null -ne $Computer.Runspace) {
+        try {
+            if ($Computer.Runspace.RunspaceStateInfo.State -eq 'Opened') {
+                return
+            }
+            $Computer.Runspace.Dispose()
+        }
+        catch {}
+        $Computer.Runspace = $null
+    }
+    $newRunspace = [runspacefactory]::CreateRunspace()
+    $newRunspace.ApartmentState = "STA"
+    $newRunspace.ThreadOptions = "ReuseThread"
+    $newRunspace.Open()
+    $newRunspace.SessionStateProxy.SetVariable("uiHash", $uiHash)
+    $newRunspace.SessionStateProxy.SetVariable("updatesHash", $updatesHash)
+    $newRunspace.SessionStateProxy.SetVariable("path", $ScriptRoot)
+    $newRunspace.SessionStateProxy.SetVariable("ScriptRoot", $ScriptRoot)
+    $newRunspace.SessionStateProxy.SetVariable("PsExecPath", $PsExecPath)
+    $newRunspace.SessionStateProxy.SetVariable("selectedComputersSet", $selectedComputersSet)
+    $newRunspace.SessionStateProxy.SetVariable("pendingRebootSet", $pendingRebootSet)
+    $newRunspace.SessionStateProxy.SetVariable("UpdateCountersUiScript", $UpdateCountersUiScript)
+    $newRunspace.SessionStateProxy.SetVariable('DownloadUpdates', $DownloadUpdates)
+    $newRunspace.SessionStateProxy.SetVariable('GetUpdates', $GetUpdates)
+    $newRunspace.SessionStateProxy.SetVariable('SetUpdatesStatus', $SetUpdatesStatus)
+    $newRunspace.SessionStateProxy.SetVariable('InstallUpdates', $InstallUpdates)
+    $newRunspace.SessionStateProxy.SetVariable('RestartComputer', $RestartComputer)
+    $newRunspace.SessionStateProxy.SetVariable('MaybeAutoDownloadAfterInitialCheck', $MaybeAutoDownloadAfterInitialCheck)
+    $Computer.Runspace = $newRunspace
+}
+
+function Sync-ComputerCounters {
+    param([Parameter(Mandatory)]$Computer)
+    $key = [string]$Computer.Computer
+    if ([string]::IsNullOrWhiteSpace($key)) { return }
+    if ($Computer.IsChecked) {
+        $selectedComputersSet[$key] = $true
+        if ($Computer.RebootRequired) {
+            $pendingRebootSet[$key] = $true
+        }
+        else {
+            $pendingRebootSet.Remove($key) | Out-Null
+        }
+    }
+    else {
+        $selectedComputersSet.Remove($key) | Out-Null
+        $pendingRebootSet.Remove($key) | Out-Null
+    }
+}
+
+function Remove-ComputerFromCounters {
+    param([Parameter(Mandatory)][string]$ComputerName)
+    $selectedComputersSet.Remove($ComputerName) | Out-Null
+    $pendingRebootSet.Remove($ComputerName) | Out-Null
+}
+
+function Update-CounterSetsForComputer {
+    param([Parameter(Mandatory)]$Computer)
+    $key = [string]$Computer.Computer
+    if ([string]::IsNullOrWhiteSpace($key)) { return }
+    if ($Computer.IsChecked) {
+        $selectedComputersSet[$key] = $true
+        if ($Computer.RebootRequired) {
+            $pendingRebootSet[$key] = $true
+        }
+        else {
+            $pendingRebootSet.Remove($key) | Out-Null
+        }
+    }
+    else {
+        $selectedComputersSet.Remove($key) | Out-Null
+        $pendingRebootSet.Remove($key) | Out-Null
+    }
+}
+
+$UpdateCountersUiScript = {
+    if (-not $uiHash.Window -or -not $uiHash.Listview -or -not $uiHash.RestartSelectedButton -or -not $uiHash.StartButton) {
+        return
+    }
+    $dispatcher = $uiHash.Window.Dispatcher
+
+    $selectedCount = 0
+    try { $selectedCount = [int]$selectedComputersSet.Count } catch {}
+    $pendingCount = 0
+    try { $pendingCount = [int]$pendingRebootSet.Count } catch {}
+    $isRefreshing = $false
+    try { $isRefreshing = [bool]$uiHash.IsRefreshing } catch {}
+    $uiRef = $uiHash
+
+    $refreshAction = [action] {
+        try {
+            if ($uiRef.UpdateTargetsTextBlock) {
+                $uiRef.UpdateTargetsTextBlock.Text = "Cantidad de servidores para actualizar: $selectedCount"
+                if ($selectedCount -gt 0) {
+                    $uiRef.UpdateTargetsTextBlock.Foreground = 'DarkGreen'
+                }
+                else {
+                    $uiRef.UpdateTargetsTextBlock.Foreground = 'DimGray'
+                }
+            }
+        }
+        catch {}
+        try {
+            if ($uiRef.PendingRebootTextBlock) {
+                $uiRef.PendingRebootTextBlock.Text = "Servidores con reinicio pendiente: $pendingCount"
+                if ($pendingCount -gt 0) {
+                    $uiRef.PendingRebootTextBlock.Foreground = 'DarkOrange'
+                }
+                else {
+                    $uiRef.PendingRebootTextBlock.Foreground = 'DimGray'
+                }
+            }
+        }
+        catch {}
+        try {
+            $startBtn = $uiRef.StartButton
+            $restartBtn = $uiRef.RestartSelectedButton
+            if ($isRefreshing) {
+                if ($startBtn) { try { $startBtn.IsEnabled = $false } catch {} }
+                if ($restartBtn) { try { $restartBtn.IsEnabled = $false } catch {} }
+            }
+            else {
+                if ($startBtn) { try { $startBtn.IsEnabled = ($selectedCount -gt 0) } catch {} }
+                if ($restartBtn) { try { $restartBtn.IsEnabled = ($pendingCount -gt 0) } catch {} }
+            }
+        }
+        catch {}
+    }
+    try {
+        if ($dispatcher.CheckAccess()) {
+            $refreshAction.Invoke()
+        }
+        else {
+            $null = $dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, $refreshAction)
+        }
+    }
+    catch [System.InvalidOperationException] {
+        try {
+            $null = $dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::ApplicationIdle, $refreshAction)
+        }
+        catch {
+            # Ignore transient dispatcher suspension during window initialization.
+        }
+    }
+}
+
+function Update-RestartSelectedButtonState {
+    & $UpdateCountersUiScript
+}
+
+function Set-MainActionControlsEnabled {
+    param(
+        [Parameter(Mandatory)][bool]$Enabled,
+        [bool]$KeepStopEnabled = $true
+    )
+    $controls = @(
+        $uiHash.GroupComboBox,
+        $uiHash.SelectAllButton,
+        $uiHash.ClearSelectionButton,
+        $uiHash.StartButton,
+        $uiHash.RestartSelectedButton,
+        $uiHash.ReportButton,
+        $uiHash.ReloadGroupsButton
+    )
+    foreach ($control in $controls) {
+        if ($control) {
+            $control.IsEnabled = $Enabled
+        }
+    }
+    if ($uiHash.StopRefreshButton) {
+        $uiHash.StopRefreshButton.IsEnabled = if ($KeepStopEnabled) { $true } else { $Enabled }
+    }
+}
+
+function Get-GroupData {
+    $servFolder = Join-Path $ScriptRoot 'Servidores'
+    $groupServersHash.Clear()
+    if (-not (Test-Path -Path $servFolder)) {
+        return @()
+    }
+
+    $allRows = @()
+    foreach ($csv in (Get-ChildItem -Path $servFolder -Filter '*.csv' -File -ErrorAction SilentlyContinue)) {
+        try {
+            $lines = @(Get-Content -Path $csv.FullName -ErrorAction Stop | Where-Object { $_ -and $_.Trim() })
+            if ($lines.Count -lt 2) {
+                continue
+            }
+
+            # Avoid Import-Csv header collisions (duplicate column names in source files).
+            $dataLines = @($lines | Select-Object -Skip 1)
+            $maxCols = ($dataLines | ForEach-Object { ($_ -split ';').Count } | Measure-Object -Maximum).Maximum
+            if (-not $maxCols -or $maxCols -lt 5) {
+                continue
+            }
+            $headers = 1..$maxCols | ForEach-Object { "Col$_" }
+            $rows = @($dataLines | ConvertFrom-Csv -Delimiter ';' -Header $headers)
+
+            foreach ($row in $rows) {
+                $groupValue = [string]$row.Col1
+                $serverValue = [string]$row.Col5
+                if (-not [string]::IsNullOrWhiteSpace($groupValue) -and -not [string]::IsNullOrWhiteSpace($serverValue)) {
+                    $allRows += [PSCustomObject]@{
+                        Grupo    = $groupValue.Trim()
+                        Servidor = $serverValue.Trim()
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Log -Computer 'LOCAL' -Action 'Get-GroupData' -Result 'Error' -Details "No se pudo leer $($csv.FullName): $($_.Exception.Message)"
+        }
+    }
+
+    $groups = @($allRows | Where-Object { $_.Grupo -and $_.Servidor } | Select-Object -ExpandProperty Grupo -Unique | Sort-Object)
+    foreach ($groupName in $groups) {
+        $servers = @(
+            $allRows |
+            Where-Object { $_.Grupo -eq $groupName -and $_.Servidor } |
+            Select-Object -ExpandProperty Servidor -Unique |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ }
+        )
+        $groupServersHash[$groupName] = $servers
+    }
+    return $groups
 }
 
 #region Environment validation
@@ -181,20 +431,23 @@ $AddEntry = {
         $computer = $computer.Trim() #Remove any whitespace
         If ([System.String]::IsNullOrEmpty($computer)) { continue } #Do not add if name empty
         
-        #Extract NetBIOS name from FQDN if needed
-        if ($computer -like '*.') {
-            $computerName = ($computer -split '\.')[0]
+        # Normalize host token and extract first DNS label when FQDN comes in.
+        $computerName = $computer.Trim().TrimStart('.')
+        if ($computerName -like '*.*') {
+            $computerName = ($computerName -split '\.')[0]
         }
-        else {
-            $computerName = $computer
+        if ([string]::IsNullOrWhiteSpace($computerName)) {
+            Write-Log -Computer $computer -Action 'AddEntry' -Result 'Error' -Details 'Empty host after normalization'
+            continue
         }
         
-        #Validate computer name format (NetBIOS part)
-        if ($computerName -notmatch '^[a-zA-Z0-9\-_]+$') {
+        # Validate host token format (letters, numbers, dash, underscore).
+        if ($computerName -notmatch '^[a-zA-Z0-9][a-zA-Z0-9\-_]*$') {
             Write-Log -Computer $computer -Action 'AddEntry' -Result 'Error' -Details 'Invalid computer name format'
             continue
         }
-        if ($computerName.Length -gt 15) {
+        # Allow DNS hostnames up to 63 chars to avoid dropping valid modern names.
+        if ($computerName.Length -gt 63) {
             Write-Log -Computer $computer -Action 'AddEntry' -Result 'Error' -Details 'Computer name too long'
             continue
         }
@@ -206,10 +459,15 @@ $AddEntry = {
                 $uiHash.clientObservable.Add((
                         New-Object PSObject -Property @{
                             Computer       = $computerName
+                            IsChecked      = $false -as [bool]
+                            CanCheck       = $true -as [bool]
+                            WsusServer     = 'Sin consultar'
                             Available      = 0 -as [int]
                             Downloaded     = 0 -as [int]
+                            DownloadPercent = '0%'
                             InstallErrors  = ''
-                            Status         = "Initializing."
+                            Status         = "Listo para iniciar."
+                            Phase          = 'Idle'
                             RebootRequired = $false -as [bool]
                             UpdatesStatus  = "Unknown"
                             StartTime      = $null
@@ -221,41 +479,7 @@ $AddEntry = {
             })
     } # foreach compuer
 
-    #Setup runspace & start checking for updates.
-    ($uiHash.Listview.Items | Where-Object { $_.Runspace -eq $Null }) | % {
-        $newRunspace = [runspacefactory]::CreateRunspace()
-        $newRunspace.ApartmentState = "STA"
-        $newRunspace.ThreadOptions = "ReuseThread"
-        $newRunspace.Open()
-        $newRunspace.SessionStateProxy.SetVariable("uiHash", $uiHash)
-        $newRunspace.SessionStateProxy.SetVariable("updatesHash", $updatesHash)
-        $newRunspace.SessionStateProxy.SetVariable("path", $ScriptRoot)
-        $newRunspace.SessionStateProxy.SetVariable("ScriptRoot", $ScriptRoot)
-        $newRunspace.SessionStateProxy.SetVariable("PsExecPath", $PsExecPath)
-        $newRunspace.SessionStateProxy.SetVariable('DownloadUpdates', $DownloadUpdates)
-        $newRunspace.SessionStateProxy.SetVariable('GetUpdates', $GetUpdates)
-        $newRunspace.SessionStateProxy.SetVariable('SetUpdatesStatus', $SetUpdatesStatus)
-        $newRunspace.SessionStateProxy.SetVariable('InstallUpdates', $InstallUpdates)
-        $newRunspace.SessionStateProxy.SetVariable('RestartComputer', $RestartComputer)
-        $newRunspace.SessionStateProxy.SetVariable('MaybeAutoDownloadAfterInitialCheck', $MaybeAutoDownloadAfterInitialCheck)
-
-        $_.Runspace = $newRunspace
-
-        # Check for updates when computers are addded to the app (tras validar/reparar agente WU/WSUS; descarga automatica si aplica)
-        $PowerShell = [powershell]::Create().AddScript($PrepareWUAgentBeforeCheck).AddArgument($_)
-        $PowerShell.AddScript($GetUpdates).AddArgument($_)
-        $PowerShell.AddScript($SetUpdatesStatus).AddArgument($_)
-        $PowerShell.AddScript($MaybeAutoDownloadAfterInitialCheck).AddArgument($_)
-        $PowerShell.Runspace = $_.Runspace
-
-        #Save handle so we can later end the runspace
-        $temp = New-Object PSObject -Property @{
-            PowerShell = $PowerShell
-            Runspace   = $PowerShell.BeginInvoke()
-        }
-
-        $jobs.Add($temp) | Out-Null
-    }
+    Update-RestartSelectedButtonState
 }
 
 #Clear computer list
@@ -274,9 +498,42 @@ $SetUpdatesStatus = {
                 else {
                     $computer.UpdatesStatus = 'All updates installed'
                 }
+                if ($computer.IsChecked -eq $false) {
+                    $computer.Phase = 'Idle'
+                }
+                elseif ($computer.RebootRequired) {
+                    $computer.Phase = 'RebootRequired'
+                }
+                elseif ($computer.Available -gt 0) {
+                    $computer.Phase = 'DownloadingInstalling'
+                }
+                else {
+                    $computer.Phase = 'Updated'
+                }
+                if ($computer.Available -gt 0) {
+                    $pct = [int][math]::Min(100, [math]::Max(0, [math]::Round((100.0 * $computer.Downloaded) / $computer.Available)))
+                    $computer.DownloadPercent = "$pct%"
+                }
+                else {
+                    $computer.DownloadPercent = '0%'
+                }
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })		
+        if ($Computer.IsChecked) {
+            $selectedComputersSet[[string]$Computer.Computer] = $true
+            if ($Computer.RebootRequired) {
+                $pendingRebootSet[[string]$Computer.Computer] = $true
+            }
+            else {
+                $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+            }
+        }
+        else {
+            $selectedComputersSet.Remove([string]$Computer.Computer) | Out-Null
+            $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+        }
+        & $UpdateCountersUiScript
     }
     Catch {
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
@@ -300,6 +557,7 @@ $ClearComputerList = {
             $uiHash.StatusTextBox.Foreground = 'Black'
             $uiHash.StatusTextBox.Text = 'Computer List Cleared!'
         })
+    Update-RestartSelectedButtonState
 }
 
 #Download available updates
@@ -324,6 +582,14 @@ $DownloadUpdates = {
         $uiHash.ListView.Dispatcher.Invoke('Normal', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Status = "Downloading $($dlStats.Count) Updates ($([math]::Round($dlStats.Sum/1MB))MB)."
+                $computer.Phase = 'DownloadingInstalling'
+                if ($computer.Available -gt 0) {
+                    $pct = [int][math]::Min(100, [math]::Max(0, [math]::Round((100.0 * $computer.Downloaded) / $computer.Available)))
+                    $computer.DownloadPercent = "$pct%"
+                }
+                else {
+                    $computer.DownloadPercent = '0%'
+                }
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
@@ -352,6 +618,11 @@ $DownloadUpdates = {
                     $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                             $uiHash.Listview.Items.EditItem($Computer)
                             $computer.Status = $line
+                            if ($line -match '(\d+)%') {
+                                $pct = [int]$matches[1]
+                                $pct = [int][math]::Min(100, [math]::Max(0, $pct))
+                                $computer.DownloadPercent = "$pct%"
+                            }
                             $uiHash.Listview.Items.CommitEdit()
                             $uiHash.Listview.Items.Refresh()
                         })
@@ -376,6 +647,13 @@ $DownloadUpdates = {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Status = 'Download complete.'
                 $computer.Downloaded += $numDownloaded
+                if ($computer.Available -gt 0) {
+                    $pct = [int][math]::Min(100, [math]::Max(0, [math]::Round((100.0 * $computer.Downloaded) / $computer.Available)))
+                    $computer.DownloadPercent = "$pct%"
+                }
+                else {
+                    $computer.DownloadPercent = '0%'
+                }
                 $computer.EndTime = Get-Date
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
@@ -383,18 +661,17 @@ $DownloadUpdates = {
     }
     Catch {
         Write-Log -Computer $Computer.Computer -Action 'DownloadUpdates' -Result 'Error' -Details $_.Exception.Message
+        $errMsg = $_.Exception.Message
         $rs = "\\$($Computer.Computer)\C$\Admin\Scripts"
         Remove-Item "$rs\Download-Patches.ps1" -Force -ErrorAction SilentlyContinue
         Remove-Item "$rs\WU-DownloadProgress.txt", "$rs\WU-DownloadResult.txt" -Force -ErrorAction SilentlyContinue
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $computer.Status = "Error occurred: $($_.Exception.Message)."
+                $computer.Status = "Error occurred: $errMsg."
+                $computer.InstallErrors = "Download: $errMsg"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
-
-        #Cancel any remaining actions
-        #exit  # Removed to prevent script termination
     }
 }
 
@@ -410,22 +687,57 @@ $PrepareWUAgentBeforeCheck = {
         $uiHash.ListView.Dispatcher.Invoke('Normal', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Status = 'Validando agente Windows Update / WSUS...'
+                $computer.Phase = 'WSUSCheck'
+                $computer.InstallErrors = ''
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
+
+        # Resolve configured WSUS server URL from the remote registry and show it in the grid.
+        $wsusUrl = 'Consultando...'
+        try {
+            $wsusUrl = Invoke-Command -ComputerName $Computer.Computer -ErrorAction Stop -ScriptBlock {
+                try {
+                    $val = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name WUServer -ErrorAction Stop).WUServer
+                    if ([string]::IsNullOrWhiteSpace($val)) { 'Microsoft Update (sin WSUS)' } else { $val }
+                }
+                catch {
+                    'Microsoft Update (sin WSUS)'
+                }
+            }
+        }
+        catch {
+            $wsusUrl = "No accesible: $($_.Exception.Message)"
+        }
+        $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                $uiHash.Listview.Items.EditItem($Computer)
+                $computer.WsusServer = $wsusUrl
+                $uiHash.Listview.Items.CommitEdit()
+                $uiHash.Listview.Items.Refresh()
+            })
+        Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Info' -Details "Servidor WSUS configurado en $($Computer.Computer): $wsusUrl"
 
         if (-not (Test-Path -Path $remoteScripts)) {
             New-Item -Path $remoteScripts -ItemType Directory -Force | Out-Null
         }
         Copy-Item -Path $testLocal -Destination "$remoteScripts\Test-WUAgent.ps1" -Force
+        Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Info' -Details "Validando comunicacion WSUS en servidor $($Computer.Computer)..."
         $null = & $PsExecPath -accepteula -nobanner -s "\\$($Computer.Computer)" cmd.exe /c 'echo . | powershell.exe -NoProfile -ExecutionPolicy Bypass -file C:\Admin\Scripts\Test-WUAgent.ps1'
         $probeExit = $LASTEXITCODE
         Remove-Item -Path "$remoteScripts\Test-WUAgent.ps1" -Force -ErrorAction SilentlyContinue
+
+        switch ($probeExit) {
+            0 { Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Success' -Details "Agente WU/WSUS operativo en $($Computer.Computer) (Test-WUAgent exit=0)." }
+            2 { Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Warning' -Details "Servicios WU/BITS detenidos en $($Computer.Computer) (Test-WUAgent exit=2). Se intentara reparar." }
+            3 { Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Warning' -Details "Fallo COM o consulta de actualizaciones en $($Computer.Computer) (Test-WUAgent exit=3). Se intentara reparar." }
+            default { Write-Log -Computer $Computer.Computer -Action 'WSUSCheck' -Result 'Warning' -Details "Test-WUAgent en $($Computer.Computer) devolvio codigo inesperado $probeExit. Se intentara reparar." }
+        }
 
         if ($probeExit -ne 0) {
             $uiHash.ListView.Dispatcher.Invoke('Normal', [action] {
                     $uiHash.Listview.Items.EditItem($Computer)
                     $computer.Status = 'Agente WU con problemas; reparando (servicios, cache, registro WSUS)...'
+                    $computer.Phase = 'WURepair'
                     $uiHash.Listview.Items.CommitEdit()
                     $uiHash.Listview.Items.Refresh()
                 })
@@ -446,6 +758,7 @@ $PrepareWUAgentBeforeCheck = {
                 $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                         $uiHash.Listview.Items.EditItem($Computer)
                         $computer.Status = 'Reparacion del agente WU completada; refrescando catalogo WSUS...'
+                        $computer.Phase = 'WSUSCheck'
                         $uiHash.Listview.Items.CommitEdit()
                         $uiHash.Listview.Items.Refresh()
                     })
@@ -453,9 +766,17 @@ $PrepareWUAgentBeforeCheck = {
         }
         else {
             $null = & $PsExecPath -accepteula -nobanner -s "\\$($Computer.Computer)" cmd.exe /c 'echo . | wuauclt /detectnow'
+            $detectExit = $LASTEXITCODE
+            if ($detectExit -eq 0) {
+                Write-Log -Computer $Computer.Computer -Action 'WSUSDetect' -Result 'Success' -Details "Sincronizacion WSUS (detectnow) correcta en $($Computer.Computer) (exit=$detectExit)."
+            }
+            else {
+                Write-Log -Computer $Computer.Computer -Action 'WSUSDetect' -Result 'Warning' -Details "Sincronizacion WSUS (detectnow) devolvio codigo $detectExit en $($Computer.Computer)."
+            }
             $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                     $uiHash.Listview.Items.EditItem($Computer)
                     $computer.Status = 'Agente WU operativo; sincronizando con WSUS...'
+                    $computer.Phase = 'WSUSCheck'
                     $uiHash.Listview.Items.CommitEdit()
                     $uiHash.Listview.Items.Refresh()
                 })
@@ -463,9 +784,11 @@ $PrepareWUAgentBeforeCheck = {
     }
     catch {
         Write-Log -Computer $Computer.Computer -Action 'PrepareWUAgentBeforeCheck' -Result 'Error' -Details $_.Exception.Message
+        $errMsg = $_.Exception.Message
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $computer.Status = "Validacion WU omitida por error: $($_.Exception.Message). Continuando busqueda..."
+                $computer.Status = "Validacion WU omitida por error: $errMsg. Continuando busqueda..."
+                $computer.InstallErrors = "PrepareWU: $errMsg"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
@@ -524,6 +847,13 @@ $GetUpdates = {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Available = $searchresult.Updates.Count
                 $computer.Downloaded = $dlCount
+                if ($computer.Available -gt 0) {
+                    $pct = [int][math]::Min(100, [math]::Max(0, [math]::Round((100.0 * $computer.Downloaded) / $computer.Available)))
+                    $computer.DownloadPercent = "$pct%"
+                }
+                else {
+                    $computer.DownloadPercent = '0%'
+                }
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
@@ -555,6 +885,20 @@ $GetUpdates = {
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
+        if ($Computer.IsChecked) {
+            $selectedComputersSet[[string]$Computer.Computer] = $true
+            if ($Computer.RebootRequired) {
+                $pendingRebootSet[[string]$Computer.Computer] = $true
+            }
+            else {
+                $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+            }
+        }
+        else {
+            $selectedComputersSet.Remove([string]$Computer.Computer) | Out-Null
+            $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+        }
+        & $UpdateCountersUiScript
         #}		
 
         #Update status
@@ -568,15 +912,15 @@ $GetUpdates = {
             })
     }
     Catch {
+        Write-Log -Computer $Computer.Computer -Action 'GetUpdates' -Result 'Error' -Details $_.Exception.Message
+        $errMsg = $_.Exception.Message
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $computer.Status = "Error occurred: $($_.Exception.Message)"
+                $computer.Status = "Error occurred: $errMsg"
+                $computer.InstallErrors = "GetUpdates: $errMsg"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
-
-        #Cancel any remaining actions
-        #exit  # Removed to prevent script termination
     }
 }
 
@@ -668,6 +1012,7 @@ $InstallUpdates = {
                 $uiHash.Listview.Items.EditItem($Computer)
                 $computer.Status = "Installing $installCount Updates, this may take some time."
                 $computer.InstallErrors = ''
+                $computer.Phase = 'DownloadingInstalling'
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
@@ -720,13 +1065,29 @@ $InstallUpdates = {
                 $computer.Status = 'Install complete.'
                 if ($rebootRequired -eq $True) {
                     $computer.RebootRequired = $True
+                    $computer.Phase = 'RebootRequired'
                 }
                 else {
                     $computer.RebootRequired = $False
+                    $computer.Phase = 'Updated'
                 }
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
+        if ($Computer.IsChecked) {
+            $selectedComputersSet[[string]$Computer.Computer] = $true
+            if ($Computer.RebootRequired) {
+                $pendingRebootSet[[string]$Computer.Computer] = $true
+            }
+            else {
+                $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+            }
+        }
+        else {
+            $selectedComputersSet.Remove([string]$Computer.Computer) | Out-Null
+            $pendingRebootSet.Remove([string]$Computer.Computer) | Out-Null
+        }
+        & $UpdateCountersUiScript
     }
     Catch {
         Write-Log -Computer $Computer.Computer -Action 'InstallUpdates' -Result 'Error' -Details $_.Exception.Message
@@ -749,6 +1110,7 @@ $RemoveEntry = {
 
     #Remove computers from list
     ForEach ($computer in $Computers) {
+        Remove-ComputerFromCounters -ComputerName ([string]$computer.Computer)
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($computer)
                 $uiHash.clientObservable.Remove($computer)
@@ -761,7 +1123,9 @@ $RemoveEntry = {
         Param($Computers)
         ForEach ($computer in $Computers) {
             $updatesHash.Remove($computer.computer)
-            $computer.Runspace.Dispose()
+            if ($computer.Runspace) {
+                $computer.Runspace.Dispose()
+            }
         }
     }
 
@@ -782,6 +1146,7 @@ $RemoveEntry = {
     }
 
     $jobs.Add($temp) | Out-Null
+    Update-RestartSelectedButtonState
 }
 
 #Remove computer that cannot be pinged
@@ -806,6 +1171,8 @@ $RemoveOfflineComputer = {
         }
         else {
             #Remove unreachable computers
+            $selectedComputersSet.Remove([string]$computer.Computer) | Out-Null
+            $pendingRebootSet.Remove([string]$computer.Computer) | Out-Null
             $updatesHash.Remove($computer.computer)
             $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                     $uiHash.Listview.Items.EditItem($computer)
@@ -813,6 +1180,7 @@ $RemoveOfflineComputer = {
                     $uiHash.Listview.Items.CommitEdit()
                     $uiHash.Listview.Items.Refresh()
                 })
+            & $UpdateCountersUiScript
         }
     }
     Catch {
@@ -832,41 +1200,65 @@ $RemoveOfflineComputer = {
 #Report status to WSUS server
 $ReportStatus = {
     Param ($Computer)
+    $serverName = [string]$Computer.Computer
     try {
-        #Set path for psexec and scripts
         Set-Location $ScriptRoot
 
-        #Update status
+        $wsusServerUrl = 'desconocido'
+        try {
+            $wsusServerUrl = Invoke-Command -ComputerName $serverName -ErrorAction Stop -ScriptBlock {
+                $regPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+                $val = $null
+                try {
+                    $val = (Get-ItemProperty -Path $regPath -Name WUServer -ErrorAction Stop).WUServer
+                }
+                catch {
+                    $val = $null
+                }
+                if (-not $val) { 'No definido (Microsoft Update directo)' } else { $val }
+            }
+        }
+        catch {
+            $wsusServerUrl = "No se pudo consultar registro WSUS: $($_.Exception.Message)"
+        }
+
+        Write-Log -Computer $serverName -Action 'WSUSReport' -Result 'Info' -Details "Iniciando reporte a WSUS. Servidor objetivo: $serverName. WSUS configurado: $wsusServerUrl"
+
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $Computer.Status = 'Reporting status to WSUS server.'
+                $Computer.WsusServer = $wsusServerUrl
+                $Computer.Status = "Reportando estado al servidor WSUS ($wsusServerUrl)..."
+                $Computer.InstallErrors = ''
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
 
-        $ExecStatus = & $PsExecPath -accepteula -nobanner -s "\\$($Computer.Computer)" cmd.exe /c 'echo . | wuauclt /reportnow'
-        if ($LASTEXITCODE -ne 0) {
-            throw "PsExec failed with error code $LASTEXITCODE"
+        $null = & $PsExecPath -accepteula -nobanner -s "\\$serverName" cmd.exe /c 'echo . | wuauclt /reportnow'
+        $reportExit = $LASTEXITCODE
+        if ($reportExit -ne 0) {
+            Write-Log -Computer $serverName -Action 'WSUSReport' -Result 'Error' -Details "Fallo el reporte a WSUS en $serverName. PsExec exit code: $reportExit. WSUS configurado: $wsusServerUrl"
+            throw "PsExec failed with error code $reportExit"
         }
+
+        Write-Log -Computer $serverName -Action 'WSUSReport' -Result 'Success' -Details "Reporte WSUS enviado correctamente desde $serverName a $wsusServerUrl (wuauclt /reportnow exit=$reportExit)"
 
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $Computer.Status = 'Finished updating status.'
+                $Computer.Status = "Reporte WSUS OK ($serverName -> $wsusServerUrl)"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
     }
     catch {
-        Write-Log -Computer $Computer.Computer -Action 'ReportStatus' -Result 'Error' -Details $_.Exception.Message
+        $errMsg = $_.Exception.Message
+        Write-Log -Computer $serverName -Action 'WSUSReport' -Result 'Error' -Details "Error al reportar a WSUS desde $serverName : $errMsg"
         $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
                 $uiHash.Listview.Items.EditItem($Computer)
-                $Computer.Status = "Error occurred: $($_.Exception.Message)"
+                $Computer.Status = "Error al reportar a WSUS ($serverName): $errMsg"
+                $Computer.InstallErrors = "WSUSReport: $errMsg"
                 $uiHash.Listview.Items.CommitEdit()
                 $uiHash.Listview.Items.Refresh()
             })
-
-        #Cancel any remaining actions
-        #exit  # Removed to prevent script termination
     }
 }
 
@@ -1057,40 +1449,63 @@ $jobCleanup.Thread = $jobCleanup.PowerShell.BeginInvoke()
 #endregion
 
 #region Connect to controls
-$uiHash.ActionMenu = $uiHash.Window.FindName('ActionMenu')
-$uiHash.AddADContext = $uiHash.Window.FindName('AddADContext')
-$uiHash.AddADMenu = $uiHash.Window.FindName('AddADMenu')
-$uiHash.AddFileContext = $uiHash.Window.FindName('AddFileContext')
-$uiHash.AddComputerContext = $uiHash.Window.FindName('AddComputerContext')
-$uiHash.AddComputerMenu = $uiHash.Window.FindName('AddComputerMenu')
-$uiHash.AutoRebootCheckBox = $uiHash.Window.FindName('AutoRebootCheckBox')
-$uiHash.BrowseFileMenu = $uiHash.Window.FindName('BrowseFileMenu')
-$uiHash.CheckUpdatesContext = $uiHash.Window.FindName('CheckUpdatesContext')
-$uiHash.ClearComputerListMenu = $uiHash.Window.FindName('ClearComputerListMenu')
-$uiHash.DownloadUpdatesContext = $uiHash.Window.FindName('DownloadUpdatesContext')
-$uiHash.ExitMenu = $uiHash.Window.FindName('ExitMenu')
+$uiHash.GroupComboBox = $uiHash.Window.FindName('GroupComboBox')
+$uiHash.ReloadGroupsButton = $uiHash.Window.FindName('ReloadGroupsButton')
+$uiHash.SelectAllButton = $uiHash.Window.FindName('SelectAllButton')
+$uiHash.ClearSelectionButton = $uiHash.Window.FindName('ClearSelectionButton')
+$uiHash.StartButton = $uiHash.Window.FindName('StartButton')
+$uiHash.RestartSelectedButton = $uiHash.Window.FindName('RestartSelectedButton')
+$uiHash.ReportButton = $uiHash.Window.FindName('ReportButton')
+$uiHash.StopRefreshButton = $uiHash.Window.FindName('StopRefreshButton')
+$uiHash.UpdateTargetsTextBlock = $uiHash.Window.FindName('UpdateTargetsTextBlock')
+$uiHash.PendingRebootTextBlock = $uiHash.Window.FindName('PendingRebootTextBlock')
 $uiHash.GridView = $uiHash.Window.FindName('GridView')
-$uiHash.ExportListMenu = $uiHash.Window.FindName('ExportListMenu')
-$uiHash.InstallUpdatesContext = $uiHash.Window.FindName('InstallUpdatesContext')
-$uiHash.ReportStatusContext = $uiHash.Window.FindName('ReportStatusContext')
 $uiHash.Listview = $uiHash.Window.FindName('Listview')
-$uiHash.ListviewContextMenu = $uiHash.Window.FindName('ListViewContextMenu')
-$uiHash.OfflineHostsMenu = $uiHash.Window.FindName('OfflineHostsMenu')
-$uiHash.RemoteDesktopContext = $uiHash.Window.FindName('RemoteDesktopContext')
-$uiHash.RemoveComputerContext = $uiHash.Window.FindName('RemoveComputerContext')
-$uiHash.RestartContext = $uiHash.Window.FindName('RestartContext')
-$uiHash.SelectAllMenu = $uiHash.Window.FindName('SelectAllMenu')
-$uiHash.ShowUpdatesContext = $uiHash.Window.FindName('ShowUpdatesContext')
-$uiHash.ShowInstalledContext = $uiHash.Window.FindName('ShowInstalledContext')
 $uiHash.StatusTextBox = $uiHash.Window.FindName('StatusTextBox')
-$uiHash.UpdateHistoryMenu = $uiHash.Window.FindName('UpdateHistoryMenu')
-$uiHash.ViewErrorMenu = $uiHash.Window.FindName('ViewErrorMenu')
-$uiHash.ViewUpdateLogContext = $uiHash.Window.FindName('ViewUpdateLogContext')
-$uiHash.WindowsUpdateServiceMenu = $uiHash.Window.FindName('WindowsUpdateServiceMenu')
-$uiHash.WURestartServiceMenu = $uiHash.Window.FindName('WURestartServiceMenu')
-$uiHash.WUStartServiceMenu = $uiHash.Window.FindName('WUStartServiceMenu')
-$uiHash.WUStopServiceMenu = $uiHash.Window.FindName('WUStopServiceMenu')
-$uiHash.ExportReportMenu = $uiHash.Window.FindName('ExportReportMenu')
+
+# ContextMenu items live in a separate name scope and FindName from the Window
+# can return $null. Resolve them from the ContextMenu first, then fall back to
+# the listview, then to the window. Missing items remain $null but consumers
+# now check for $null before touching them.
+$uiHash.ListviewContextMenu = $uiHash.Window.FindName('ListViewContextMenu')
+if (-not $uiHash.ListviewContextMenu -and $uiHash.Listview) {
+    try { $uiHash.ListviewContextMenu = $uiHash.Listview.ContextMenu } catch {}
+}
+function Resolve-UiName {
+    param([string]$Name)
+    $found = $null
+    if ($uiHash.ListviewContextMenu) {
+        try { $found = $uiHash.ListviewContextMenu.FindName($Name) } catch {}
+    }
+    if (-not $found -and $uiHash.Listview) {
+        try { $found = $uiHash.Listview.FindName($Name) } catch {}
+    }
+    if (-not $found -and $uiHash.Window) {
+        try { $found = $uiHash.Window.FindName($Name) } catch {}
+    }
+    return $found
+}
+
+$uiHash.AddADContext = Resolve-UiName 'AddADContext'
+$uiHash.AddFileContext = Resolve-UiName 'AddFileContext'
+$uiHash.AddComputerContext = Resolve-UiName 'AddComputerContext'
+$uiHash.CheckUpdatesContext = Resolve-UiName 'CheckUpdatesContext'
+$uiHash.DownloadUpdatesContext = Resolve-UiName 'DownloadUpdatesContext'
+$uiHash.InstallUpdatesContext = Resolve-UiName 'InstallUpdatesContext'
+$uiHash.ReportStatusContext = Resolve-UiName 'ReportStatusContext'
+$uiHash.RemoteDesktopContext = Resolve-UiName 'RemoteDesktopContext'
+$uiHash.RemoveComputerContext = Resolve-UiName 'RemoveComputerContext'
+$uiHash.RestartContext = Resolve-UiName 'RestartContext'
+$uiHash.ShowUpdatesContext = Resolve-UiName 'ShowUpdatesContext'
+$uiHash.ShowInstalledContext = Resolve-UiName 'ShowInstalledContext'
+$uiHash.UpdateHistoryMenu = Resolve-UiName 'UpdateHistoryMenu'
+$uiHash.ViewUpdateLogContext = Resolve-UiName 'ViewUpdateLogContext'
+$uiHash.WindowsUpdateServiceMenu = Resolve-UiName 'WindowsUpdateServiceMenu'
+$uiHash.WURestartServiceMenu = Resolve-UiName 'WURestartServiceMenu'
+$uiHash.WUStartServiceMenu = Resolve-UiName 'WUStartServiceMenu'
+$uiHash.WUStopServiceMenu = Resolve-UiName 'WUStopServiceMenu'
+$uiHash.ExportReportMenu = Resolve-UiName 'ExportReportMenu'
+$uiHash.IsRefreshing = $false
 #endregion Connect to controls
 
 #region Event ScriptBlocks
@@ -1102,6 +1517,7 @@ $eventWindowInit = { #Runs before opening window
         If ($_.OriginalSource -is [System.Windows.Controls.GridViewColumnHeader]) {
             Write-Verbose ('{0}' -f $_.Originalsource.getType().FullName)
             If ($_.OriginalSource -AND $_.OriginalSource.Role -ne 'Padding') {
+                if (-not $_.Originalsource.Column.DisplayMemberBinding) { return }
                 $Column = $_.Originalsource.Column.DisplayMemberBinding.Path.Path
                 Write-Debug ('Sort: {0}' -f $Column)
                 If ($SortHash[$Column] -eq 'Ascending') {
@@ -1119,27 +1535,58 @@ $eventWindowInit = { #Runs before opening window
         }
     }
     $uiHash.Listview.AddHandler([System.Windows.Controls.GridViewColumnHeader]::ClickEvent, $ColumnSortHandler)
+    # Capture script-scope references so the global event handler can see them.
+    $selSetRef = $selectedComputersSet
+    $pendSetRef = $pendingRebootSet
+    $countersUiRef = $UpdateCountersUiScript
+    $Global:ServerCheckChangedHandler = {
+        try {
+            if ($_.OriginalSource -and $_.OriginalSource.DataContext) {
+                $ctx = $_.OriginalSource.DataContext
+                $key = [string]$ctx.Computer
+                if (-not [string]::IsNullOrWhiteSpace($key)) {
+                    if ($ctx.IsChecked) {
+                        $selSetRef[$key] = $true
+                        if ($ctx.RebootRequired) {
+                            $pendSetRef[$key] = $true
+                        }
+                        else {
+                            if ($pendSetRef.ContainsKey($key)) { $pendSetRef.Remove($key) | Out-Null }
+                        }
+                    }
+                    else {
+                        if ($selSetRef.ContainsKey($key)) { $selSetRef.Remove($key) | Out-Null }
+                        if ($pendSetRef.ContainsKey($key)) { $pendSetRef.Remove($key) | Out-Null }
+                    }
+                }
+            }
+            if ($countersUiRef) { & $countersUiRef }
+        }
+        catch {
+            try {
+                Write-Log -Computer 'LOCAL' -Action 'ServerCheckChanged' -Result 'Error' -Details $_.Exception.Message
+            }
+            catch {}
+        }
+    }.GetNewClosure()
+    $uiHash.Listview.AddHandler([System.Windows.Controls.Primitives.ToggleButton]::CheckedEvent, [System.Windows.RoutedEventHandler]$Global:ServerCheckChangedHandler)
+    $uiHash.Listview.AddHandler([System.Windows.Controls.Primitives.ToggleButton]::UncheckedEvent, [System.Windows.RoutedEventHandler]$Global:ServerCheckChangedHandler)
 
     #Create and bind the observable collection to the GridView
     $uiHash.clientObservable = New-Object System.Collections.ObjectModel.ObservableCollection[object]
     $uiHash.ListView.ItemsSource = $uiHash.clientObservable
 
-    #Auto-load computers from Servers.txt on startup (if present)
-    $serversFilePath = Join-Path $ScriptRoot 'Servers.txt'
-    if (Test-Path -Path $serversFilePath) {
-        $serversFromFile = @(
-            Get-Content -Path $serversFilePath -ErrorAction SilentlyContinue |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -and -not $_.StartsWith('#') }
-        )
-        if ($serversFromFile.Count -gt 0) {
-            &$AddEntry $serversFromFile
-            $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
-                    $uiHash.StatusTextBox.Foreground = 'Black'
-                    $uiHash.StatusTextBox.Text = "Equipos cargados automaticamente desde Servers.txt: $($serversFromFile.Count)"
-                })
-        }
+    $groups = @(Get-GroupData)
+    $uiHash.GroupComboBox.Items.Clear()
+    foreach ($groupName in $groups) {
+        [void]$uiHash.GroupComboBox.Items.Add($groupName)
     }
+    $uiHash.GroupComboBox.SelectedIndex = -1
+    $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+            $uiHash.StatusTextBox.Foreground = 'Black'
+            $uiHash.StatusTextBox.Text = "Seleccione un grupo para cargar servidores. Grupos detectados: $($groups.Count)"
+        })
+    Update-RestartSelectedButtonState
 }
 $eventWindowClose = { #Runs when WUU closes
     #Halt job processing
@@ -1152,18 +1599,13 @@ $eventWindowClose = { #Runs when WUU closes
     [gc]::Collect()
     [gc]::WaitForPendingFinalizers()    
 }
-$eventActionMenu = { #Enable/disable action menu items
-    $uiHash.ClearComputerListMenu.IsEnabled = ($uiHash.Listview.Items.Count -gt 0)
-    $uiHash.OfflineHostsMenu.IsEnabled = ($uiHash.Listview.Items.Count -gt 0)
-    $uiHash.ViewErrorMenu.IsEnabled = ($Error.Count -gt 0)
-}
 $eventAddAD = { #Add computers from Active Directory
     #region OUPicker
     $OUPickerHash = [hashtable]::Synchronized(@{ })
     try {
         $ouPickerPath = Join-Path $ScriptRoot 'OUPicker.xaml'
         if (-not (Test-Path $ouPickerPath)) {
-            Write-Warning "No se encontró OUPicker.xaml en $ScriptRoot"
+            Write-Warning "No se encontro OUPicker.xaml en $ScriptRoot"
             return
         }
         [xml]$xaml = Get-Content -LiteralPath $ouPickerPath
@@ -1275,8 +1717,334 @@ $eventAddFile = { #Add computers from a file
             })
     }
 }
+$eventReloadGroups = {
+    $groups = @(Get-GroupData)
+    $uiHash.GroupComboBox.Items.Clear()
+    foreach ($groupName in $groups) {
+        [void]$uiHash.GroupComboBox.Items.Add($groupName)
+    }
+    $uiHash.GroupComboBox.SelectedIndex = -1
+    $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+            $uiHash.StatusTextBox.Foreground = 'Black'
+            $uiHash.StatusTextBox.Text = "Grupos recargados correctamente: $($groups.Count)"
+        })
+    Update-RestartSelectedButtonState
+}
+$eventGroupChanged = {
+    $selectedGroup = [string]$uiHash.GroupComboBox.SelectedItem
+    if ([string]::IsNullOrWhiteSpace($selectedGroup)) {
+        return
+    }
+    if (-not $groupServersHash.ContainsKey($selectedGroup)) {
+        $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                $uiHash.StatusTextBox.Foreground = 'Red'
+                $uiHash.StatusTextBox.Text = "No se encontraron servidores para el grupo '$selectedGroup'."
+            })
+        return
+    }
+    &$ClearComputerList
+    $servers = @($groupServersHash[$selectedGroup])
+    if ($servers.Count -eq 0) {
+        $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                $uiHash.StatusTextBox.Foreground = 'Red'
+                $uiHash.StatusTextBox.Text = "El grupo '$selectedGroup' no contiene servidores validos."
+            })
+        return
+    }
+    &$AddEntry $servers
+    $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+            $uiHash.StatusTextBox.Foreground = 'Black'
+            $uiHash.StatusTextBox.Text = "Grupo '$selectedGroup' cargado con $($servers.Count) servidor(es)."
+        })
+    Update-RestartSelectedButtonState
+}
+$eventSelectAllChecked = {
+    $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+            foreach ($item in $uiHash.Listview.Items) {
+                $uiHash.Listview.Items.EditItem($item)
+                $item.IsChecked = $true
+                if ($item.Phase -eq 'Idle') { $item.Phase = 'Idle' }
+                $uiHash.Listview.Items.CommitEdit()
+            }
+            $uiHash.Listview.Items.Refresh()
+        })
+    Update-RestartSelectedButtonState
+}
+$eventClearChecked = {
+    $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+            foreach ($item in $uiHash.Listview.Items) {
+                $uiHash.Listview.Items.EditItem($item)
+                $item.IsChecked = $false
+                $item.Phase = 'Idle'
+                $uiHash.Listview.Items.CommitEdit()
+            }
+            $uiHash.Listview.Items.Refresh()
+        })
+    Update-RestartSelectedButtonState
+}
+$eventStartSelected = {
+    try {
+        $targets = @(Get-CheckedComputers)
+        if ($targets.Count -eq 0) {
+            $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                    $uiHash.StatusTextBox.Foreground = 'Red'
+                    $uiHash.StatusTextBox.Text = 'No hay servidores seleccionados para iniciar.'
+                })
+            return
+        }
+
+        # Lock every row's checkbox so the operator cannot toggle selection while
+        # the cycle is running. The locks are released by Detener y refrescar.
+        $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                foreach ($item in $uiHash.Listview.Items) {
+                    try {
+                        $uiHash.Listview.Items.EditItem($item)
+                        $item.CanCheck = $false
+                        $uiHash.Listview.Items.CommitEdit()
+                    }
+                    catch {}
+                }
+                $uiHash.Listview.Items.Refresh()
+            })
+
+        $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                $uiHash.StatusTextBox.Foreground = 'Black'
+                $uiHash.StatusTextBox.Text = "Iniciando actualizacion en $($targets.Count) servidor(es) seleccionados. Seleccion bloqueada hasta Detener y refrescar."
+            })
+
+        $targets | ForEach-Object {
+            $target = $_
+            try {
+                Ensure-ComputerRunspace $target
+                $temp = "" | Select-Object PowerShell, Runspace
+                $temp.PowerShell = [powershell]::Create().AddScript($PrepareWUAgentBeforeCheck).AddArgument($target)
+                $temp.PowerShell.AddScript($GetUpdates).AddArgument($target)
+                $temp.PowerShell.AddScript($MaybeAutoDownloadAfterInitialCheck).AddArgument($target)
+                $temp.PowerShell.AddScript($SetUpdatesStatus).AddArgument($target)
+                $temp.PowerShell.Runspace = $target.Runspace
+                $temp.Runspace = $temp.PowerShell.BeginInvoke()
+                $jobs.Add($temp) | Out-Null
+            }
+            catch {
+                Write-Log -Computer $target.Computer -Action 'StartSelected' -Result 'Error' -Details $_.Exception.Message
+                $uiHash.ListView.Dispatcher.Invoke('Background', [action] {
+                        $uiHash.Listview.Items.EditItem($target)
+                        $target.Status = "Error al iniciar: $($_.Exception.Message)"
+                        $uiHash.Listview.Items.CommitEdit()
+                        $uiHash.Listview.Items.Refresh()
+                    })
+            }
+        }
+    }
+    catch {
+        Write-Log -Computer 'LOCAL' -Action 'StartSelected' -Result 'Error' -Details $_.Exception.Message
+        $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                $uiHash.StatusTextBox.Foreground = 'Red'
+                $uiHash.StatusTextBox.Text = "Error general al iniciar: $($_.Exception.Message)"
+            })
+    }
+}
+$eventRestartSelected = {
+    $targets = @(
+        Get-CheckedComputers | Where-Object { $_.RebootRequired -eq $true }
+    )
+    if ($targets.Count -eq 0) {
+        $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+                $uiHash.StatusTextBox.Foreground = 'Red'
+                $uiHash.StatusTextBox.Text = 'No hay servidores seleccionados que requieran reinicio.'
+            })
+        return
+    }
+
+    $uiHash.StatusTextBox.Dispatcher.Invoke('Background', [action] {
+            $uiHash.StatusTextBox.Foreground = 'Black'
+            $uiHash.StatusTextBox.Text = "Reiniciando $($targets.Count) servidor(es) seleccionado(s) con reinicio pendiente..."
+        })
+
+    $targets | ForEach-Object {
+        $target = $_
+        Ensure-ComputerRunspace $target
+        $temp = "" | Select-Object PowerShell, Runspace
+        $temp.PowerShell = [powershell]::Create().AddScript($RestartComputer).AddArgument($target).AddArgument($false)
+        $temp.PowerShell.AddScript($GetUpdates).AddArgument($target)
+        $temp.PowerShell.AddScript($SetUpdatesStatus).AddArgument($target)
+        $temp.PowerShell.Runspace = $target.Runspace
+        $temp.Runspace = $temp.PowerShell.BeginInvoke()
+        $jobs.Add($temp) | Out-Null
+    }
+    Update-RestartSelectedButtonState
+}
+# Capture script-scope references so the click handler resolves them via closure
+# regardless of the scope WPF/Add_Click invokes the scriptblock in.
+$stopRefreshUiRef = $uiHash
+$stopRefreshJobsRef = $jobs
+$stopRefreshSelSetRef = $selectedComputersSet
+$stopRefreshPendSetRef = $pendingRebootSet
+$stopRefreshUpdatesRef = $updatesHash
+$stopRefreshCountersUiRef = $UpdateCountersUiScript
+
+$eventStopAndRefresh = {
+    try {
+        Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Info' -Details 'Click recibido en Detener y refrescar.'
+    }
+    catch {}
+
+    if ($null -eq $stopRefreshUiRef) {
+        try { Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Error' -Details 'uiHash no disponible en el handler.' } catch {}
+        return
+    }
+
+    if ($stopRefreshUiRef['IsRefreshing']) {
+        try {
+            Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Warning' -Details 'Refresh ya estaba en progreso; se resetea el flag para permitir reintento.'
+        }
+        catch {}
+        $stopRefreshUiRef['IsRefreshing'] = $false
+    }
+
+    try {
+        $confirmResult = [System.Windows.MessageBox]::Show(
+            $stopRefreshUiRef['Window'],
+            'Esto detendra las tareas en ejecucion y refrescara el estado de todos los servidores. Deseas continuar?',
+            'Confirmar detener y refrescar',
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+    }
+    catch {
+        try {
+            Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Error' -Details "MessageBox fallo: $($_.Exception.Message). Continuando sin confirmacion."
+        }
+        catch {}
+        $confirmResult = [System.Windows.MessageBoxResult]::Yes
+    }
+    if ($confirmResult -ne [System.Windows.MessageBoxResult]::Yes) {
+        return
+    }
+
+    $stopRefreshUiRef['IsRefreshing'] = $true
+
+    $setControlsEnabled = {
+        param([bool]$On)
+        $controlKeys = @('GroupComboBox','SelectAllButton','ClearSelectionButton','StartButton','RestartSelectedButton','ReportButton','ReloadGroupsButton')
+        foreach ($k in $controlKeys) {
+            $ctrl = $stopRefreshUiRef[$k]
+            if ($ctrl) { try { $ctrl.IsEnabled = $On } catch {} }
+        }
+        $stopBtn = $stopRefreshUiRef['StopRefreshButton']
+        if ($stopBtn) { try { $stopBtn.IsEnabled = $true } catch {} }
+    }
+
+    try { & $setControlsEnabled $false } catch {}
+
+    $statusBox = $stopRefreshUiRef['StatusTextBox']
+    if ($statusBox -and $statusBox.Dispatcher) {
+        try {
+            $statusBox.Dispatcher.Invoke('Background', [action] {
+                    $statusBox.Foreground = 'DarkBlue'
+                    $statusBox.Text = 'Deteniendo tareas en ejecucion y refrescando estado...'
+                })
+        }
+        catch {}
+    }
+
+    try {
+        if ($stopRefreshJobsRef) {
+            $snapshotJobs = @($stopRefreshJobsRef)
+            foreach ($jobItem in $snapshotJobs) {
+                try { if ($jobItem.PowerShell) { $jobItem.PowerShell.Stop() } } catch {}
+                try { if ($jobItem.Runspace -and $jobItem.PowerShell) { $jobItem.PowerShell.EndInvoke($jobItem.Runspace) | Out-Null } } catch {}
+                try { if ($jobItem.PowerShell) { $jobItem.PowerShell.Dispose() } } catch {}
+                try { $stopRefreshJobsRef.Remove($jobItem) | Out-Null } catch {}
+            }
+        }
+
+        $listView = $stopRefreshUiRef['Listview']
+        $items = @()
+        if ($listView) {
+            try { $items = @($listView.Items) } catch {}
+        }
+        if ($stopRefreshSelSetRef) { try { $stopRefreshSelSetRef.Clear() } catch {} }
+        if ($stopRefreshPendSetRef) { try { $stopRefreshPendSetRef.Clear() } catch {} }
+        if ($stopRefreshUpdatesRef) { try { $stopRefreshUpdatesRef.Clear() } catch {} }
+
+        foreach ($item in $items) {
+            try { if ($item.Runspace) { $item.Runspace.Dispose() } } catch {}
+        }
+
+        if ($listView -and $listView.Dispatcher) {
+            try {
+                $listView.Dispatcher.Invoke('Background', [action] {
+                        foreach ($item in $items) {
+                            try { $listView.Items.EditItem($item) } catch {}
+                            try { $item.Available = 0 } catch {}
+                            try { $item.Downloaded = 0 } catch {}
+                            try { $item.DownloadPercent = '0%' } catch {}
+                            try { $item.InstallErrors = '' } catch {}
+                            try { $item.WsusServer = 'Sin consultar' } catch {}
+                            try { $item.CanCheck = $true } catch {}
+                            try { $item.Status = 'Refrescado. Listo para iniciar.' } catch {}
+                            try { $item.RebootRequired = $false } catch {}
+                            try { $item.UpdatesStatus = 'Unknown' } catch {}
+                            try { $item.Phase = 'Idle' } catch {}
+                            try { $item.StartTime = $null } catch {}
+                            try { $item.EndTime = $null } catch {}
+                            try { $item.Runspace = $null } catch {}
+                            try { $listView.Items.CommitEdit() } catch {}
+                        }
+                        try { $listView.Items.Refresh() } catch {}
+                    })
+            }
+            catch {}
+        }
+
+        foreach ($item in $items) {
+            try {
+                if ($item.IsChecked -and $stopRefreshSelSetRef) {
+                    $stopRefreshSelSetRef[[string]$item.Computer] = $true
+                }
+            }
+            catch {}
+        }
+
+        if ($statusBox -and $statusBox.Dispatcher) {
+            try {
+                $statusBox.Dispatcher.Invoke('Background', [action] {
+                        $statusBox.Foreground = 'DarkGreen'
+                        $statusBox.Text = 'Refresh finalizado. Ya puedes ejecutar Iniciar nuevamente.'
+                    })
+            }
+            catch {}
+        }
+    }
+    catch {
+        try {
+            Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Error' -Details $_.Exception.Message
+        }
+        catch {}
+        if ($statusBox -and $statusBox.Dispatcher) {
+            try {
+                $statusBox.Dispatcher.Invoke('Background', [action] {
+                        $statusBox.Foreground = 'Red'
+                        $statusBox.Text = "Error durante refresh: $($_.Exception.Message)"
+                    })
+            }
+            catch {}
+        }
+    }
+    finally {
+        try { $stopRefreshUiRef['IsRefreshing'] = $false } catch {}
+        try { & $setControlsEnabled $true } catch {}
+        try { if ($stopRefreshCountersUiRef) { & $stopRefreshCountersUiRef } } catch {}
+        try {
+            Write-Log -Computer 'LOCAL' -Action 'StopAndRefresh' -Result 'Success' -Details 'Refresh completado.'
+        }
+        catch {}
+    }
+}.GetNewClosure()
 $eventGetUpdates = {
     $uiHash.Listview.SelectedItems | % {
+        Ensure-ComputerRunspace $_
         $temp = "" | Select-Object PowerShell, Runspace
         $temp.PowerShell = [powershell]::Create().AddScript($PrepareWUAgentBeforeCheck).AddArgument($_)
         $temp.PowerShell.AddScript($GetUpdates).AddArgument($_)
@@ -1288,6 +2056,7 @@ $eventGetUpdates = {
 }
 $eventDownloadUpdates = {
     $uiHash.Listview.SelectedItems | % {
+        Ensure-ComputerRunspace $_
         #Don't bother downloading if nothing available.
         if ($_.Available -eq $_.Downloaded) {
             #Update status
@@ -1310,6 +2079,7 @@ $eventDownloadUpdates = {
 }
 $eventInstallUpdates = {
     $uiHash.Listview.SelectedItems | % {
+        Ensure-ComputerRunspace $_
         #Check if there are any updates that are downloaded and don't require user input
         if (-not ($updatesHash[$_.computer] | Where-Object { $_.IsDownloaded -and $_.InstallationBehavior.CanRequestUserInput -eq $false })) {
             #Update status
@@ -1336,6 +2106,7 @@ $eventInstallUpdates = {
 }
 $eventRemoveOfflineComputer = {
     $uiHash.Listview.Items | % {
+        Ensure-ComputerRunspace $_
         $temp = "" | Select-Object PowerShell, Runspace
         $temp.PowerShell = [powershell]::Create().AddScript($RemoveOfflineComputer).AddArgument($_).AddArgument($RemoveEntry)
         $temp.PowerShell.Runspace = $_.Runspace
@@ -1345,6 +2116,7 @@ $eventRemoveOfflineComputer = {
 }
 $eventRestartComputer = {
     $uiHash.Listview.SelectedItems | % {
+        Ensure-ComputerRunspace $_
         $temp = "" | Select-Object PowerShell, Runspace
         # Solo comprobar actualizaciones tras el reinicio (sin descarga automatica ni Prepare)
         $temp.PowerShell = [powershell]::Create().AddScript($RestartComputer).AddArgument($_).AddArgument($false)
@@ -1367,59 +2139,45 @@ $eventKeyDown = {
     ElseIf ($_.Key -eq 'Delete') { &$removeEntry @($uiHash.Listview.SelectedItems) }
 }
 $eventRightClick = {
-    #Enable/Disable buttons as needed
-    If ($uiHash.Listview.SelectedItems.count -eq 0) {
-        $uiHash.RemoveComputerContext.IsEnabled = $False
-        $uiHash.RemoteDesktopContext.IsEnabled = $False
-        $uiHash.CheckUpdatesContext.IsEnabled = $False
-        $uiHash.DownloadUpdatesContext.IsEnabled = $False
-        $uiHash.InstallUpdatesContext.IsEnabled = $False
-        $uiHash.RestartContext.IsEnabled = $False
-        $uiHash.ShowInstalledContext.IsEnabled = $False
-        $uiHash.ShowUpdatesContext.IsEnabled = $False
-        $uiHash.UpdateHistoryMenu.IsEnabled = $False
-        $uiHash.ViewUpdateLogContext.IsEnabled = $False
-        $uiHash.WindowsUpdateServiceMenu.IsEnabled = $False
-        $uiHash.ReportStatusContext.IsEnabled = $False
+    # Helper to safely toggle IsEnabled on any context-menu item that may be $null
+    # when WPF's FindName fails to resolve children of a ContextMenu's name scope.
+    $setEnabled = {
+        param([string]$Key, [bool]$On)
+        $ctrl = $uiHash[$Key]
+        if ($null -ne $ctrl) {
+            try { $ctrl.IsEnabled = $On } catch {}
+        }
     }
-    ElseIf ($uiHash.Listview.SelectedItems.count -eq 1) {
-        $uiHash.RemoveComputerContext.IsEnabled = $True
-        $uiHash.RemoteDesktopContext.IsEnabled = $True
-        $uiHash.CheckUpdatesContext.IsEnabled = $True
-        if ($uiHash.Listview.SelectedItems[0].Downloaded -ge 1) {
-            $uiHash.InstallUpdatesContext.IsEnabled = $True
+
+    $selectedItems = @()
+    try { $selectedItems = @($uiHash.Listview.SelectedItems) } catch {}
+    $count = $selectedItems.Count
+
+    if ($count -eq 0) {
+        foreach ($k in @('RemoveComputerContext','RemoteDesktopContext','CheckUpdatesContext','DownloadUpdatesContext','InstallUpdatesContext','RestartContext','ShowInstalledContext','ShowUpdatesContext','UpdateHistoryMenu','ViewUpdateLogContext','WindowsUpdateServiceMenu','ReportStatusContext')) {
+            & $setEnabled $k $false
         }
-        else {
-            $uiHash.InstallUpdatesContext.IsEnabled = $False
-        }
-        $uiHash.RestartContext.IsEnabled = $True
-        $uiHash.ShowInstalledContext.IsEnabled = $True
-        if ($uiHash.Listview.SelectedItems[0].Available -gt 0) {
-            $uiHash.ShowUpdatesContext.IsEnabled = $True
-            $uiHash.DownloadUpdatesContext.IsEnabled = $True
-        }
-        else {
-            $uiHash.ShowUpdatesContext.IsEnabled = $False
-            $uiHash.DownloadUpdatesContext.IsEnabled = $False
-        }
-        $uiHash.UpdateHistoryMenu.IsEnabled = $True
-        $uiHash.ViewUpdateLogContext.IsEnabled = $True
-        $uiHash.WindowsUpdateServiceMenu.IsEnabled = $True
-        $uiHash.ReportStatusContext.IsEnabled = $True
     }
-    Else {
-        $uiHash.RemoveComputerContext.IsEnabled = $True
-        $uiHash.RemoteDesktopContext.IsEnabled = $False
-        $uiHash.CheckUpdatesContext.IsEnabled = $True
-        $uiHash.DownloadUpdatesContext.IsEnabled = $True
-        $uiHash.InstallUpdatesContext.IsEnabled = $True
-        $uiHash.ReportStatusContext.IsEnabled = $True
-        $uiHash.RestartContext.IsEnabled = $True
-        $uiHash.ShowInstalledContext.IsEnabled = $False
-        $uiHash.ShowUpdatesContext.IsEnabled = $False
-        $uiHash.UpdateHistoryMenu.IsEnabled = $False
-        $uiHash.ViewUpdateLogContext.IsEnabled = $False
-        $uiHash.WindowsUpdateServiceMenu.IsEnabled = $True
+    elseif ($count -eq 1) {
+        foreach ($k in @('RemoveComputerContext','RemoteDesktopContext','CheckUpdatesContext','RestartContext','ShowInstalledContext','UpdateHistoryMenu','ViewUpdateLogContext','WindowsUpdateServiceMenu','ReportStatusContext')) {
+            & $setEnabled $k $true
+        }
+        $hasDownloaded = $false
+        try { $hasDownloaded = ($selectedItems[0].Downloaded -ge 1) } catch {}
+        & $setEnabled 'InstallUpdatesContext' $hasDownloaded
+
+        $hasAvailable = $false
+        try { $hasAvailable = ($selectedItems[0].Available -gt 0) } catch {}
+        & $setEnabled 'ShowUpdatesContext' $hasAvailable
+        & $setEnabled 'DownloadUpdatesContext' $hasAvailable
+    }
+    else {
+        foreach ($k in @('RemoveComputerContext','CheckUpdatesContext','DownloadUpdatesContext','InstallUpdatesContext','ReportStatusContext','RestartContext','WindowsUpdateServiceMenu')) {
+            & $setEnabled $k $true
+        }
+        foreach ($k in @('RemoteDesktopContext','ShowInstalledContext','ShowUpdatesContext','UpdateHistoryMenu','ViewUpdateLogContext')) {
+            & $setEnabled $k $false
+        }
     }
 }
 $eventSaveComputerList = {
@@ -1529,6 +2287,7 @@ $eventViewUpdateLog = {
 $eventWUServiceAction = {
     Param ($Action)
     $uiHash.Listview.SelectedItems | % {
+        Ensure-ComputerRunspace $_
         $temp = "" | Select-Object PowerShell, Runspace
         $temp.PowerShell = [powershell]::Create().AddScript($WUServiceAction).AddArgument($_).AddArgument($Action)
         $temp.PowerShell.Runspace = $_.Runspace
@@ -1539,6 +2298,7 @@ $eventWUServiceAction = {
 $eventReportStatus = {
     $uiHash.Listview.SelectedItems | ForEach-Object {
         $sel = $_
+        Ensure-ComputerRunspace $sel
         $temp = '' | Select-Object PowerShell, Runspace
         $temp.PowerShell = [powershell]::Create().AddScript($ReportStatus).AddArgument($sel)
         $temp.PowerShell.Runspace = $sel.Runspace
@@ -1546,159 +2306,218 @@ $eventReportStatus = {
         $jobs.Add($temp) | Out-Null
     }
 }
+$eventExportReport = {
+    $targets = @(Get-CheckedComputers)
+    if ($targets.Count -eq 0) {
+        $targets = @($uiHash.clientObservable)
+    }
+    if ($targets.Count -eq 0) {
+        [System.Windows.MessageBox]::Show('No hay servidores para reportar.')
+        return
+    }
+
+    $ReportesDir = Join-Path $ScriptRoot "Reportes"
+    if (-not (Test-Path -Path $ReportesDir)) {
+        New-Item -Path $ReportesDir -ItemType Directory -Force | Out-Null
+    }
+
+    $CsvFileName = "Reporte_Instalacion_KBs_$(Get-Date -Format 'yyyyMMdd_HHmm').csv"
+    $CsvPath = Join-Path $ReportesDir $CsvFileName
+    $ReportData = New-Object System.Collections.Generic.List[PSObject]
+    $uiHash.Window.Cursor = [System.Windows.Input.Cursors]::Wait
+
+    foreach ($target in $targets) {
+        $Computer = [string]$target.Computer
+        $Domain = 'N/A'
+        $IP = 'N/A'
+        $OS = 'N/A'
+        $FechaInstalacion = 'N/A'
+        $KBsInstaladas = 'Ninguna/No detectada'
+        $FechaReinicio = 'N/A'
+        $DescripcionError = if ($target.InstallErrors) { [string]$target.InstallErrors } else { 'N/A' }
+
+        try {
+            if (Test-Connection -ComputerName $Computer -Count 1 -Quiet) {
+                $remoteInfo = Invoke-Command -ComputerName $Computer -ScriptBlock {
+                    $domain = (Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).Domain
+                    $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+                    $ips = @(
+                        Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                        Where-Object { $_.IPAddress -and $_.IPAddress -notlike '169.254*' } |
+                        Select-Object -ExpandProperty IPAddress
+                    )
+                    $hotFixes = @(Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.InstalledOn })
+                    $lastBoot = if ($osInfo) { [datetime]$osInfo.LastBootUpTime } else { $null }
+                    $latestInstall = $null
+                    if ($hotFixes.Count -gt 0) {
+                        $latestInstall = ($hotFixes | Sort-Object InstalledOn -Descending | Select-Object -First 1).InstalledOn
+                    }
+                    $today = (Get-Date).Date
+                    $kbsToday = @(
+                        $hotFixes |
+                        Where-Object { ([datetime]$_.InstalledOn).Date -ge $today } |
+                        Select-Object -ExpandProperty HotFixID
+                    )
+                    [PSCustomObject]@{
+                        Domain = if ($domain) { $domain } else { 'N/A' }
+                        IP = if ($ips.Count -gt 0) { ($ips -join ', ') } else { 'N/A' }
+                        OS = if ($osInfo) { $osInfo.Caption } else { 'N/A' }
+                        LastBoot = $lastBoot
+                        LastInstall = $latestInstall
+                        KBsToday = if ($kbsToday.Count -gt 0) { $kbsToday -join ', ' } else { 'Ninguna/No detectada' }
+                    }
+                } -ErrorAction Stop
+
+                if ($remoteInfo) {
+                    $Domain = $remoteInfo.Domain
+                    $IP = $remoteInfo.IP
+                    $OS = $remoteInfo.OS
+                    if ($remoteInfo.LastInstall) {
+                        $FechaInstalacion = ([datetime]$remoteInfo.LastInstall).ToString('dd/MM/yyyy')
+                    }
+                    if ($remoteInfo.LastBoot) {
+                        $FechaReinicio = ([datetime]$remoteInfo.LastBoot).ToString('dd/MM/yyyy HH:mm')
+                    }
+                    $KBsInstaladas = [string]$remoteInfo.KBsToday
+                }
+            }
+        }
+        catch {
+            if ($DescripcionError -eq 'N/A') {
+                $DescripcionError = $_.Exception.Message
+            }
+        }
+
+        $Obj = [PSCustomObject]@{
+            Dominio           = $Domain
+            Servidor          = $Computer
+            IP                = $IP
+            Sistema_Operativo = $OS
+            Fecha_Instalacion = $FechaInstalacion
+            KBs_Instaladas    = $KBsInstaladas
+            Fecha_Reinicio    = $FechaReinicio
+            Descripcion_Error = $DescripcionError
+        }
+        $ReportData.Add($Obj)
+    }
+
+    $ReportData | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8 -Delimiter ","
+
+    # Enviar JSON al Dashboard Web (con preflight, timeouts mas largos y reintentos espaciados)
+    $UploadMsg = ''
+    $DashboardUrl = 'https://algeibapatching.vercel.app/api/upload'
+    if ([string]::IsNullOrWhiteSpace($DashboardUrl)) {
+        $UploadMsg = "`n`nSincronizacion con Dashboard deshabilitada (URL vacia)."
+        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details 'Upload omitido: URL del dashboard sin configurar.'
+    }
+    else {
+        try {
+            $JsonData = @($ReportData) | ConvertTo-Json -Depth 5 -Compress
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+            try { [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials } catch {}
+
+            # Preflight: confirmar resolucion DNS y handshake TCP antes de subir el payload.
+            $dashboardHost = ([System.Uri]$DashboardUrl).Host
+            $dashboardPort = ([System.Uri]$DashboardUrl).Port
+            if ($dashboardPort -le 0) { $dashboardPort = 443 }
+            $preflightOk = $false
+            try {
+                $tcpClient = New-Object System.Net.Sockets.TcpClient
+                $iar = $tcpClient.BeginConnect($dashboardHost, $dashboardPort, $null, $null)
+                $preflightOk = $iar.AsyncWaitHandle.WaitOne(5000, $false) -and $tcpClient.Connected
+                try { $tcpClient.Close() } catch {}
+            }
+            catch {
+                $preflightOk = $false
+            }
+            if (-not $preflightOk) {
+                throw "No se pudo abrir conexion TCP a $dashboardHost`:$dashboardPort en 5s (posible bloqueo de proxy/firewall)."
+            }
+
+            Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details "Subiendo reporte (size=$([Math]::Ceiling(($JsonData.Length/1KB)))KB) a $DashboardUrl"
+
+            $uploadAttempts = 3
+            $uploadOk = $false
+            $lastUploadError = $null
+            $perAttemptTimeoutSec = 90
+            $stopWatch = [System.Diagnostics.Stopwatch]::StartNew()
+            for ($attempt = 1; $attempt -le $uploadAttempts; $attempt++) {
+                try {
+                    $attemptSw = [System.Diagnostics.Stopwatch]::StartNew()
+                    Invoke-RestMethod -Uri $DashboardUrl -Method Post -Body $JsonData -ContentType 'application/json' -TimeoutSec $perAttemptTimeoutSec -ErrorAction Stop | Out-Null
+                    $attemptSw.Stop()
+                    Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Success' -Details "Subida OK en intento $attempt ($([Math]::Round($attemptSw.Elapsed.TotalSeconds,1))s)."
+                    $uploadOk = $true
+                    break
+                }
+                catch {
+                    $lastUploadError = $_
+                    $errDetail = $_.Exception.Message
+                    if ($_.Exception.InnerException -and $_.Exception.InnerException.Message) {
+                        $errDetail = "$errDetail | $($_.Exception.InnerException.Message)"
+                    }
+                    Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "Intento $attempt fallo: $errDetail"
+                    if ($attempt -lt $uploadAttempts) {
+                        Start-Sleep -Seconds (5 * $attempt)
+                    }
+                }
+            }
+            $stopWatch.Stop()
+
+            if (-not $uploadOk) {
+                throw $lastUploadError
+            }
+            $UploadMsg = "`n`nDatos sincronizados con el Dashboard en $([Math]::Round($stopWatch.Elapsed.TotalSeconds,1))s."
+        }
+        catch {
+            $uploadErrorText = $_.Exception.Message
+            if ($_.Exception.InnerException -and $_.Exception.InnerException.Message) {
+                $uploadErrorText = "$uploadErrorText | Detalle: $($_.Exception.InnerException.Message)"
+            }
+            Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Error' -Details $uploadErrorText
+            $UploadMsg = "`n`nNo se pudo sincronizar con el Dashboard tras varios intentos:" +
+                         "`nURL: $DashboardUrl" +
+                         "`nDetalle: $uploadErrorText" +
+                         "`n`nEl reporte CSV quedo guardado igualmente y se puede reintentar la subida mas tarde."
+        }
+    }
+
+    $uiHash.Window.Cursor = [System.Windows.Input.Cursors]::Arrow
+    [System.Windows.MessageBox]::Show("Reporte generado con exito en: $CsvPath$UploadMsg", 'WUU')
+}
 #endregion Event ScriptBlocks
 
 #region Event Handlers
-$uiHash.ActionMenu.Add_SubmenuOpened($eventActionMenu) #Action Menu
 $uiHash.AddADContext.Add_Click($eventAddAD) #Add Computers From AD (Context)
-$uiHash.AddADMenu.Add_Click($eventAddAD) #Add Computers From AD (Menu)
 $uiHash.AddComputerContext.Add_Click($eventAddComputer) #Add Computers (Context)
-$uiHash.AddComputerMenu.Add_Click($eventAddComputer) #Add Computers (Menu)
 $uiHash.AddFileContext.Add_Click($eventAddFile) #Add Computers From File (Context)
-$uiHash.BrowseFileMenu.Add_Click($eventAddFile) #Add Computers From File (Menu)
 $uiHash.CheckUpdatesContext.Add_Click($eventGetUpdates) #Check For Updates (Context)
-$uiHash.ClearComputerListMenu.Add_Click($clearComputerList) #Clear Computer List
 $uiHash.DownloadUpdatesContext.Add_Click($eventDownloadUpdates) #Download Updates
-$uiHash.ExitMenu.Add_Click( { $uiHash.Window.Close() }) #Exit
 $uiHash.UpdateHistoryMenu.Add_Click($eventShowUpdateHistory) #Get Update History
-$uiHash.ExportListMenu.Add_Click($eventSaveComputerList) #Exports Computer To File
 $uiHash.InstallUpdatesContext.Add_Click($eventInstallUpdates) #Install Updates
 $uiHash.ReportStatusContext.Add_Click($eventReportStatus) #Report status to WSUS
 $uiHash.Listview.Add_MouseRightButtonUp($eventRightClick) #On Right Click
-$uiHash.OfflineHostsMenu.Add_Click($eventRemoveOfflineComputer) #Remove Offline Computers
 $uiHash.RemoteDesktopContext.Add_Click( { mstsc.exe /v $uiHash.Listview.SelectedItems.Computer }) #RDP
 $uiHash.RemoveComputerContext.Add_Click( { &$removeEntry @($uiHash.Listview.SelectedItems) }) #Delete Computers
 $uiHash.RestartContext.Add_Click($eventRestartComputer) #Restart Computer
-$uiHash.SelectAllMenu.Add_Click( { $uiHash.Listview.SelectAll() }) #Select All
 $uiHash.ShowUpdatesContext.Add_Click($eventShowAvailableUpdates) #Show Available Updates
 $uiHash.ShowInstalledContext.Add_Click($eventShowInstalledUpdates) #Show Installed Updates
 $uiHash.ViewUpdateLogContext.Add_Click($eventViewUpdateLog) #Show Installed Updates
+$uiHash.ExportReportMenu.Add_Click($eventExportReport)
 $uiHash.Window.Add_Closed($eventWindowClose) #On Window Close
 $uiHash.Window.Add_SourceInitialized($eventWindowInit) #On Window Open
 $uiHash.Window.Add_KeyDown($eventKeyDown) #On key down
 $uiHash.WURestartServiceMenu.Add_Click( { &$eventWUServiceAction 'Restart' }) #Restart Windows Update Service
 $uiHash.WUStartServiceMenu.Add_Click( { &$eventWUServiceAction 'Start' }) #Start Windows Update Service
 $uiHash.WUStopServiceMenu.Add_Click( { &$eventWUServiceAction 'Stop' }) #Stop Windows Update Service
-$uiHash.ViewErrorMenu.Add_Click( { &$GetErrors | Out-GridView }) #View Errors
-$uiHash.ExportReportMenu.Add_Click({
-        $serversFilePath = Join-Path $ScriptRoot 'Servers.txt'
-        if (-not (Test-Path -Path $serversFilePath)) {
-            [System.Windows.MessageBox]::Show("No se encontro Servers.txt en: $ScriptRoot")
-            return
-        }
-        $serversFromFile = @(
-            Get-Content -Path $serversFilePath -ErrorAction SilentlyContinue |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -and -not $_.StartsWith('#') }
-        )
-        if ($serversFromFile.Count -eq 0) {
-            [System.Windows.MessageBox]::Show("Servers.txt no contiene equipos validos.")
-            return
-        }
-
-        $ReportesDir = Join-Path $ScriptRoot "Reportes"
-        if (-not (Test-Path -Path $ReportesDir)) {
-            New-Item -Path $ReportesDir -ItemType Directory -Force | Out-Null
-        }
-
-        $CsvFileName = "Reporte_Instalacion_KBs_$(Get-Date -Format 'yyyyMMdd_HHmm').csv"
-        $CsvPath = Join-Path $ReportesDir $CsvFileName
-        $ReportData = New-Object System.Collections.Generic.List[PSObject]
-        $currentItemsByComputer = @{}
-        foreach ($currentItem in $uiHash.clientObservable) {
-            if ($currentItem.Computer) {
-                $currentItemsByComputer[$currentItem.Computer.ToUpperInvariant()] = $currentItem
-            }
-        }
-        $uiHash.Window.Cursor = [System.Windows.Input.Cursors]::Wait
-
-        foreach ($Computer in $serversFromFile) {
-            $IP = "N/A"; $Domain = "N/A"; $OS = "N/A"; $KBsInstaladas = "Ninguna/No detectada"; $FechaInstalacion = "N/A"
-            $DescripcionError = 'N/A'
-            $lookupKey = $Computer.ToUpperInvariant()
-            if ($currentItemsByComputer.ContainsKey($lookupKey)) {
-                $gridItem = $currentItemsByComputer[$lookupKey]
-                if ($gridItem.InstallErrors) {
-                    $DescripcionError = [string]$gridItem.InstallErrors
-                }
-            }
-
-            try {
-                if (Test-Connection -ComputerName $Computer -Count 1 -Quiet) {
-                    # 1. Obtener IP y Sistema Operativo
-                    $SysInfo = Get-WmiObject -Class Win32_OperatingSystem -ComputerName $Computer -ErrorAction SilentlyContinue
-                    $IP = [System.Net.Dns]::GetHostAddresses($Computer) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString -First 1
-                    $OS = $SysInfo.Caption
-                    $Domain = $SysInfo.Domain
-
-                    # 2. Consultar hotfixes para obtener ultima fecha de instalacion
-                    $HotFixes = Get-HotFix -ComputerName $Computer -ErrorAction SilentlyContinue
-                    $HotFixesConFecha = @($HotFixes | Where-Object { $_.InstalledOn })
-
-                    # Fecha de la ultima instalacion registrada (cualquier dia)
-                    if ($HotFixesConFecha.Count -gt 0) {
-                        $UltimoHotFix = $HotFixesConFecha | Sort-Object InstalledOn -Descending | Select-Object -First 1
-                        if ($UltimoHotFix -and $UltimoHotFix.InstalledOn) {
-                            $FechaUltimaInstalacion = ([datetime]$UltimoHotFix.InstalledOn).ToString("dd/MM/yyyy")
-                        }
-                    }
-                    else {
-                        $FechaUltimaInstalacion = "N/A"
-                    }
-
-                    # KBs instaladas hoy
-                    $FechaHoy = (Get-Date).Date
-                    $KBs = @(
-                        $HotFixesConFecha |
-                        Where-Object { ([datetime]$_.InstalledOn).Date -ge $FechaHoy } |
-                        Select-Object -ExpandProperty HotFixID
-                    )
-
-                    if ($KBs.Count -gt 0) {
-                        $KBsInstaladas = $KBs -join ", "
-                        $FechaInstalacion = $FechaUltimaInstalacion
-                    }
-                    else {
-                        # Si no hubo instalacion hoy, mostrar la fecha de la ultima instalacion conocida.
-                        $FechaInstalacion = $FechaUltimaInstalacion
-                    }
-                }
-            }
-            catch {
-                # Error de conexion o permisos
-            }
-
-            # Crear el objeto con las columnas exactas solicitadas
-            $Obj = [PSCustomObject]@{
-                Dominio             = $Domain
-                Servidor            = $Computer
-                IP                  = $IP
-                Sistema_Operativo   = $OS
-                Fecha_Instalacion   = $FechaInstalacion
-                KBs_Instaladas      = $KBsInstaladas
-                Descripcion_Error   = $DescripcionError
-            }
-            $ReportData.Add($Obj)
-        }
-
-        $ReportData | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8 -Delimiter ","
-        
-        # Enviar JSON al Dashboard Web
-        try {
-            $JsonData = @($ReportData) | ConvertTo-Json -Depth 5 -Compress
-            # NOTA: Cambiar esta URL por la de Vercel (ej: https://tu-repo.vercel.app/api/upload) cuando esté en producción
-            $DashboardUrl = "https://algeibapatching.vercel.app/api/upload" 
-            
-            Invoke-RestMethod -Uri $DashboardUrl -Method Post -Body $JsonData -ContentType "application/json" -ErrorAction Stop | Out-Null
-            $UploadMsg = "`n`nDatos sincronizados exitosamente con el Dashboard."
-        }
-        catch {
-            $UploadMsg = "`n`nError al sincronizar con el Dashboard: $($_.Exception.Message)"
-        }
-
-        $uiHash.Window.Cursor = [System.Windows.Input.Cursors]::Arrow
-        [System.Windows.MessageBox]::Show("Reporte generado con exito en: $CsvPath$UploadMsg", "WUU")
-    })
+$uiHash.GroupComboBox.Add_SelectionChanged($eventGroupChanged)
+$uiHash.ReloadGroupsButton.Add_Click($eventReloadGroups)
+$uiHash.SelectAllButton.Add_Click($eventSelectAllChecked)
+$uiHash.ClearSelectionButton.Add_Click($eventClearChecked)
+$uiHash.StartButton.Add_Click($eventStartSelected)
+$uiHash.RestartSelectedButton.Add_Click($eventRestartSelected)
+$uiHash.ReportButton.Add_Click($eventExportReport)
+$uiHash.StopRefreshButton.Add_Click($eventStopAndRefresh)
 #endregion       
 
 #Start the GUI

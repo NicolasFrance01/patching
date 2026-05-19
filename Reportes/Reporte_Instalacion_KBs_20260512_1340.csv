@@ -1,0 +1,7 @@
+﻿"Dominio","Servidor","IP","Sistema_Operativo","Fecha_Instalacion","KBs_Instaladas","Descripcion_Error"
+,"VPRX-CLD2-03I","10.50.41.163","Microsoft Windows Server 2019 Standard","15/04/2026","Ninguna/No detectada","N/A"
+,"VPRX-CLD2-07I","10.50.42.50","Microsoft Windows Server 2019 Standard","20/04/2026","Ninguna/No detectada","N/A"
+,"VPRX-HBI-03I","10.50.13.63","Microsoft Windows Server 2022 Standard","20/04/2026","Ninguna/No detectada","N/A"
+"N/A","VPRX-HBI-07I","N/A","N/A","N/A","Ninguna/No detectada","N/A"
+,"VPRX-PROD-05I","10.50.13.205","Microsoft Windows Server 2022 Standard","15/04/2026","Ninguna/No detectada","N/A"
+,"VPRX-PROD-09I","10.50.41.159","Microsoft Windows Server 2022 Standard","17/04/2026","Ninguna/No detectada","N/A"

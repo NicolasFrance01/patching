@@ -1,128 +1,198 @@
-# PowerShell Windows Update Utility (WUU)
+# WUU - Windows Update Utility
 
-## Descripción general
+## Introduccion
 
-`WUU` es una utilidad gráfica desarrollada en PowerShell (WPF/XAML) para administrar Windows Update en equipos remotos desde una única consola.
+`WUU` es una utilidad de automatizacion de patching para infraestructura Windows, implementada en PowerShell con interfaz WPF.  
+Su objetivo es orquestar, desde un unico punto de control, el ciclo tecnico completo de actualizacion en servidores remotos: descubrimiento de updates, descarga, instalacion, validacion de reinicio, remediacion del agente WU/WSUS y generacion de evidencia operativa.
 
-La herramienta permite:
-- Cargar equipos manualmente, desde archivo o desde Active Directory.
-- Consultar, descargar e instalar actualizaciones de forma remota.
-- Reiniciar equipos y refrescar su estado operativo.
-- Ejecutar diagnóstico y reparación del agente de Windows Update.
-- Exportar listas y reportes operativos en formato CSV.
+La herramienta esta orientada a escenarios corporativos donde se requiere:
 
-## Características principales
+- Ejecucion masiva y controlada por grupos de servidores.
+- Trazabilidad de acciones y errores por host.
+- Operacion no interactiva en equipos remotos usando `PsExec` y contexto `SYSTEM`.
+- Integracion con un dashboard via API para consolidacion de reportes.
 
-- Interfaz gráfica basada en `WUU.xaml`, con menú principal y menú contextual.
-- Ejecución remota en paralelo mediante runspaces para mejorar tiempos de operación.
-- Integración con `PsExec` para acciones remotas específicas.
-- Registro estructurado de eventos en `WUU_Log.csv`.
-- Exportación de reporte detallado de instalación por servidor.
+## Arquitectura funcional
 
-## Estructura del proyecto
+- **Capa de orquestacion**: `WUU.ps1`.
+- **Capa de interfaz**: `WUU.xaml` y `OUPicker.xaml`.
+- **Capa de ejecucion remota**: scripts en `Scripts\`.
+- **Capa de observabilidad**: `WUU_Log.csv` + reporte CSV + sincronizacion JSON.
 
-- `WUU.ps1`: script principal (carga UI, eventos, runspaces y lógica operativa).
-- `WUU.xaml`: interfaz principal de la aplicación.
-- `OUPicker.xaml`: selector de OU para carga de equipos desde AD.
-- `Scripts/Download-Patches.ps1`: descarga remota de parches.
-- `Scripts/Install-Patches.ps1`: instalación remota de parches.
-- `Scripts/Test-WUAgent.ps1`: validación del agente Windows Update/WSUS.
-- `Scripts/Repair-WUAgent.ps1`: reparación del agente Windows Update cuando la validación falla.
-- `Automatización.xlsm`: plantilla operativa para preparar/gestionar la carga de equipos del proceso.
-- `Servers.txt`: archivo opcional de entrada para importar equipos.
-
-## Requisitos
+## Requisitos tecnicos
 
 - Windows PowerShell con soporte WPF.
-- Ejecución del script en modo `STA`.
-- Consola PowerShell abierta como administrador.
+- Ejecucion en `STA`.
+- Credenciales administrativas sobre equipos destino.
 - `PsExec.exe` en la misma carpeta que `WUU.ps1`.
-- Permisos administrativos sobre los equipos remotos.
-- Conectividad de red y resolución DNS hacia los equipos destino.
-- WinRM habilitado para funciones que utilizan `Invoke-Command`.
+- Conectividad de red (DNS, SMB admin share, RPC/WinRM segun accion).
+- Politicas de seguridad que permitan operaciones WU remotas.
 
-## Inicio rápido
+## Flujo operativo estandar
 
-1. Abrir PowerShell como administrador.
-2. Ir a la carpeta del proyecto.
-3. Validar que `Automatización.xlsm` esté disponible en la carpeta de trabajo (si aplica al proceso del equipo).
-4. Ejecutar el script principal:
+1. Ejecutar:
 
 ```powershell
 powershell.exe -STA -File .\WUU.ps1
 ```
 
-Al iniciar, la aplicación valida elevación, compatibilidad con WPF y dependencias críticas.
+2. Recargar grupos desde `Servidores\*.csv`.
+3. Seleccionar grupo y validar carga de hosts en grilla.
+4. Marcar servidores objetivo (`Sel`).
+5. Ejecutar `Iniciar` para ciclo de actualizacion.
+6. Ejecutar `Reiniciar seleccionados` cuando aplique.
+7. Emitir `Reporte` para evidencia local y sincronizacion remota.
 
-## Flujo recomendado de operación
+## Interfaz y semantica de estados
 
-1. Preparar la lista objetivo en `Automatización.xlsm` y exportarla (si corresponde) a formato de carga.
-2. Agregar equipos con `Add Computers`, `Add Computers From File` o `Add Computers From AD`.
-3. Seleccionar los equipos en la grilla.
-4. Ejecutar `Check For Updates`.
-5. Ejecutar `Download Updates`.
-6. Ejecutar `Install Updates`.
-7. Reiniciar con `Restart Computer` cuando sea necesario.
-8. Exportar resultados con `Export Detailed Report (CSV)`.
+Botones principales:
 
-## Acciones disponibles en la UI
+- `Seleccionar todo`
+- `Limpiar seleccion`
+- `Iniciar`
+- `Reiniciar seleccionados`
+- `Reporte`
+- `Recargar grupos`
+- `Detener y refrescar`
 
-- `Add Computers`: agrega equipos por ingreso manual.
-- `Add Computers From AD`: importa equipos desde Active Directory.
-- `Add Computers From File`: importa equipos desde archivos `.txt` o `.csv`.
-- `Export Computer List`: exporta la lista actual de equipos.
-- `Clear Computer List`: limpia la grilla de equipos.
-- `Remove Offline Computers`: elimina equipos sin conectividad.
-- `Check For Updates`: consulta actualizaciones disponibles.
-- `Download Updates`: descarga parches en equipos remotos.
-- `Install Updates`: instala parches descargados.
-- `Restart Computer`: reinicia el equipo remoto.
-- `Windows Update Service`: iniciar, detener o reiniciar `wuauserv`.
-- `Show Available Updates`: muestra actualizaciones detectadas.
-- `Show Installed Updates`: muestra actualizaciones instaladas.
-- `Show Update History`: muestra historial de actualizaciones.
-- `View Windows Update Log`: visualiza log de Windows Update.
-- `Report Status to WSUS`: ejecuta reporte de estado al WSUS.
-- `View ErrorLog`: muestra errores capturados por la herramienta.
-- `Export Detailed Report (CSV)`: genera un CSV de instalación por equipo.
+Codigo de colores por fila:
 
-## Archivos generados
+- `Khaki`: chequeo WSUS/WU.
+- `Orange`: remediacion de agente WU.
+- `LightSkyBlue`: descarga/instalacion.
+- `Orange` parpadeante: reinicio requerido.
+- `LightGreen`: actualizado.
+- `LightGray`: no seleccionado.
 
-- `WUU_Log.csv`: bitácora de acciones con fecha/hora, equipo, acción y resultado.
-- `Reportes\Reporte_Instalacion_KBs_yyyyMMdd_HHmm.csv`: reporte detallado de instalación por equipo.
+## Funcionamiento tecnico de cada script
 
-Notas:
-- La carpeta `Reportes` se crea automáticamente junto a `WUU.ps1` si no existe.
-- El reporte se guarda automáticamente en esa carpeta (sin diálogo de selección de ruta).
+### `WUU.ps1` (motor principal)
 
-## Formato del reporte CSV
+Responsabilidades:
 
-El reporte detallado exporta, como mínimo, las siguientes columnas:
+- Inicializa entorno (`Admin`, `STA`, dependencias de scripts y `PsExec`).
+- Carga XAML y enlaza eventos de UI.
+- Gestiona lista de servidores, counters y estados visuales.
+- Ejecuta acciones asincronas por servidor mediante runspaces.
+- Orquesta pipeline de patching, reinicios, reportes y manejo de errores.
+- Implementa funciones de control operacional (`Detener y refrescar`, habilitado/deshabilitado de acciones, confirmaciones).
+
+Pipeline base de `Iniciar` por servidor seleccionado:
+
+1. `PrepareWUAgentBeforeCheck`
+2. `GetUpdates`
+3. `MaybeAutoDownloadAfterInitialCheck`
+4. `SetUpdatesStatus`
+
+### `WUU.xaml` (interfaz principal)
+
+Define:
+
+- Disposicion de controles y columnas de grilla.
+- Estilos visuales por estado (`Phase`, `IsChecked`).
+- Leyenda de colores y panel de contadores operativos.
+
+### `OUPicker.xaml` (selector AD)
+
+Ventana auxiliar para:
+
+- Navegar OUs de Active Directory.
+- Seleccionar OU origen para importacion de equipos habilitados.
+
+### `Scripts\Test-WUAgent.ps1`
+
+Objetivo:
+
+- Verificar salud basica del stack Windows Update en host remoto.
+
+Validaciones:
+
+- Estado de servicios `wuauserv` y `bits`.
+- Creacion de sesion COM `Microsoft.Update.Session`.
+- Ejecucion de busqueda de updates.
+
+Codigos de salida:
+
+- `0`: operativo.
+- `2`: servicios no running.
+- `3`: error COM o consulta WU.
+
+### `Scripts\Repair-WUAgent.ps1`
+
+Objetivo:
+
+- Remediar fallas frecuentes del agente WU/WSUS.
+
+Acciones:
+
+- Stop de `wuauserv`, `bits`, `cryptsvc`.
+- Limpieza de `SoftwareDistribution`.
+- Start de servicios.
+- Refresco de deteccion/politicas (`UsoClient`, `wuauclt`, `gpupdate`).
+
+### `Scripts\Download-Patches.ps1`
+
+Objetivo:
+
+- Descargar updates pendientes en el host remoto.
+
+Funcionamiento:
+
+- Consulta updates no instaladas/no ocultas.
+- Filtra las no descargadas.
+- Descarga por lote unitario para tracking estable.
+- Publica progreso y resultado en:
+  - `C:\Admin\Scripts\WU-DownloadProgress.txt`
+  - `C:\Admin\Scripts\WU-DownloadResult.txt`
+
+### `Scripts\Install-Patches.ps1`
+
+Objetivo:
+
+- Instalar updates previamente descargadas.
+
+Funcionamiento:
+
+- Filtra `IsDownloaded = true`.
+- Ejecuta instalador COM (`CreateUpdateInstaller().Install()`).
+- Devuelve conteo de instalaciones exitosas y expone error ante excepcion.
+
+## Reporte tecnico
+
+Salida local:
+
+- `Reportes\Reporte_Instalacion_KBs_yyyyMMdd_HHmm.csv`
+
+Campos:
+
 - `Dominio`
 - `Servidor`
 - `IP`
 - `Sistema_Operativo`
 - `Fecha_Instalacion`
 - `KBs_Instaladas`
-- `Errores_Instalacion`
+- `Fecha_Reinicio`
+- `Descripcion_Error`
 
-## Solución de problemas
+Fuentes de datos remotas:
 
-- Verificar que `PsExec.exe` exista en la carpeta raíz del proyecto.
-- Validar resolución DNS y conectividad hacia los equipos remotos.
-- Confirmar permisos administrativos y políticas de ejecución remota.
-- Revisar `WUU_Log.csv` para identificar errores por equipo y operación.
-- Si una acción no retorna resultados, repetir `Check For Updates` antes de descargar o instalar.
+- `Get-CimInstance Win32_ComputerSystem`: obtiene metadatos del equipo, principalmente el dominio (`Domain`) para identificar contexto AD/tenant.
+- `Get-CimInstance Win32_OperatingSystem`: obtiene informacion del sistema operativo (nombre/version) y `LastBootUpTime` para calcular la fecha/hora del ultimo reinicio.
+- `Get-NetIPAddress -AddressFamily IPv4`: enumera direcciones IPv4 activas para registrar conectividad de red del host en el reporte.
+- `Get-HotFix`: consulta hotfixes/KBs instalados, utilizado para derivar la ultima fecha de instalacion y el conjunto de KBs instaladas en la ventana analizada.
 
-## Consideraciones operativas
+Sincronizacion:
 
-- El comportamiento remoto puede variar por GPO, firewall y hardening de cada servidor.
-- Algunas operaciones dependen de servicios de Windows Update disponibles y en estado correcto.
-- Los tiempos de ejecución dependen de conectividad, carga del equipo remoto y volumen de parches.
+- Serializacion JSON del reporte y POST a endpoint dashboard (`/api/upload`), con reintentos y log de error local.
 
-## Mantenimiento
+## Archivos de salida y trazabilidad
 
-Si se extiende la herramienta, se recomienda mantener alineados:
-- `WUU.ps1` (lógica y eventos).
-- `WUU.xaml` (controles y acciones de UI).
-- `README.md` (documentación funcional y operativa).
+- `WUU_Log.csv`: eventos, errores y acciones por host.
+- `Reportes\*.csv`: evidencia operativa por corrida.
+- Archivos temporales remotos de progreso en `C:\Admin\Scripts\`.
+
+## Conclusion
+
+`WUU` consolida un proceso operativo complejo de patching en un marco tecnico reproducible, auditable y orientado a ejecucion masiva.  
+La separacion entre orquestador, UI y scripts remotos simplifica mantenimiento, permite evolucion incremental y reduce riesgo operacional frente a ejecuciones manuales no estandarizadas.  
+Para entornos de alta escala, la herramienta ofrece una base robusta para continuar optimizando concurrencia, telemetria y gobierno del ciclo de actualizaciones.
