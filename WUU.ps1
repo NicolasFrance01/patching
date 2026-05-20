@@ -79,23 +79,38 @@ function Write-Log {
 }
 
 function Get-DashboardUploadConfig {
+    $defaultUrl = 'https://algeibapatching.vercel.app/api/upload'
     $defaults = [PSCustomObject]@{
-        DashboardUrl             = 'https://algeibapatching.vercel.app/api/upload'
+        DashboardUrl             = $defaultUrl
         VercelProtectionBypass   = ''
         UploadApiKey             = ''
+        ConfigPath               = $null
     }
     $configPath = Join-Path $ScriptRoot 'WUU_Upload.config.json'
+    $defaults.ConfigPath = $configPath
     if (-not (Test-Path -LiteralPath $configPath)) {
         return $defaults
     }
     try {
         $raw = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($raw.DashboardUrl) { $defaults.DashboardUrl = [string]$raw.DashboardUrl }
-        if ($raw.VercelProtectionBypass) { $defaults.VercelProtectionBypass = [string]$raw.VercelProtectionBypass }
-        if ($raw.UploadApiKey) { $defaults.UploadApiKey = [string]$raw.UploadApiKey }
+        $urlFromFile = [string]$raw.DashboardUrl
+        if (-not [string]::IsNullOrWhiteSpace($urlFromFile)) {
+            $defaults.DashboardUrl = $urlFromFile.Trim()
+        }
+        else {
+            Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "WUU_Upload.config.json tiene DashboardUrl vacia; se usa URL por defecto: $defaultUrl"
+        }
+        $bypassFromFile = [string]$raw.VercelProtectionBypass
+        if (-not [string]::IsNullOrWhiteSpace($bypassFromFile)) {
+            $defaults.VercelProtectionBypass = $bypassFromFile.Trim()
+        }
+        $apiKeyFromFile = [string]$raw.UploadApiKey
+        if (-not [string]::IsNullOrWhiteSpace($apiKeyFromFile)) {
+            $defaults.UploadApiKey = $apiKeyFromFile.Trim()
+        }
     }
     catch {
-        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "No se pudo leer WUU_Upload.config.json: $($_.Exception.Message)"
+        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Warning' -Details "No se pudo leer WUU_Upload.config.json ($configPath): $($_.Exception.Message). Se usa URL por defecto."
     }
     return $defaults
 }
@@ -2887,13 +2902,14 @@ $eventExportReport = {
 
     $ReportData | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8 -Delimiter ","
 
-    # Enviar JSON al Dashboard Web (config opcional: WUU_Upload.config.json junto a WUU.ps1)
+    # Enviar JSON al Dashboard Web (URL por defecto en Get-DashboardUploadConfig; config opcional WUU_Upload.config.json)
     $UploadMsg = ''
     $uploadConfig = Get-DashboardUploadConfig
     $DashboardUrl = $uploadConfig.DashboardUrl
     if ([string]::IsNullOrWhiteSpace($DashboardUrl)) {
-        $UploadMsg = "`n`nSincronizacion con Dashboard deshabilitada (URL vacia)."
-        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details 'Upload omitido: URL del dashboard sin configurar.'
+        $cfgHint = if ($uploadConfig.ConfigPath) { " Revise: $($uploadConfig.ConfigPath)" } else { '' }
+        $UploadMsg = "`n`nSincronizacion con Dashboard deshabilitada (URL vacia).$cfgHint"
+        Write-Log -Computer 'LOCAL' -Action 'DashboardUpload' -Result 'Info' -Details "Upload omitido: URL del dashboard sin configurar.$cfgHint"
     }
     else {
         try {
@@ -2975,7 +2991,7 @@ $eventExportReport = {
             $hint403 = ''
             if ($uploadErrorText -match '\b403\b|Forbidden') {
                 $hint403 = "`n`nSi el codigo es 403: suele ser proteccion de Vercel o proxy/firewall corporativo." +
-                           "`nEn Vercel: Settings > Deployment Protection > copiar el bypass secret a WUU_Upload.config.json (VercelProtectionBypass)." +
+                           "`nSi usa Vercel Deployment Protection: crear WUU_Upload.config.json junto a WUU.ps1 con VercelProtectionBypass (ver documentacion Vercel)." +
                            "`nO pedir a IT permitir POST a algeibapatching.vercel.app."
             }
             $UploadMsg = "`n`nNo se pudo sincronizar con el Dashboard tras varios intentos:" +

@@ -251,15 +251,7 @@ Sincronizacion con dashboard:
 - Endpoint por defecto: `https://algeibapatching.vercel.app/api/upload`
 - Payload JSON en formato **array** de objetos (un elemento por servidor).
 - Reintentos automaticos y registro en `WUU_Log.csv` (`DashboardUpload`).
-- Configuracion opcional en `WUU_Upload.config.json` (copiar desde `WUU_Upload.config.example.json`):
-
-```json
-{
-  "DashboardUrl": "https://algeibapatching.vercel.app/api/upload",
-  "VercelProtectionBypass": "SECRET_DE_VERCEL_DEPLOYMENT_PROTECTION",
-  "UploadApiKey": ""
-}
-```
+- URL del dashboard definida en `WUU.ps1`: `https://algeibapatching.vercel.app/api/upload` (sin archivos de configuracion adicionales).
 
 Si la sincronizacion falla por red corporativa (timeout/403), el **CSV local se genera igualmente** en `Reportes\`.
 
@@ -272,8 +264,6 @@ ScriptAutomatization\
 ├── OUPicker.xaml
 ├── PsExec.exe
 ├── WUU_Log.csv
-├── WUU_Upload.config.json          (opcional, ver ejemplo)
-├── WUU_Upload.config.example.json
 ├── Servidores\                     (*.csv de grupos)
 ├── Update Especial\                (paquetes .msu / .cab / .exe)
 ├── Reportes\                       (CSV generados)
