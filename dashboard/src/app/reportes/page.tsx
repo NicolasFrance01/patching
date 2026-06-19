@@ -7,7 +7,6 @@ export default async function ReportesPage() {
   const [syncRuns, currentServers] = await Promise.all([
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
-      take: 30,
       include: { records: { select: { serverName: true, ip: true, status: true, errorDescription: true } } },
     }),
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
