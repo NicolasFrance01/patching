@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
-import { getServerInfo, SERVER_TYPES } from "@/lib/serverTypeMap";
+import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import { ChevronDown, ChevronRight, Info, Search, Download, Filter } from "lucide-react";
 import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
 
@@ -39,6 +39,7 @@ type ByTypeItem = {
 };
 
 type TrendFilter = "all" | "hoy" | "semana" | "mes" | "custom";
+type BankFilter = "all" | ServerType | "unclassified";
 
 const TABS = ["Por Tipo", "Errores por Sync", "Listado de Syncs", "Top Errores"] as const;
 type Tab = (typeof TABS)[number];
@@ -48,6 +49,12 @@ const TYPE_COLORS: Record<string, string> = {
   Corp: "#f59e0b", NBERSA: "#ef4444", NBSF: "#8b5cf6", QUALIA: "#ec4899",
   "Sin clasificar": "#52525b",
 };
+
+const BANK_CHIPS: { label: string; value: BankFilter }[] = [
+  { label: "Todos", value: "all" },
+  ...SERVER_TYPES.map((t) => ({ label: t, value: t as BankFilter })),
+  { label: "Sin clasificar", value: "unclassified" },
+];
 
 const tooltipStyle = {
   contentStyle: { backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px" },
@@ -65,6 +72,14 @@ function formatDayHeader(dayKey: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
+}
+
+/** Returns true if the server belongs to the active bank filter */
+function matchesBankFilter(serverName: string, bankFilter: BankFilter): boolean {
+  if (bankFilter === "all") return true;
+  const info = getServerInfo(serverName);
+  if (bankFilter === "unclassified") return !info;
+  return info?.type === bankFilter;
 }
 
 const ByTypeCharts = memo(function ByTypeCharts({ byTypeData }: { byTypeData: ByTypeItem[] }) {
@@ -151,6 +166,9 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
+  // Bank type filter
+  const [bankFilter, setBankFilter] = useState<BankFilter>("all");
+
   // Errores por Sync date filter
   const [trendFilter, setTrendFilter] = useState<TrendFilter>("all");
   const [trendFrom, setTrendFrom] = useState("");
@@ -160,6 +178,11 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
+    setTabKey((k) => k + 1);
+  };
+
+  const handleBankChange = (b: BankFilter) => {
+    setBankFilter(b);
     setTabKey((k) => k + 1);
   };
 
@@ -184,18 +207,30 @@ export default function ReportesView({ data }: ReportesViewProps) {
     [data.currentServers]
   );
 
+  // Filtered enriched servers based on bank filter
+  const filteredEnrichedServers = useMemo(() =>
+    enrichedServers.filter((s) => matchesBankFilter(s.serverName, bankFilter)),
+    [enrichedServers, bankFilter]
+  );
+
   const unclassifiedServers = useMemo(
-    () => enrichedServers.filter((s) => !s.info),
-    [enrichedServers]
+    () => filteredEnrichedServers.filter((s) => !s.info),
+    [filteredEnrichedServers]
   );
 
   // ── Por Tipo ──────────────────────────────────────────────────────────────
   const byTypeData = useMemo((): ByTypeItem[] => {
     const counts: Record<string, { total: number; ok: number; error: number; nodata: number }> = {};
-    SERVER_TYPES.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0 }; });
-    counts["Sin clasificar"] = { total: 0, ok: 0, error: 0, nodata: 0 };
+    // Only show the types that match the filter; if "all" show all types
+    const typesToShow = bankFilter === "all"
+      ? [...SERVER_TYPES, "Sin clasificar"]
+      : bankFilter === "unclassified"
+        ? ["Sin clasificar"]
+        : [bankFilter];
 
-    for (const s of enrichedServers) {
+    typesToShow.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0 }; });
+
+    for (const s of filteredEnrichedServers) {
       const key = s.info?.type ?? "Sin clasificar";
       if (!counts[key]) counts[key] = { total: 0, ok: 0, error: 0, nodata: 0 };
       counts[key].total++;
@@ -212,15 +247,15 @@ export default function ReportesView({ data }: ReportesViewProps) {
         successRate: v.total > 0 ? Math.round((v.ok / v.total) * 100) : 0,
       }))
       .sort((a, b) => b.total - a.total);
-  }, [enrichedServers]);
+  }, [filteredEnrichedServers, bankFilter]);
 
-  // ── Errores por Sync — filtered by date, deduplicated by day ──────────────
+  // ── Errores por Sync — filtered by date & bank, recalculate counters ──────
   const errorTrendData = useMemo(() => {
     if (!hasSyncHistory) {
-      const ok = enrichedServers.filter((s) => !s.isError && !s.isNoData).length;
-      const errores = enrichedServers.filter((s) => s.isError).length;
-      const sinDatos = enrichedServers.filter((s) => s.isNoData).length;
-      return [{ label: "Estado actual", errores, ok, sinDatos, total: enrichedServers.length }];
+      const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
+      const errores = filteredEnrichedServers.filter((s) => s.isError).length;
+      const sinDatos = filteredEnrichedServers.filter((s) => s.isNoData).length;
+      return [{ label: "Estado actual", errores, ok, sinDatos, total: filteredEnrichedServers.length }];
     }
 
     const now = new Date();
@@ -256,21 +291,30 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
     return Object.entries(dayMap)
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([, run]) => ({
-        label: new Date(run.syncedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
-        errores: run.errors,
-        ok: run.success,
-        sinDatos: run.noData,
-        total: run.total,
-      }));
-  }, [data.syncRuns, enrichedServers, hasSyncHistory, trendFilter, trendFrom, trendTo]);
+      .map(([, run]) => {
+        // Recalculate counters using only records that match the bank filter
+        const filteredRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+        const errores = filteredRecords.filter((r) => r.status === "error").length;
+        const ok = filteredRecords.filter((r) => r.status === "ok").length;
+        const sinDatos = filteredRecords.filter((r) => r.status === "nodata").length;
+        return {
+          label: new Date(run.syncedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
+          errores,
+          ok,
+          sinDatos,
+          total: filteredRecords.length,
+        };
+      })
+      .filter((d) => d.total > 0); // hide days with no servers of this type
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, trendFilter, trendFrom, trendTo, bankFilter]);
 
-  // ── Top Errores — grouped by error message ────────────────────────────────
+  // ── Top Errores — grouped by error message, filtered by bank ─────────────
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
       for (const run of data.syncRuns) {
         for (const r of run.records) {
+          if (!matchesBankFilter(r.serverName, bankFilter)) continue;
           if (r.status === "error" && r.errorDescription) {
             if (!map[r.errorDescription]) map[r.errorDescription] = new Set();
             map[r.errorDescription].add(r.serverName);
@@ -278,7 +322,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         }
       }
     } else {
-      for (const s of enrichedServers) {
+      for (const s of filteredEnrichedServers) {
         if (s.isError && s.errorDescription) {
           if (!map[s.errorDescription]) map[s.errorDescription] = new Set();
           map[s.errorDescription].add(s.serverName);
@@ -288,7 +332,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
     return Object.entries(map)
       .map(([message, servers]) => ({ message, servers: Array.from(servers).sort(), count: servers.size }))
       .sort((a, b) => b.count - a.count);
-  }, [data.syncRuns, enrichedServers, hasSyncHistory]);
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, bankFilter]);
 
   // Filtered error groups for Top Errores list
   const filteredErrorGroups = useMemo(() => {
@@ -302,21 +346,21 @@ export default function ReportesView({ data }: ReportesViewProps) {
     return errorGroups.filter((g) => !q || g.message.toLowerCase().includes(q)).slice(0, 8);
   }, [errorGroups, errorSearch]);
 
-  // ── Listado Syncs — grouped by day ────────────────────────────────────────
+  // ── Listado Syncs — grouped by day, recalculate counters per bank ─────────
   const syncListDayGroups = useMemo(() => {
     const runs: SyncRunData[] = hasSyncHistory ? data.syncRuns : (() => {
-      if (enrichedServers.length === 0) return [];
-      const ok = enrichedServers.filter((s) => !s.isError && !s.isNoData).length;
-      const errors = enrichedServers.filter((s) => s.isError).length;
-      const noData = enrichedServers.filter((s) => s.isNoData).length;
+      if (filteredEnrichedServers.length === 0) return [];
+      const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
+      const errors = filteredEnrichedServers.filter((s) => s.isError).length;
+      const noData = filteredEnrichedServers.filter((s) => s.isNoData).length;
       return [{
         id: "snapshot-current",
         syncedAt: data.currentServers[0]?.updatedAt ?? new Date().toISOString(),
-        total: enrichedServers.length,
+        total: filteredEnrichedServers.length,
         success: ok,
         errors,
         noData,
-        records: enrichedServers.map((s) => ({
+        records: filteredEnrichedServers.map((s) => ({
           serverName: s.serverName,
           ip: s.ip,
           status: s.isError ? "error" : s.isNoData ? "nodata" : "ok",
@@ -339,21 +383,72 @@ export default function ReportesView({ data }: ReportesViewProps) {
           (a, b) => new Date(b.syncedAt).getTime() - new Date(a.syncedAt).getTime()
         );
         const latest = sorted[0];
+        // Recalculate per bank filter
+        const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+        const latestSuccess = latestFiltered.filter((r) => r.status === "ok").length;
+        const latestTotal = latestFiltered.length;
+
+        const totalSuccess = dayRuns.reduce((acc, r) => {
+          return acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "ok").length;
+        }, 0);
+        const totalErrors = dayRuns.reduce((acc, r) => {
+          return acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "error").length;
+        }, 0);
+        const totalNoData = dayRuns.reduce((acc, r) => {
+          return acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "nodata").length;
+        }, 0);
+
         return {
           day,
           runs: sorted,
-          serverCount: latest.total,
-          totalSuccess: dayRuns.reduce((s, r) => s + r.success, 0),
-          totalErrors: dayRuns.reduce((s, r) => s + r.errors, 0),
-          totalNoData: dayRuns.reduce((s, r) => s + r.noData, 0),
-          successRate: latest.total > 0 ? Math.round((latest.success / latest.total) * 100) : 0,
+          serverCount: latestTotal,
+          totalSuccess,
+          totalErrors,
+          totalNoData,
+          successRate: latestTotal > 0 ? Math.round((latestSuccess / latestTotal) * 100) : 0,
           isSynthetic: dayRuns[0]?.id === "snapshot-current",
         };
-      });
-  }, [data.syncRuns, enrichedServers, hasSyncHistory, data.currentServers]);
+      })
+      .filter((g) => g.serverCount > 0); // hide days with no matching servers
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, bankFilter]);
+
+  const activeBankColor = bankFilter !== "all" && bankFilter !== "unclassified"
+    ? TYPE_COLORS[bankFilter]
+    : bankFilter === "unclassified" ? TYPE_COLORS["Sin clasificar"] : null;
 
   return (
     <div className="space-y-4">
+      {/* ── Bank Type Filter ── */}
+      <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco:</span>
+        {BANK_CHIPS.map(({ label, value }) => {
+          const color = value !== "all" ? (value === "unclassified" ? TYPE_COLORS["Sin clasificar"] : TYPE_COLORS[value as string]) : null;
+          const isActive = bankFilter === value;
+          return (
+            <button
+              key={value}
+              onClick={() => handleBankChange(value)}
+              className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                isActive
+                  ? "text-white border-transparent shadow-lg"
+                  : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+              }`}
+              style={isActive && color ? { backgroundColor: color + "33", borderColor: color + "66", color } : isActive ? { backgroundColor: "#6366f133", borderColor: "#6366f166", color: "#a5b4fc" } : {}}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {bankFilter !== "all" && (
+          <span className="text-[10px] text-zinc-600 ml-auto">
+            Mostrando sólo servidores{" "}
+            <span style={{ color: activeBankColor ?? "#a5b4fc" }} className="font-semibold">
+              {bankFilter === "unclassified" ? "Sin clasificar" : bankFilter}
+            </span>
+          </span>
+        )}
+      </div>
+
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 p-1 bg-zinc-900 rounded-xl w-fit border border-zinc-800">
         {TABS.map((tab) => (
@@ -465,7 +560,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
               )}
             </div>
             {errorTrendData.length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-12">Sin datos para el período seleccionado.</p>
+              <p className="text-zinc-500 text-sm text-center py-12">Sin datos para el período y banco seleccionados.</p>
             ) : (
               <ErrorTrendChart data={errorTrendData} />
             )}
@@ -480,7 +575,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <InfoBanner text="No hay syncs históricas aún. Se muestra el estado actual de los servidores como snapshot de referencia." />
           )}
           {syncListDayGroups.length === 0 && (
-            <div className="glass rounded-2xl p-12 text-center text-zinc-500">No hay datos disponibles.</div>
+            <div className="glass rounded-2xl p-12 text-center text-zinc-500">No hay datos disponibles para el banco seleccionado.</div>
           )}
           {syncListDayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, successRate, isSynthetic }) => {
             const isDayOpen = syncListExpandedDay === day;
@@ -529,7 +624,13 @@ export default function ReportesView({ data }: ReportesViewProps) {
                       const syncTime = new Date(run.syncedAt).toLocaleTimeString("es-AR", {
                         hour: "2-digit", minute: "2-digit",
                       });
-                      const syncRate = run.total > 0 ? Math.round((run.success / run.total) * 100) : 0;
+                      // Filter records for this run based on bank filter
+                      const filteredRunRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+                      const filteredSuccess = filteredRunRecords.filter((r) => r.status === "ok").length;
+                      const filteredErrors = filteredRunRecords.filter((r) => r.status === "error").length;
+                      const filteredNoData = filteredRunRecords.filter((r) => r.status === "nodata").length;
+                      const filteredTotal = filteredRunRecords.length;
+                      const syncRate = filteredTotal > 0 ? Math.round((filteredSuccess / filteredTotal) * 100) : 0;
                       return (
                         <div key={run.id}>
                           <button
@@ -545,13 +646,13 @@ export default function ReportesView({ data }: ReportesViewProps) {
                                 <p className="text-xs font-medium text-zinc-300">
                                   {isSynthetic ? "Snapshot actual" : `Sync · ${syncTime}`}
                                 </p>
-                                <p className="text-[10px] text-zinc-600">{run.total} servidores</p>
+                                <p className="text-[10px] text-zinc-600">{filteredTotal} servidores</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-4 mr-2 text-[11px]">
-                              <span className="text-emerald-400">✓ {run.success}</span>
-                              <span className="text-rose-400">✕ {run.errors}</span>
-                              <span className="text-zinc-500">― {run.noData}</span>
+                              <span className="text-emerald-400">✓ {filteredSuccess}</span>
+                              <span className="text-rose-400">✕ {filteredErrors}</span>
+                              <span className="text-zinc-500">― {filteredNoData}</span>
                               <span className="text-zinc-400">{syncRate}%</span>
                             </div>
                           </button>
@@ -569,7 +670,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
-                                    {run.records.map((r, idx) => (
+                                    {filteredRunRecords.map((r, idx) => (
                                       <tr key={`${r.serverName}-${idx}`} className="hover:bg-white/[0.02]">
                                         <td className="px-3 py-2 font-medium text-zinc-200">{r.serverName}</td>
                                         <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>

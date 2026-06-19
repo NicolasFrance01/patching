@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 
 interface SyncRecord {
   id: string;
@@ -25,6 +26,27 @@ interface SyncRun {
   records: SyncRecord[];
 }
 
+type BankFilter = "all" | ServerType | "unclassified";
+
+const TYPE_COLORS: Record<string, string> = {
+  ASJ: "#6366f1", BSC: "#06b6d4", BSJ: "#10b981",
+  Corp: "#f59e0b", NBERSA: "#ef4444", NBSF: "#8b5cf6", QUALIA: "#ec4899",
+  "Sin clasificar": "#52525b",
+};
+
+const BANK_CHIPS: { label: string; value: BankFilter }[] = [
+  { label: "Todos", value: "all" },
+  ...SERVER_TYPES.map((t) => ({ label: t, value: t as BankFilter })),
+  { label: "Sin clasificar", value: "unclassified" },
+];
+
+function matchesBankFilter(serverName: string, bankFilter: BankFilter): boolean {
+  if (bankFilter === "all") return true;
+  const info = getServerInfo(serverName);
+  if (bankFilter === "unclassified") return !info;
+  return info?.type === bankFilter;
+}
+
 function toLocalDayKey(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -39,6 +61,7 @@ function formatDayHeader(dayKey: string): string {
 
 export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [search, setSearch] = useState("");
+  const [bankFilter, setBankFilter] = useState<BankFilter>("all");
   const [expandedDay, setExpandedDay] = useState<string | null>(() => {
     if (syncRuns.length === 0) return null;
     return toLocalDayKey(syncRuns[0].syncedAt);
@@ -48,16 +71,21 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
 
   const filteredRuns = useMemo(() => {
-    if (!search) return syncRuns;
-    const q = search.toLowerCase();
     return syncRuns.filter((run) => {
+      // Filter records by bank first
+      const bankMatchedRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+      // If no records match the bank, skip this run entirely
+      if (bankFilter !== "all" && bankMatchedRecords.length === 0) return false;
+
+      if (!search) return true;
+      const q = search.toLowerCase();
       const dateStr = new Date(run.syncedAt).toLocaleString("es-AR").toLowerCase();
       if (dateStr.includes(q)) return true;
-      return run.records.some(
+      return bankMatchedRecords.some(
         (r) => r.serverName.toLowerCase().includes(q) || (r.ip ?? "").includes(q) || r.status.includes(q)
       );
     });
-  }, [syncRuns, search]);
+  }, [syncRuns, search, bankFilter]);
 
   const dayGroups = useMemo(() => {
     const groups: Record<string, SyncRun[]> = {};
@@ -73,22 +101,36 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           (a, b) => new Date(b.syncedAt).getTime() - new Date(a.syncedAt).getTime()
         );
         const latest = sorted[0];
+
+        // Recalculate counters using only records that match the bank filter
+        const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+        const latestTotal = latestFiltered.length;
+        const latestSuccess = latestFiltered.filter((r) => r.status === "ok").length;
+
+        const totalSuccess = runs.reduce((acc, r) =>
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "ok").length, 0);
+        const totalErrors = runs.reduce((acc, r) =>
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "error").length, 0);
+        const totalNoData = runs.reduce((acc, r) =>
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "nodata").length, 0);
+
         return {
           day,
           runs: sorted,
-          serverCount: latest.total,
-          totalSuccess: runs.reduce((s, r) => s + r.success, 0),
-          totalErrors: runs.reduce((s, r) => s + r.errors, 0),
-          totalNoData: runs.reduce((s, r) => s + r.noData, 0),
-          successRate: latest.total > 0 ? Math.round((latest.success / latest.total) * 100) : 0,
+          serverCount: latestTotal,
+          totalSuccess,
+          totalErrors,
+          totalNoData,
+          successRate: latestTotal > 0 ? Math.round((latestSuccess / latestTotal) * 100) : 0,
         };
       });
-  }, [filteredRuns]);
+  }, [filteredRuns, bankFilter]);
 
   function getFilteredRecords(run: SyncRun) {
     const q = (recordSearch[run.id] ?? "").toLowerCase();
     const sf = statusFilter[run.id] ?? "all";
     return run.records.filter((r) => {
+      if (!matchesBankFilter(r.serverName, bankFilter)) return false;
       if (sf !== "all" && r.status !== sf) return false;
       if (!q) return true;
       return (
@@ -107,8 +149,43 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
     );
   }
 
+  const activeBankColor = bankFilter !== "all" && bankFilter !== "unclassified"
+    ? TYPE_COLORS[bankFilter]
+    : bankFilter === "unclassified" ? TYPE_COLORS["Sin clasificar"] : null;
+
   return (
     <div className="space-y-4">
+      {/* ── Bank Type Filter ── */}
+      <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco:</span>
+        {BANK_CHIPS.map(({ label, value }) => {
+          const color = value !== "all" ? (value === "unclassified" ? TYPE_COLORS["Sin clasificar"] : TYPE_COLORS[value as string]) : null;
+          const isActive = bankFilter === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setBankFilter(value)}
+              className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                isActive
+                  ? "text-white border-transparent shadow-lg"
+                  : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+              }`}
+              style={isActive && color ? { backgroundColor: color + "33", borderColor: color + "66", color } : isActive ? { backgroundColor: "#6366f133", borderColor: "#6366f166", color: "#a5b4fc" } : {}}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {bankFilter !== "all" && (
+          <span className="text-[10px] text-zinc-600 ml-auto">
+            Mostrando sólo servidores{" "}
+            <span style={{ color: activeBankColor ?? "#a5b4fc" }} className="font-semibold">
+              {bankFilter === "unclassified" ? "Sin clasificar" : bankFilter}
+            </span>
+          </span>
+        )}
+      </div>
+
       {/* Búsqueda global */}
       <div className="glass rounded-xl p-4 flex items-center gap-3">
         <Search className="w-4 h-4 text-zinc-500 shrink-0" />
@@ -127,179 +204,189 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
       </div>
 
       {/* Lista de días */}
-      <div className="space-y-3">
-        {dayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, successRate }) => {
-          const isDayOpen = expandedDay === day;
+      {dayGroups.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-zinc-500">
+          Sin resultados para el banco y búsqueda seleccionados.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {dayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, successRate }) => {
+            const isDayOpen = expandedDay === day;
 
-          return (
-            <div key={day} className="glass rounded-2xl overflow-hidden">
-              {/* Day accordion header */}
-              <button
-                className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors text-left"
-                onClick={() => {
-                  if (isDayOpen) {
-                    setExpandedDay(null);
-                    setExpandedSync(null);
-                  } else {
-                    setExpandedDay(day);
-                    setExpandedSync(null);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-lg ${isDayOpen ? "bg-indigo-500/10" : "bg-white/[0.03]"}`}>
-                    {isDayOpen
-                      ? <ChevronDown className="w-4 h-4 text-indigo-400" />
-                      : <ChevronRight className="w-4 h-4 text-zinc-500" />
+            return (
+              <div key={day} className="glass rounded-2xl overflow-hidden">
+                {/* Day accordion header */}
+                <button
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors text-left"
+                  onClick={() => {
+                    if (isDayOpen) {
+                      setExpandedDay(null);
+                      setExpandedSync(null);
+                    } else {
+                      setExpandedDay(day);
+                      setExpandedSync(null);
                     }
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-200 capitalize">{formatDayHeader(day)}</p>
-                    <p className="text-xs text-zinc-500">
-                      {runs.length} sync{runs.length !== 1 ? "s" : ""} · {serverCount} servidores
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 mr-2">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-xs text-emerald-400">{totalSuccess}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                    <span className="text-xs text-rose-400">{totalErrors}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 text-zinc-500" />
-                    <span className="text-xs text-zinc-500">{totalNoData}</span>
-                  </div>
-                  <div className="hidden sm:flex items-center">
-                    <div className="w-20 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${successRate}%` }} />
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-lg ${isDayOpen ? "bg-indigo-500/10" : "bg-white/[0.03]"}`}>
+                      {isDayOpen
+                        ? <ChevronDown className="w-4 h-4 text-indigo-400" />
+                        : <ChevronRight className="w-4 h-4 text-zinc-500" />
+                      }
                     </div>
-                    <span className="ml-2 text-xs text-zinc-400">{successRate}%</span>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-200 capitalize">{formatDayHeader(day)}</p>
+                      <p className="text-xs text-zinc-500">
+                        {runs.length} sync{runs.length !== 1 ? "s" : ""} · {serverCount} servidores
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
-
-              {/* Expanded day: individual syncs */}
-              {isDayOpen && (
-                <div className="border-t border-zinc-800/60 divide-y divide-zinc-800/30">
-                  {runs.map((run) => {
-                    const isSyncOpen = expandedSync === run.id;
-                    const syncTime = new Date(run.syncedAt).toLocaleTimeString("es-AR", {
-                      hour: "2-digit", minute: "2-digit",
-                    });
-                    const syncSuccessRate = run.total > 0 ? Math.round((run.success / run.total) * 100) : 0;
-                    const records = getFilteredRecords(run);
-
-                    return (
-                      <div key={run.id}>
-                        {/* Sync sub-header */}
-                        <button
-                          className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors text-left"
-                          onClick={() => setExpandedSync(isSyncOpen ? null : run.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            {isSyncOpen
-                              ? <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />
-                              : <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
-                            }
-                            <div>
-                              <p className="text-xs font-medium text-zinc-300">Sync · {syncTime}</p>
-                              <p className="text-[10px] text-zinc-600">{run.total} servidores</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 mr-2 text-[11px]">
-                            <span className="text-emerald-400">✓ {run.success}</span>
-                            <span className="text-rose-400">✕ {run.errors}</span>
-                            <span className="text-zinc-500">― {run.noData}</span>
-                            <span className="text-zinc-400">{syncSuccessRate}%</span>
-                          </div>
-                        </button>
-
-                        {/* Server records */}
-                        {isSyncOpen && (
-                          <div className="px-6 pb-4 space-y-3 bg-black/10">
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                                <input
-                                  type="text"
-                                  placeholder="Filtrar servidor, IP, OS..."
-                                  value={recordSearch[run.id] ?? ""}
-                                  onChange={(e) => setRecordSearch((prev) => ({ ...prev, [run.id]: e.target.value }))}
-                                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500"
-                                />
-                              </div>
-                              <div className="flex gap-1">
-                                {(["all", "ok", "error", "nodata"] as const).map((s) => (
-                                  <button
-                                    key={s}
-                                    onClick={() => setStatusFilter((prev) => ({ ...prev, [run.id]: s }))}
-                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border ${
-                                      (statusFilter[run.id] ?? "all") === s
-                                        ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                                        : "text-zinc-500 border-zinc-700/50 hover:text-zinc-300"
-                                    }`}
-                                  >
-                                    {s === "all" ? "Todos" : s === "ok" ? "OK" : s === "error" ? "Error" : "Sin datos"}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="overflow-auto max-h-80">
-                              <table className="w-full text-xs text-left">
-                                <thead className="sticky top-0 bg-zinc-900 text-zinc-400 uppercase">
-                                  <tr>
-                                    <th className="px-3 py-2 font-medium">Servidor</th>
-                                    <th className="px-3 py-2 font-medium">IP</th>
-                                    <th className="px-3 py-2 font-medium">Estado</th>
-                                    <th className="px-3 py-2 font-medium hidden md:table-cell">OS</th>
-                                    <th className="px-3 py-2 font-medium hidden lg:table-cell">KBs</th>
-                                    <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-800/40">
-                                  {records.map((r) => (
-                                    <tr key={r.id} className="hover:bg-white/[0.02]">
-                                      <td className="px-3 py-2 font-medium text-zinc-200">{r.serverName}</td>
-                                      <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>
-                                      <td className="px-3 py-2">
-                                        {r.status === "ok" ? (
-                                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
-                                        ) : r.status === "error" ? (
-                                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Error</span>
-                                        ) : (
-                                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
-                                        )}
-                                      </td>
-                                      <td className="px-3 py-2 text-zinc-400 hidden md:table-cell">{r.os ?? "—"}</td>
-                                      <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell">{r.installedKBs ?? "—"}</td>
-                                      <td className="px-3 py-2 text-rose-400/80 hidden xl:table-cell text-[10px]">{r.errorDescription ?? "—"}</td>
-                                    </tr>
-                                  ))}
-                                  {records.length === 0 && (
-                                    <tr>
-                                      <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <p className="text-xs text-zinc-600 text-right">{records.length} de {run.records.length} registros</p>
-                          </div>
-                        )}
+                  <div className="flex items-center gap-4 mr-2">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs text-emerald-400">{totalSuccess}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-xs text-rose-400">{totalErrors}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-zinc-500" />
+                      <span className="text-xs text-zinc-500">{totalNoData}</span>
+                    </div>
+                    <div className="hidden sm:flex items-center">
+                      <div className="w-20 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${successRate}%` }} />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                      <span className="ml-2 text-xs text-zinc-400">{successRate}%</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded day: individual syncs */}
+                {isDayOpen && (
+                  <div className="border-t border-zinc-800/60 divide-y divide-zinc-800/30">
+                    {runs.map((run) => {
+                      const isSyncOpen = expandedSync === run.id;
+                      const syncTime = new Date(run.syncedAt).toLocaleTimeString("es-AR", {
+                        hour: "2-digit", minute: "2-digit",
+                      });
+                      const records = getFilteredRecords(run);
+                      const filteredTotal = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter)).length;
+                      const filteredSuccess = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "ok").length;
+                      const filteredErrors = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "error").length;
+                      const filteredNoData = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "nodata").length;
+                      const syncSuccessRate = filteredTotal > 0 ? Math.round((filteredSuccess / filteredTotal) * 100) : 0;
+
+                      return (
+                        <div key={run.id}>
+                          {/* Sync sub-header */}
+                          <button
+                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors text-left"
+                            onClick={() => setExpandedSync(isSyncOpen ? null : run.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              {isSyncOpen
+                                ? <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />
+                                : <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+                              }
+                              <div>
+                                <p className="text-xs font-medium text-zinc-300">Sync · {syncTime}</p>
+                                <p className="text-[10px] text-zinc-600">{filteredTotal} servidores</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 mr-2 text-[11px]">
+                              <span className="text-emerald-400">✓ {filteredSuccess}</span>
+                              <span className="text-rose-400">✕ {filteredErrors}</span>
+                              <span className="text-zinc-500">― {filteredNoData}</span>
+                              <span className="text-zinc-400">{syncSuccessRate}%</span>
+                            </div>
+                          </button>
+
+                          {/* Server records */}
+                          {isSyncOpen && (
+                            <div className="px-6 pb-4 space-y-3 bg-black/10">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="relative flex-1">
+                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                                  <input
+                                    type="text"
+                                    placeholder="Filtrar servidor, IP, OS..."
+                                    value={recordSearch[run.id] ?? ""}
+                                    onChange={(e) => setRecordSearch((prev) => ({ ...prev, [run.id]: e.target.value }))}
+                                    className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+                                <div className="flex gap-1">
+                                  {(["all", "ok", "error", "nodata"] as const).map((s) => (
+                                    <button
+                                      key={s}
+                                      onClick={() => setStatusFilter((prev) => ({ ...prev, [run.id]: s }))}
+                                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border ${
+                                        (statusFilter[run.id] ?? "all") === s
+                                          ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                          : "text-zinc-500 border-zinc-700/50 hover:text-zinc-300"
+                                      }`}
+                                    >
+                                      {s === "all" ? "Todos" : s === "ok" ? "OK" : s === "error" ? "Error" : "Sin datos"}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="overflow-auto max-h-80">
+                                <table className="w-full text-xs text-left">
+                                  <thead className="sticky top-0 bg-zinc-900 text-zinc-400 uppercase">
+                                    <tr>
+                                      <th className="px-3 py-2 font-medium">Servidor</th>
+                                      <th className="px-3 py-2 font-medium">IP</th>
+                                      <th className="px-3 py-2 font-medium">Estado</th>
+                                      <th className="px-3 py-2 font-medium hidden md:table-cell">OS</th>
+                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">KBs</th>
+                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-zinc-800/40">
+                                    {records.map((r) => (
+                                      <tr key={r.id} className="hover:bg-white/[0.02]">
+                                        <td className="px-3 py-2 font-medium text-zinc-200">{r.serverName}</td>
+                                        <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>
+                                        <td className="px-3 py-2">
+                                          {r.status === "ok" ? (
+                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
+                                          ) : r.status === "error" ? (
+                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Error</span>
+                                          ) : (
+                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell">{r.os ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell">{r.installedKBs ?? "—"}</td>
+                                        <td className="px-3 py-2 text-rose-400/80 hidden xl:table-cell text-[10px]">{r.errorDescription ?? "—"}</td>
+                                      </tr>
+                                    ))}
+                                    {records.length === 0 && (
+                                      <tr>
+                                        <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <p className="text-xs text-zinc-600 text-right">{records.length} de {filteredTotal} registros</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
