@@ -1,4 +1,31 @@
 ﻿Grupo;Dominio;IP;OS;Servidor;Ambiente
+DCGrupo1;asj.corp;172.30.39.12;Windows Server 2019 Standard;ASJDC01;Producción
+DCGrupo1;ber01.corp;172.30.158.11;Windows Server 2016 Standard;BERDC01P;Producción
+DCGrupo1;ptc.corp;172.30.61.10;Microsoft Windows Server 2016 or later (64-bit);PTCDC03P;Producción
+DCGrupo1;qualia.corp;172.30.14.15;Windows Server 2019 Standard;QUALIADC03;Producción
+DCGrupo1;petersen.corp;10.50.212.46;Windows Server 2019 Standard;SRVAZDCONN03P;Producción
+DCGrupo1;petersen.corp;172.30.118.20;Windows Server 2019 Standard;SRVDCOMNIPP01P;Producción
+DCGrupo2;asj.corp;172.30.39.11;Windows Server 2019 Standard;ASJDC04;Producción
+DCGrupo2;bsj01.corp;172.30.128.11;Windows Server 2016 Standard;BSJDC01P;Producción
+DCGrupo2;petersenenergia.corp;172.30.16.218;Windows Server 2019 Standard;PTCEDC01;Producción
+DCGrupo2;root.corp;172.30.10.183;Windows Server 2016 Standard;ROOTDC1601;Producción
+DCGrupo2;petersen.corp;172.30.10.184;Windows Server 2019 Standard;SRVDC01;Producción
+DCGrupo2;petersen.corp;172.30.118.21;Windows Server 2022 Standard;SRVDCOMNIPP02P;Producción
+DCGrupo3;asj.corp;172.19.241.10;Windows Server 2022 Standard;ASJDC05;Producción
+DCGrupo3;petersen.corp;172.20.1.100;Windows Server 2019 Standard;DCP100VRT;Producción
+DCGrupo3;petersenenergia.corp;172.30.16.219;Windows Server 2019 Standard;PTCEDC02;Producción
+DCGrupo3;root.corp;172.30.10.187;Microsoft Windows Server 2016 or later (64-bit);ROOTDC1602;Producción
+DCGrupo3;petersen.corp;172.16.10.57;Windows Server 2019 Standard;SRVDC01BSF;Producción
+DCGrupo4;asj.corp;172.19.252.10;Windows Server 2022 Standard;ASJDC06;Producción
+DCGrupo4;petersenthieleycruz.com.ar;172.10.0.101;Windows Server 2012 R2 Standard;PTCDC01;Producción
+DCGrupo4;qualia.corp;172.30.14.11;Windows Server 2019 Standard;QUALIADC01;Producción
+DCGrupo4;root.corp;172.30.10.208;Microsoft Windows Server 2016 or later (64-bit);ROOTDC1603;Producción
+DCGrupo4;petersen.corp;172.30.10.185;Windows Server 2019 Standard;SRVDC02;Producción
+DCGrupo5;asj.corp;172.30.39.14;Windows Server 2022 Standard;BERDC01;Producción
+DCGrupo5;ptc.corp;172.30.61.11;Microsoft Windows Server 2016 or later (64-bit);PTCDC02P;Producción
+DCGrupo5;qualia.corp;172.30.14.12;Windows Server 2019 Standard;QUALIADC02;Producción
+DCGrupo5;petersen.corp;10.50.212.45;Windows Server 2019 Standard;SRVAZADCONN01P;Producción
+DCGrupo5;petersen.corp;172.30.10.209;Windows Server 2019 Standard;SRVDCDRS01;Producción
 Desarrollo1;petersen.corp;172.30.17.36;Windows Server 2022 Datacenter;ABS9-AZUDEV;Desarrollo
 Desarrollo1;petersen.corp;172.30.17.38;Windows Server 2022 Datacenter;ABS9-DEVSU;Desarrollo
 Desarrollo1;petersen.corp;10.50.211.145;Windows Server 2019 Standard;BERINSTWEB01DEV;Desarrollo
@@ -33,500 +60,488 @@ Desarrollo1;petersen.corp;172.30.210.50;Windows Server 2019 Standard;SRVPWRCRVDA
 Desarrollo1;petersen.corp;172.30.210.125;Windows Server 2019 Standard;SRVSQL01D;Desarrollo
 Desarrollo1;petersen.corp;172.30.210.126;Windows Server 2019 Standard;SRVSQL02D;Desarrollo
 Desarrollo1;petersen.corp;172.30.213.34;Windows Server 2022 Standard;SRVTABBRIDGE01D;Desarrollo
-Produccion1;petersen.corp;172.30.17.43;Windows Server 2022 Datacenter;ABS9-BUILD01;Produccion
-Produccion1;petersen.corp;172.30.17.37;Windows Server 2022 Datacenter;ABS9-TOOLS;Produccion
-Produccion1;petersen.corp;10.50.89.98;Windows Server 2019 Standard;BERENROLLWEB02P;Produccion
-Produccion1;petersen.corp;10.50.89.96;Windows Server 2019 Standard;BERINSTWEB02P;Produccion
-Produccion1;petersen.corp;172.30.212.179;Windows Server 2022 Standard;BERMCISIS03P;Produccion
-Produccion1;petersen.corp;172.30.89.82;Windows Server 2019 Standard;BEROCEDB02P;Produccion
-Produccion1;petersen.corp;172.30.89.64;Windows Server 2019 Standard;BEROCEMS02P;Produccion
-Produccion1;petersen.corp;172.30.10.28;Windows Server 2019 Standard;BERPRICINGWEBP;Produccion
-Produccion1;petersenthieleycruz.com.ar;172.30.89.73;Windows Server 2019 Standard;BERSONPRTG01P;Produccion
-Produccion1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSCBPRISMSQL01P;Produccion
-Produccion1;petersen.corp;172.30.99.95;Windows Server 2019 Standard;BSCINSTBFF01P;Produccion
-Produccion1;petersen.corp;172.30.212.207;Windows Server 2022 Standard;BSCMCESIS02P;Produccion
-Produccion1;petersen.corp;172.30.99.62;Windows Server 2019 Standard;BSCOCEAPI03P;Produccion
-Produccion1;petersen.corp;172.30.99.68;Windows Server 2019 Standard;BSCOCEIS02P;Produccion
-Produccion1;petersen.corp;172.30.99.194;Windows Server 2019 Standard;BSCONBOARDDB01P;Produccion
-Produccion1;petersen.corp;172.30.99.59;Windows Server 2019 Standard;BSCPWRCRVDA02P;Produccion
-Produccion1;petersen.corp;172.30.99.186;Windows Server 2019 Standard;BSCVUFADB02P;Produccion
-Produccion1;petersen.corp;172.30.212.196;Windows Server 2022 Standard;BSFDEBMEDDB01P;Produccion
-Produccion1;petersen.corp;10.50.84.95;Windows Server 2019 Standard;BSFINSTWEB01P;Produccion
-Produccion1;petersen.corp;172.30.212.173;Windows Server 2022 Standard;BSFMCISIS01P;Produccion
-Produccion1;petersen.corp;172.30.84.61;Windows Server 2019 Standard;BSFOCEAPI02P;Produccion
-Produccion1;petersen.corp;172.30.84.67;Windows Server 2019 Standard;BSFOCEIS01P;Produccion
-Produccion1;petersen.corp;172.30.84.65;Windows Server 2019 Standard;BSFOCEMS03P;Produccion
-Produccion1;petersen.corp;172.30.84.59;Windows Server 2019 Standard;BSFPWRCRVDA02P;Produccion
-Produccion1;petersen.corp;172.30.84.73;Windows Server 2019 Standard;BSFSONPRTG01P;Produccion
-Produccion1;petersen.corp;10.50.92.141;Windows Server 2022 Standard;BSJAPIWSO2TDMZ;Produccion
-Produccion1;petersen.corp;10.50.94.98;Windows Server 2019 Standard;BSJENROLLWEB02P;Produccion
-Produccion1;petersen.corp;10.50.94.96;Windows Server 2019 Standard;BSJINSTWEB02P;Produccion
-Produccion1;petersen.corp;172.30.94.60;Windows Server 2019 Standard;BSJOCEAPI01P;Produccion
-Produccion1;petersen.corp;172.30.94.83;Windows Server 2019 Standard;BSJOCEDB03P;Produccion
-Produccion1;petersen.corp;172.30.94.65;Windows Server 2019 Standard;BSJOCEMS03P;Produccion
-Produccion1;petersen.corp;172.30.94.58;Windows Server 2019 Standard;BSJPWRCRVDA01P;Produccion
-Produccion1;petersen.corp;10.50.94.73;Windows Server 2019 Standard;BSJSONPRTG02P;Produccion
-Produccion1;petersen.corp;10.50.212.112;Windows Server 2019 Standard;CLOUDERAAPI02P;Produccion
-Produccion1;petersen.corp;10.50.212.120;Windows Server 2019 Standard;CLOUDERAAPI07P;Produccion
-Produccion1;petersen.corp;172.30.215.78;Windows Server 2019 Standard;CLOUDERAMS01P;Produccion
-Produccion1;petersen.corp;172.30.215.85;Windows Server 2019 Standard;CLOUDERAMS06P;Produccion
-Produccion1;petersen.corp;172.30.213.10;Windows Server 2019 Standard;EDH-SUPPORTWIN;Produccion
-Produccion1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCDC02P;Produccion
-Produccion1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEXC02;Produccion
-Produccion1;petersen.corp;172.30.210.88;Windows Server 2022 Standard;PWCCI-SIS-01D;Produccion
-Produccion1;petersen.corp;10.50.200.50;Windows Server 2016 Standard;SRVAGCTRLR01P;Produccion
-Produccion1;petersen.corp;10.50.212.46;Windows Server 2019 Standard;SRVAZDCONN03P;Produccion
-Produccion1;petersen.corp;172.30.10.3;Windows Server 2022 Standard;SRVBTAUX01P;Produccion
-Produccion1;petersen.corp;172.30.215.184;Windows Server 2019 Standard;SRVCAMPADOBEP03;Produccion
-Produccion1;petersen.corp;172.30.250.50;Windows Server 2019 Standard;SRVCITASWEB01P;Produccion
-Produccion1;petersen.corp;10.50.212.140;Windows Server 2022 Standard;SRVCOMFRON01P;Produccion
-Produccion1;petersen.corp;172.30.10.185;Windows Server 2016 Standard;SRVDC02;Produccion
-Produccion1;petersen.corp;172.30.118.21;Windows Server 2022 Standard;SRVDCOMNIPP02P;Produccion
-Produccion1;petersen.corp;10.50.8.63;Windows Server 2019 Standard;SRVEFLOWTWEB01P;Produccion
-Produccion1;petersen.corp;172.30.10.79;Windows Server 2019 Standard;SRVENGWABSJ01P;Produccion
-Produccion1;petersen.corp;172.30.212.246;Windows Server 2022 Standard;SRVFDAPIDIC01P;Produccion
-Produccion1;petersen.corp;172.30.10.90;Windows Server 2016 Standard;SRVFSSAS01P;Produccion
-Produccion1;petersen.corp;10.50.212.102;Windows Server 2019 Standard;SRVGOADMZHA02P;Produccion
-Produccion1;petersen.corp;172.30.84.79;Windows Server 2022 Standard;SRVINTEG02P;Produccion
-Produccion1;petersen.corp;172.30.212.56;Windows Server 2016 Standard;SRVKIWICT01P;Produccion
-Produccion1;petersen.corp;172.30.212.115;Windows Server 2019 Standard;SRVMOODLSQL02P;Produccion
-Produccion1;petersen.corp;10.50.212.42;Windows Server 2016 Standard;SRVNUCLEUS01P;Produccion
-Produccion1;petersen.corp;172.30.10.47;Windows Server 2022 Standard;SRVPACTAS01;Produccion
-Produccion1;petersen.corp;172.30.215.71;Windows Server 2022 Standard;SRVPROCAN02P;Produccion
-Produccion1;petersen.corp;172.30.10.2;Windows Server 2019 Standard;SRVPRTG01P;Produccion
-Produccion1;petersen.corp;172.30.212.184;Windows Server 2022 Standard;SRVPWCSQLC1P;Produccion
-Produccion1;petersen.corp;172.30.212.71;Windows Server 2019 Standard;SRVPWRCRVSDS01P;Produccion
-Produccion1;petersen.corp;172.30.218.50;Windows Server 2019 Standard;SRVSNMPC02P;Produccion
-Produccion1;petersen.corp;172.30.212.5;Windows Server 2016 Standard;SRVSQLCITAS02P;Produccion
-Produccion1;petersen.corp;172.30.10.181;Windows Server 2019 Standard;SRVSQLTYS03P;Produccion
-Produccion1;petersen.corp;172.30.10.8;Windows Server 2022 Standard;SRVTACTAS01;Produccion
-Produccion1;petersen.corp;172.30.212.33;Windows Server 2019 Standard;SRVTMMOBILE01P;Produccion
-Produccion1;petersen.corp;172.30.212.55;Windows Server 2019 Standard;SRVTRENDMAC01P;Produccion
-Produccion1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTS06P (Nuevo Servidor Licencias TS);Produccion
-Produccion1;petersen.corp;172.30.10.105;Windows Server 2019 Standard;SRVTSGDD02P;Produccion
-Produccion1;petersen.corp;10.50.212.41;Windows Server 2019 Standard;SRVUASM01P;Produccion
-Produccion1;petersen.corp;172.30.17.197;Windows Server 2019 Datacenter;UNISYS-BUILD01;Produccion
-Produccion1;petersen.corp;172.30.17.121;Windows Server 2019 Datacenter;UNISYS-RT03;Produccion
-Produccion1;petersen.corp;172.30.17.212;Windows Server 2019 Datacenter;UNISYS-RT-QA03;Produccion
-Produccion1;petersen.corp;172.30.17.111;Windows Server 2019 Datacenter;UNISYS-TFS2;Produccion
-Produccion2;petersen.corp;172.30.17.44;Windows Server 2022 Datacenter;ABS9-BUILD02;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERBPRISMSQL01P;Produccion
-Produccion2;petersen.corp;172.30.89.246;Windows Server 2022 Standard;BERFDSQL01P;Produccion
-Produccion2;petersen.corp;172.30.212.202;Windows Server 2022 Standard;BERMCESIS01P;Produccion
-Produccion2;petersen.corp;172.30.89.60;Windows Server 2019 Standard;BEROCEAPI01P;Produccion
-Produccion2;petersen.corp;172.30.89.83;Windows Server 2019 Standard;BEROCEDB03P;Produccion
-Produccion2;petersen.corp;172.30.89.65;Windows Server 2019 Standard;BEROCEMS03P;Produccion
-Produccion2;petersen.corp;172.30.89.58;Windows Server 2019 Standard;BERPWRCRVDA01P;Produccion
-Produccion2;petersen.corp;10.50.89.73;Windows Server 2019 Standard;BERSONPRTG02P;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSCBPRISMSRV01P;Produccion
-Produccion2;petersen.corp;172.30.99.96;Windows Server 2019 Standard;BSCINSTBFF02P;Produccion
-Produccion2;petersen.corp;172.30.212.182;Windows Server 2022 Standard;BSCMCISIS01P;Produccion
-Produccion2;petersen.corp;172.30.99.81;Windows Server 2019 Standard;BSCOCEDB01P;Produccion
-Produccion2;petersen.corp;172.30.99.69;Windows Server 2019 Standard;BSCOCEIS03P;Produccion
-Produccion2;petersen.corp;10.50.99.194;Windows Server 2019 Standard;BSCONBOARDMS01P;Produccion
-Produccion2;petersen.corp;172.30.99.74;Windows Server 2019 Standard;BSCSBALSQL01P;Produccion
-Produccion2;petersen.corp;172.30.99.187;Windows Server 2019 Standard;BSCVUFADB03P;Produccion
-Produccion2;petersen.corp;10.50.84.98;Windows Server 2019 Standard;BSFENROLLWEB02P;Produccion
-Produccion2;petersen.corp;10.50.84.96;Windows Server 2019 Standard;BSFINSTWEB02P;Produccion
-Produccion2;petersen.corp;172.30.212.174;Windows Server 2022 Standard;BSFMCISIS02P;Produccion
-Produccion2;petersen.corp;172.30.84.62;Windows Server 2019 Standard;BSFOCEAPI03P;Produccion
-Produccion2;petersen.corp;172.30.84.68;Windows Server 2019 Standard;BSFOCEIS02P;Produccion
-Produccion2;petersen.corp;172.30.84.194;Windows Server 2019 Standard;BSFONBOARDDB01P;Produccion
-Produccion2;petersen.corp;172.30.84.56;Windows Server 2019 Standard;BSFPWRCRVDA03P;Produccion
-Produccion2;petersen.corp;10.50.84.73;Windows Server 2019 Standard;BSFSONPRTG02P;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSJBPRISMSQL01P;Produccion
-Produccion2;petersen.corp;172.30.94.246;Windows Server 2022 Standard;BSJFDSQL01P;Produccion
-Produccion2;petersen.corp;172.30.212.204;Windows Server 2022 Standard;BSJMCESIS01P;Produccion
-Produccion2;petersen.corp;172.30.94.61;Windows Server 2019 Standard;BSJOCEAPI02P;Produccion
-Produccion2;petersen.corp;172.30.94.67;Windows Server 2019 Standard;BSJOCEIS01P;Produccion
-Produccion2;petersen.corp;172.30.94.194;Windows Server 2019 Standard;BSJONBOARDDB01P;Produccion
-Produccion2;petersen.corp;172.30.94.59;Windows Server 2019 Standard;BSJPWRCRVDA02P;Produccion
-Produccion2;petersen.corp;172.30.94.185;Windows Server 2019 Standard;BSJVUFADB01P;Produccion
-Produccion2;petersen.corp;10.50.212.116;Windows Server 2019 Standard;CLOUDERAAPI03P;Produccion
-Produccion2;petersen.corp;10.50.212.121;Windows Server 2019 Standard;CLOUDERAAPI08P;Produccion
-Produccion2;petersen.corp;172.30.215.80;Windows Server 2019 Standard;CLOUDERAMS02P;Produccion
-Produccion2;petersen.corp;172.30.215.86;Windows Server 2019 Standard;CLOUDERAMS07P;Produccion
-Produccion2;petersen.corp;172.30.84.203;Windows Server 2019 Standard;GPSECMODO01P;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCDC03P;Produccion
-Produccion2;petersen.corp;172.30.212.199;Windows Server 2022 Standard;PWCCE-DAS-01P;Produccion
-Produccion2;petersen.corp;;Windows Server 2016 Standard;ROOTDC1601;Produccion
-Produccion2;petersen.corp;10.50.6.210;Windows Server 2019 Standard;SRVAPIWIN03P;Produccion
-Produccion2;petersen.corp;172.30.215.73;Windows Server 2022 Standard;SRVAZRSQL01P;Produccion
-Produccion2;petersen.corp;172.30.10.21;Windows Server 2022 Standard;SRVBTAUX02P;Produccion
-Produccion2;petersen.corp;172.30.215.186;Windows Server 2019 Standard;SRVCAMPADOBEP04;Produccion
-Produccion2;petersen.corp;10.50.8.120;Windows Server 2019 Standard;SRVCITASWEB02P;Produccion
-Produccion2;petersen.corp;172.30.212.131;Windows Server 2019 Standard;SRVCORPWEB01P;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVDCBSF1;Produccion
-Produccion2;petersen.corp;172.30.212.27;Windows Server 2019 Standard;SRVDEPIIS01P;Produccion
-Produccion2;petersen.corp;172.30.10.73;Windows Server 2019 Standard;SRVEMANAGDB01P;Produccion
-Produccion2;petersen.corp;172.30.10.59;Windows Server 2016 Standard;SRVEXGPSA01P;Produccion
-Produccion2;petersen.corp;172.30.10.135;Windows Server 2019 Standard;SRVFS02P;Produccion
-Produccion2;petersen.corp;172.30.212.106;Windows Server 2019 Standard;SRVFSUSR01P;Produccion
-Produccion2;petersen.corp;172.30.212.141;Windows Server 2019 Standard;SRVGOAHA01P;Produccion
-Produccion2;petersen.corp;172.30.212.101;Windows Server 2019 Standard;SRVINVAM02P;Produccion
-Produccion2;petersen.corp;172.30.212.118;Windows Server 2022 Standard;SRVMEPSQL01P;Produccion
-Produccion2;petersen.corp;172.30.212.35;Windows Server 2019 Standard;SRVMSTIO01P;Produccion
-Produccion2;petersen.corp;172.30.212.236;Windows Server 2019 Standard;SRVOCRBAL01P;Produccion
-Produccion2;petersen.corp;172.30.10.5;Windows Server 2022 Standard;SRVPDBACTAS01;Produccion
-Produccion2;petersen.corp;172.30.215.69;Windows Server 2022 Standard;SRVPROCAN03P;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVPSWSAFE01P;Produccion
-Produccion2;petersen.corp;172.30.212.185;Windows Server 2022 Standard;SRVPWCSQLC2P;Produccion
-Produccion2;petersen.corp;172.30.11.34;Windows Server 2016 Standard;SRVRECGP01P;Produccion
-Produccion2;petersen.corp;172.30.212.91;Windows Server 2019 Standard;SRVSQL01P;Produccion
-Produccion2;petersen.corp;172.30.212.230;Windows Server 2019 Standard;SRVSQLMON02P;Produccion
-Produccion2;petersen.corp;172.30.212.40;Windows Server 2019 Standard;SRVSQLTYS04P;Produccion
-Produccion2;petersen.corp;172.30.212.57;Windows Server 2019 Standard;SRVTDATAETL01P;Produccion
-Produccion2;petersen.corp;10.50.212.55;Windows Server 2019 Datacenter;SRVTOUCHONE;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTS02P (TS usos varios)_restored_20072025;Produccion
-Produccion2;petersen.corp;172.30.218.51;Windows Server 2022 Standard;SRVTSAWS01P;Produccion
-Produccion2;petersen.corp;172.30.212.10;Windows Server 2022 Standard;SRVTSPAI01P;Produccion
-Produccion2;petersen.corp;172.30.17.81;Windows Server 2022 Standard;SRVUNISYSFS;Produccion
-Produccion2;petersen.corp;172.30.17.198;Windows Server 2019 Datacenter;UNISYS-BUILD02;Produccion
-Produccion2;petersen.corp;172.30.17.122;Windows Server 2019 Datacenter;UNISYS-RT04;Produccion
-Produccion2;petersen.corp;172.30.17.127;Windows Server 2019 Datacenter;UNISYS-RT-REL01;Produccion
-Produccion2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VM600DC00;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);ABS9-RT01;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERBPRISMSRV01P;Produccion
-Produccion3;petersen.corp;172.30.89.95;Windows Server 2019 Standard;BERINSTBFF01P;Produccion
-Produccion3;petersen.corp;172.30.212.203;Windows Server 2022 Standard;BERMCESIS02P;Produccion
-Produccion3;petersen.corp;172.30.89.61;Windows Server 2019 Standard;BEROCEAPI02P;Produccion
-Produccion3;petersen.corp;172.30.89.67;Windows Server 2019 Standard;BEROCEIS01P;Produccion
-Produccion3;petersen.corp;172.30.89.194;Windows Server 2019 Standard;BERONBOARDDB01P;Produccion
-Produccion3;petersen.corp;172.30.89.59;Windows Server 2019 Standard;BERPWRCRVDA02P;Produccion
-Produccion3;petersen.corp;172.30.89.185;Windows Server 2019 Standard;BERVUFADB01P;Produccion
-Produccion3;petersen.corp;10.50.212.80;Windows Server 2022 Standard;BSCDEBMEDAPP01P;Produccion
-Produccion3;petersen.corp;10.50.99.95;Windows Server 2019 Standard;BSCINSTWEB01P;Produccion
-Produccion3;petersen.corp;172.30.212.183;Windows Server 2022 Standard;BSCMCISIS02P;Produccion
-Produccion3;petersen.corp;172.30.99.82;Windows Server 2019 Standard;BSCOCEDB02P;Produccion
-Produccion3;petersen.corp;172.30.99.63;Windows Server 2019 Standard;BSCOCEMS01P;Produccion
-Produccion3;petersen.corp;172.30.99.184;Windows Server 2019 Standard;BSCONBOARDMS02P;Produccion
-Produccion3;petersen.corp;172.30.99.73;Windows Server 2019 Standard;BSCSONPRTG01P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSFBPRISMSQL01P;Produccion
-Produccion3;petersen.corp;172.30.84.246;Windows Server 2022 Standard;BSFFDSQL01P;Produccion
-Produccion3;petersen.corp;10.50.84.99;Windows Server 2019 Standard;BSFINSTWEB03P;Produccion
-Produccion3;petersen.corp;172.30.212.175;Windows Server 2022 Standard;BSFMCISIS03P;Produccion
-Produccion3;petersen.corp;172.30.84.81;Windows Server 2019 Standard;BSFOCEDB01P;Produccion
-Produccion3;petersen.corp;172.30.84.69;Windows Server 2019 Standard;BSFOCEIS03P;Produccion
-Produccion3;petersen.corp;10.50.84.150;Windows Server 2019 Standard;BSFONBOARDMS01P;Produccion
-Produccion3;petersen.corp;172.30.84.57;Windows Server 2019 Standard;BSFPWRCRVDAS01P;Produccion
-Produccion3;petersen.corp;172.30.84.185;Windows Server 2019 Standard;BSFVUFADB01P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSJBPRISMSRV01P;Produccion
-Produccion3;petersen.corp;172.30.94.95;Windows Server 2019 Standard;BSJINSTBFF01P;Produccion
-Produccion3;petersen.corp;172.30.212.205;Windows Server 2022 Standard;BSJMCESIS02P;Produccion
-Produccion3;petersen.corp;172.30.94.62;Windows Server 2019 Standard;BSJOCEAPI03P;Produccion
-Produccion3;petersen.corp;172.30.94.69;Windows Server 2019 Standard;BSJOCEIS03P;Produccion
-Produccion3;petersen.corp;10.50.94.150;Windows Server 2019 Standard;BSJONBOARDMS01P;Produccion
-Produccion3;petersen.corp;172.30.94.57;Windows Server 2019 Standard;BSJPWRCRVDAS01P;Produccion
-Produccion3;petersen.corp;172.30.94.186;Windows Server 2019 Standard;BSJVUFADB02P;Produccion
-Produccion3;petersen.corp;10.50.212.117;Windows Server 2019 Standard;CLOUDERAAPI04P;Produccion
-Produccion3;petersen.corp;172.30.215.79;Windows Server 2019 Standard;CLOUDERADB01P;Produccion
-Produccion3;petersen.corp;172.30.215.82;Windows Server 2019 Standard;CLOUDERAMS03P;Produccion
-Produccion3;petersen.corp;172.30.215.87;Windows Server 2019 Standard;CLOUDERAMS08P;Produccion
-Produccion3;petersen.corp;172.30.212.34;Windows Server 2022 Standard;INVGCONEC01P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCDMZ01P;Produccion
-Produccion3;petersen.corp;172.30.212.198;Windows Server 2022 Datacenter;PWCCE-SDS-01P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);ROOTDC1602;Produccion
-Produccion3;petersen.corp;10.50.22.54;Windows Server 2016 Standard;SRVAPP01P;Produccion
-Produccion3;petersen.corp;172.30.10.115;Windows Server 2019 Standard;SRVBEYOND01P;Produccion
-Produccion3;petersen.corp;172.30.10.22;Windows Server 2016 Standard;SRVCA01P;Produccion
-Produccion3;petersen.corp;172.30.212.79;Windows Server 2019 Standard;SRVCAPAPP01P;Produccion
-Produccion3;petersen.corp;172.30.212.104;Windows Server 2019 Standard;SRVCMSBO01P;Produccion
-Produccion3;petersen.corp;172.30.212.132;Windows Server 2019 Standard;SRVCORPWEB02P;Produccion
-Produccion3;petersen.corp;172.30.10.209;Windows Server 2016 Standard;SRVDCDRS01;Produccion
-Produccion3;petersen.corp;172.30.212.28;Windows Server 2019 Standard;SRVDEPSQL01P;Produccion
-Produccion3;petersen.corp;172.30.10.29;Windows Server 2019 Standard;SRVENGWABER01P;Produccion
-Produccion3;petersen.corp;172.30.118.70;Windows Server 2022 Standard;SRVEXGPSA03P;Produccion
-Produccion3;petersen.corp;172.30.10.146;Windows Server 2019 Standard;SRVFSBKPSQL;Produccion
-Produccion3;petersen.corp;172.30.212.54;Windows Server 2019 Standard;SRVGDS01P;Produccion
-Produccion3;petersen.corp;172.30.212.142;Windows Server 2019 Standard;SRVGOAHA02P;Produccion
-Produccion3;petersen.corp;172.30.212.100;Windows Server 2019 Standard;SRVINVSD02P;Produccion
-Produccion3;petersen.corp;172.30.10.130;Windows Server 2019 Standard;SRVMERCAPDB01P;Produccion
-Produccion3;petersen.corp;172.30.10.62;Windows Server 2016 Standard;SRVNAP1601P;Produccion
-Produccion3;petersen.corp;172.30.212.58;Windows Server 2019 Standard;SRVOMNIBOPI01P;Produccion
-Produccion3;petersen.corp;172.30.10.35;Windows Server 2016 Standard;SRVPROBATCH01P;Produccion
-Produccion3;petersen.corp;172.30.215.68;Windows Server 2022 Standard;SRVPROCAN04P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVPSWSAFE02P;Produccion
-Produccion3;petersen.corp;172.30.212.186;Windows Server 2022 Standard;SRVPWCSQLC3P;Produccion
-Produccion3;petersen.corp;172.30.10.231;Windows Server 2016 Standard;SRVSMARTRISK01P;Produccion
-Produccion3;petersen.corp;172.30.212.92;Windows Server 2019 Standard;SRVSQL02P;Produccion
-Produccion3;petersen.corp;172.30.212.43;Windows Server 2019 Standard;SRVSQLTIPAI01P;Produccion
-Produccion3;petersen.corp;172.30.10.26;Windows Server 2022 Standard;SRVSTGSQLVB01P;Produccion
-Produccion3;petersen.corp;172.30.10.19;Windows Server 2022 Standard;SRVTDBACTAS01;Produccion
-Produccion3;petersen.corp;172.30.212.50;Windows Server 2019 Standard;SRVTRENDAPEX01P;Produccion
-Produccion3;petersen.corp;172.30.10.61;Windows Server 2019 Standard;SRVTS03P;Produccion
-Produccion3;petersen.corp;172.30.211.68;Windows Server 2022 Standard;SRVTSCCM01;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTSVISA01P (Recupero);Produccion
-Produccion3;petersen.corp;172.30.10.57;Windows Server 2016 Standard;SRVWSUS02P;Produccion
-Produccion3;petersen.corp;;Microsoft Windows Server 2019 (64-bit);UNISYS-CLIENT-TOOLS;Produccion
-Produccion3;petersen.corp;172.30.17.123;Windows Server 2019 Datacenter;UNISYS-RT05;Produccion
-Produccion3;petersen.corp;172.30.17.126;Windows Server 2019 Datacenter;UNISYS-RT-REL02;Produccion
-Produccion3;petersen.corp;172.30.11.106;Windows Server 2019 Standard;VMCORP029;Produccion
-Produccion4;petersen.corp;172.30.17.40;Windows Server 2022 Datacenter;ABS9-SUP01;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIADB01P;Produccion
-Produccion4;petersen.corp;172.30.89.96;Windows Server 2019 Standard;BERINSTBFF02P;Produccion
-Produccion4;petersen.corp;172.30.212.177;Windows Server 2022 Standard;BERMCISIS01P;Produccion
-Produccion4;petersen.corp;172.30.89.62;Windows Server 2019 Standard;BEROCEAPI03P;Produccion
-Produccion4;petersen.corp;172.30.89.69;Windows Server 2019 Standard;BEROCEIS03P;Produccion
-Produccion4;petersen.corp;10.50.89.150;Windows Server 2019 Standard;BERONBOARDMS01P;Produccion
-Produccion4;petersen.corp;172.30.89.57;Windows Server 2019 Standard;BERPWRCRVDAS01P;Produccion
-Produccion4;petersen.corp;172.30.89.186;Windows Server 2019 Standard;BERVUFADB02P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSCDEBMEDIADB01P;Produccion
-Produccion4;petersen.corp;10.50.99.96;Windows Server 2019 Standard;BSCINSTWEB02P;Produccion
-Produccion4;petersen.corp;172.30.99.60;Windows Server 2019 Standard;BSCOCEAPI01P;Produccion
-Produccion4;petersen.corp;172.30.99.83;Windows Server 2019 Standard;BSCOCEDB03P;Produccion
-Produccion4;petersen.corp;172.30.99.64;Windows Server 2019 Standard;BSCOCEMS02P;Produccion
-Produccion4;petersen.corp;172.30.10.114;Windows Server 2019 Standard;BSCPRICINGWEBP;Produccion
-Produccion4;petersen.corp;10.50.99.73;Windows Server 2019 Standard;BSCSONPRTG02P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSFBPRISMSRV01P;Produccion
-Produccion4;petersen.corp;172.30.84.95;Windows Server 2019 Standard;BSFINSTBFF01P;Produccion
-Produccion4;petersen.corp;172.30.212.200;Windows Server 2022 Standard;BSFMCESIS01P;Produccion
-Produccion4;petersen.corp;172.30.212.176;Windows Server 2022 Standard;BSFMCISIS04P;Produccion
-Produccion4;petersen.corp;172.30.84.82;Windows Server 2019 Standard;BSFOCEDB02P;Produccion
-Produccion4;petersen.corp;172.30.84.63;Windows Server 2019 Standard;BSFOCEMS01P;Produccion
-Produccion4;petersen.corp;172.30.84.184;Windows Server 2019 Standard;BSFONBOARDMS02P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2016 (64-bit);BSFREGFIRMSQL;Produccion
-Produccion4;petersen.corp;172.30.84.186;Windows Server 2019 Standard;BSFVUFADB02P;Produccion
-Produccion4;petersen.corp;172.30.212.194;Windows Server 2022 Standard;BSJDEBMEDDB01P;Produccion
-Produccion4;petersen.corp;172.30.94.96;Windows Server 2019 Standard;BSJINSTBFF02P;Produccion
-Produccion4;petersen.corp;172.30.212.180;Windows Server 2022 Standard;BSJMCISIS01P;Produccion
-Produccion4;petersen.corp;172.30.94.81;Windows Server 2019 Standard;BSJOCEDB01P;Produccion
-Produccion4;petersen.corp;172.30.94.63;Windows Server 2019 Standard;BSJOCEMS01P;Produccion
-Produccion4;petersen.corp;172.30.94.184;Windows Server 2019 Standard;BSJONBOARDMS02P;Produccion
-Produccion4;petersen.corp;172.30.94.74;Windows Server 2019 Standard;BSJSBALSQL01P;Produccion
-Produccion4;petersen.corp;172.30.94.187;Windows Server 2019 Standard;BSJVUFADB03P;Produccion
-Produccion4;petersen.corp;10.50.212.118;Windows Server 2019 Standard;CLOUDERAAPI05P;Produccion
-Produccion4;petersen.corp;172.30.215.77;Windows Server 2019 Standard;CLOUDERAIS01P;Produccion
-Produccion4;petersen.corp;172.30.215.83;Windows Server 2019 Standard;CLOUDERAMS04P;Produccion
-Produccion4;petersen.corp;172.30.212.15;Windows Server 2022 Standard;CONECADINVP;Produccion
-Produccion4;petersen.corp;172.30.212.36;Windows Server 2022 Standard;INVGCONEC02P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEDC03;Produccion
-Produccion4;petersen.corp;172.30.212.172;Windows Server 2022 Standard;PWCCI-DAS-01P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);ROOTDC1603;Produccion
-Produccion4;petersen.corp;172.30.212.13;Windows Server 2022 Standard;SRVAPPFCI01P;Produccion
-Produccion4;petersen.corp;172.30.10.116;Windows Server 2019 Standard;SRVBEYOND02P;Produccion
-Produccion4;petersen.corp;172.30.215.182;Windows Server 2019 Standard;SRVCAMPADOBEP01;Produccion
-Produccion4;petersen.corp;172.30.212.89;Windows Server 2019 Standard;SRVCAPDB01P;Produccion
-Produccion4;petersen.corp;172.30.212.22;Windows Server 2022 Standard;SRVCOMANAG01P;Produccion
-Produccion4;petersen.corp;172.30.212.14;Windows Server 2022 Standard;SRVDBFCI01P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVDCNBER01;Produccion
-Produccion4;petersen.corp;10.50.8.55;Windows Server 2016 Standard;SRVDMZ01P;Produccion
-Produccion4;petersen.corp;172.30.10.83;Windows Server 2019 Standard;SRVENGWABSC01P;Produccion
-Produccion4;petersen.corp;172.30.118.71;Windows Server 2022 Standard;SRVEXGPSA04P;Produccion
-Produccion4;petersen.corp;172.30.212.31;Windows Server 2019 Standard;SRVFSCORP01P;Produccion
-Produccion4;petersen.corp;10.50.212.50;Windows Server 2019 Standard;SRVGENVCARD01P;Produccion
-Produccion4;petersen.corp;172.30.212.8;Windows Server 2022 Standard;SRVHELIX01P;Produccion
-Produccion4;petersen.corp;10.50.8.27;Windows Server 2019 Standard;SRVJIRA02P;Produccion
-Produccion4;petersen.corp;172.30.10.13;Windows Server 2019 Standard;SRVMONAPP01P;Produccion
-Produccion4;petersen.corp;172.30.10.81;Windows Server 2016 Standard;SRVNOCSQL01P;Produccion
-Produccion4;petersen.corp;172.30.212.111;Windows Server 2019 Standard;SRVOMNIPRTG01P;Produccion
-Produccion4;petersen.corp;172.30.10.50;Windows Server 2016 Standard;SRVPROBCORP01;Produccion
-Produccion4;petersen.corp;172.30.215.105;Windows Server 2022 Standard;SRVPROCAN05P;Produccion
-Produccion4;petersen.corp;172.30.10.171;Windows Server 2019 Standard;SRVPVTDBA01P;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVPWCSQLCID;Produccion
-Produccion4;petersen.corp;172.30.10.170;Windows Server 2022 Standard;SRVSNIPE01P;Produccion
-Produccion4;petersen.corp;172.30.212.93;Windows Server 2019 Standard;SRVSQL03P;Produccion
-Produccion4;petersen.corp;172.30.10.193;Windows Server 2016 Standard;SRVSQLTYS02P;Produccion
-Produccion4;petersen.corp;172.30.10.31;Windows Server 2019 Standard;SRVSTGSQLVB1P;Produccion
-Produccion4;petersen.corp;172.30.16.19;Windows Server 2022 Standard;SRVTMERCAPDB01;Produccion
-Produccion4;petersen.corp;172.30.212.76;Windows Server 2019 Standard;SRVTRENDDSM01P;Produccion
-Produccion4;petersen.corp;172.30.212.7;Windows Server 2019 Standard;SRVTS04P;Produccion
-Produccion4;petersen.corp;172.30.10.17;Windows Server 2022 Standard;SRVTSCOM01P;Produccion
-Produccion4;petersen.corp;172.30.212.11;Windows Server 2022 Standard;SRVTSVM01P;Produccion
-Produccion4;petersen.corp;10.50.8.21;Windows Server 2016 Standard;SRVXCOM01P;Produccion
-Produccion4;petersen.corp;172.30.17.119;Windows Server 2019 Datacenter;UNISYS-RT01;Produccion
-Produccion4;petersen.corp;172.30.17.210;Windows Server 2019 Datacenter;UNISYS-RT-QA01;Produccion
-Produccion4;petersen.corp;172.30.17.163;Windows Server 2019 Datacenter;UNISYS-SUPP01;Produccion
-Produccion4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VMCORP038 (AM);Produccion
-Produccion5;petersen.corp;172.30.17.39;Windows Server 2022 Datacenter;ABS9-SUP02;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIAPP01P;Produccion
-Produccion5;petersen.corp;10.50.89.95;Windows Server 2019 Standard;BERINSTWEB01P;Produccion
-Produccion5;petersen.corp;172.30.212.178;Windows Server 2022 Standard;BERMCISIS02P;Produccion
-Produccion5;petersen.corp;172.30.89.81;Windows Server 2019 Standard;BEROCEDB01P;Produccion
-Produccion5;petersen.corp;172.30.89.63;Windows Server 2019 Standard;BEROCEMS01P;Produccion
-Produccion5;petersen.corp;172.30.89.184;Windows Server 2019 Standard;BERONBOARDMS02P;Produccion
-Produccion5;petersen.corp;172.30.89.74;Windows Server 2019 Standard;BERSBALSQL01P;Produccion
-Produccion5;petersen.corp;172.30.89.187;Windows Server 2019 Standard;BERVUFADB03P;Produccion
-Produccion5;petersen.corp;172.30.99.246;Windows Server 2022 Standard;BSCFDSQL01P;Produccion
-Produccion5;petersen.corp;172.30.212.206;Windows Server 2022 Standard;BSCMCESIS01P;Produccion
-Produccion5;petersen.corp;172.30.99.61;Windows Server 2019 Standard;BSCOCEAPI02P;Produccion
-Produccion5;petersen.corp;172.30.99.67;Windows Server 2019 Standard;BSCOCEIS01P;Produccion
-Produccion5;petersen.corp;172.30.99.65;Windows Server 2019 Standard;BSCOCEMS03P;Produccion
-Produccion5;petersen.corp;172.30.99.58;Windows Server 2019 Standard;BSCPWRCRVDA01P;Produccion
-Produccion5;petersen.corp;172.30.99.185;Windows Server 2019 Standard;BSCVUFADB01P;Produccion
-Produccion5;petersen.corp;10.50.212.82;Windows Server 2022 Standard;BSFDEBMEDAPP01P;Produccion
-Produccion5;petersen.corp;172.30.84.96;Windows Server 2019 Standard;BSFINSTBFF02P;Produccion
-Produccion5;petersen.corp;172.30.212.201;Windows Server 2022 Standard;BSFMCESIS02P;Produccion
-Produccion5;petersen.corp;172.30.84.60;Windows Server 2019 Standard;BSFOCEAPI01P;Produccion
-Produccion5;petersen.corp;172.30.84.83;Windows Server 2019 Standard;BSFOCEDB03P;Produccion
-Produccion5;petersen.corp;172.30.84.64;Windows Server 2019 Standard;BSFOCEMS02P;Produccion
-Produccion5;petersen.corp;172.30.84.58;Windows Server 2019 Standard;BSFPWRCRVDA01P;Produccion
-Produccion5;petersen.corp;172.30.84.74;Windows Server 2019 Standard;BSFSBALSQL01P;Produccion
-Produccion5;petersen.corp;172.30.84.187;Windows Server 2019 Standard;BSFVUFADB03P;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSJDEBMEDIAP01P;Produccion
-Produccion5;petersen.corp;10.50.94.95;Windows Server 2019 Standard;BSJINSTWEB01P;Produccion
-Produccion5;petersen.corp;172.30.212.181;Windows Server 2022 Standard;BSJMCISIS02P;Produccion
-Produccion5;petersen.corp;172.30.94.82;Windows Server 2019 Standard;BSJOCEDB02P;Produccion
-Produccion5;petersen.corp;172.30.94.64;Windows Server 2019 Standard;BSJOCEMS02P;Produccion
-Produccion5;petersen.corp;172.30.10.98;Windows Server 2019 Standard;BSJPRICINGWEBP;Produccion
-Produccion5;petersen.corp;172.30.94.73;Windows Server 2019 Standard;BSJSONPRTG01P;Produccion
-Produccion5;petersen.corp;10.50.212.81;Windows Server 2019 Standard;CLOUDERAAPI01P;Produccion
-Produccion5;petersen.corp;10.50.212.119;Windows Server 2019 Standard;CLOUDERAAPI06P;Produccion
-Produccion5;petersen.corp;172.30.215.81;Windows Server 2019 Standard;CLOUDERAIS02P;Produccion
-Produccion5;petersen.corp;172.30.215.84;Windows Server 2019 Standard;CLOUDERAMS05P;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2022 (64-bit);edh-POC-BI-SRV01;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PAI-BLACKLIST;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEDC04;Produccion
-Produccion5;petersen.corp;172.30.212.171;Windows Server 2022 Datacenter;PWCCI-SDS-01P;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SIOPELBSC_RST;Produccion
-Produccion5;petersen.corp;10.50.212.45;Windows Server 2019 Standard;SRVAZADCONN01P;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVBSJDC01;Produccion
-Produccion5;petersen.corp;172.30.215.183;Windows Server 2019 Standard;SRVCAMPADOBEP02;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVCCTVGP01P;Produccion
-Produccion5;petersen.corp;172.30.212.23;Windows Server 2022 Standard;SRVCOMBACK01P;Produccion
-Produccion5;petersen.corp;172.30.10.184;Windows Server 2016 Standard;SRVDC01;Produccion
-Produccion5;petersen.corp;172.30.118.20;Windows Server 2019 Standard;SRVDCOMNIPP01P;Produccion
-Produccion5;petersen.corp;172.30.17.196;Windows Server 2016 Standard;SRVEAE03P;Produccion
-Produccion5;petersen.corp;172.30.10.66;Windows Server 2019 Standard;SRVENGWABSF01P;Produccion
-Produccion5;petersen.corp;10.50.212.40;Windows Server 2019 Standard;SRVEXSR01P;Produccion
-Produccion5;petersen.corp;172.30.212.32;Windows Server 2019 Standard;SRVFSCORP02P;Produccion
-Produccion5;petersen.corp;10.50.212.101;Windows Server 2019 Standard;SRVGOADMZHA01P;Produccion
-Produccion5;petersen.corp;172.30.84.71;Windows Server 2022 Standard;SRVINTEG01P;Produccion
-Produccion5;petersen.corp;172.30.212.220;Windows Server 2019 Standard;SRVJMETERT01;Produccion
-Produccion5;petersen.corp;172.30.212.114;Windows Server 2019 Standard;SRVMOODLSQL01P;Produccion
-Produccion5;petersen.corp;10.50.8.30;Windows Server 2019 Standard;SRVNSCACHE01P;Produccion
-Produccion5;petersen.corp;172.30.212.112;Windows Server 2019 Standard;SRVOMNIPRTG02P;Produccion
-Produccion5;petersen.corp;172.30.215.70;Windows Server 2019 Standard;SRVPROCAN01P;Produccion
-Produccion5;petersen.corp;172.30.215.106;Windows Server 2019 Standard;SRVPROCAN06P;Produccion
-Produccion5;petersen.corp;172.30.212.208;Windows Server 2022 Standard;SRVPWCESQLC1P;Produccion
-Produccion5;petersen.corp;172.30.212.105;Windows Server 2019 Standard;SRVPWRCRVDAS01P;Produccion
-Produccion5;petersen.corp;172.30.10.109;Windows Server 2019 Standard;SRVSNMPC01P;Produccion
-Produccion5;petersen.corp;172.30.10.251;Windows Server 2016 Standard;SRVSQLCITAS01P;Produccion
-Produccion5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVSQLTYS02P_restored;Produccion
-Produccion5;petersen.corp;172.30.10.86;Windows Server 2016 Standard;SRVTABLEAU01P;Produccion
-Produccion5;petersen.corp;172.30.16.17;Windows Server 2022 Standard;SRVTMERCAPP01;Produccion
-Produccion5;petersen.corp;172.30.10.24;Windows Server 2016 Standard;SRVTRENDDSM02P;Produccion
-Produccion5;petersen.corp;172.30.212.37;Windows Server 2022 Standard;SRVTS05P;Produccion
-Produccion5;petersen.corp;172.30.10.104;Windows Server 2022 Standard;SRVTSGDD01P;Produccion
-Produccion5;petersen.corp;172.30.10.194;Windows Server 2019 Standard;SRVTSWET01P;Produccion
-Produccion5;petersen.corp;172.30.17.152;Windows Server 2019 Datacenter;TFS-UNISYS;Produccion
-Produccion5;petersen.corp;172.30.17.120;Windows Server 2019 Datacenter;UNISYS-RT02;Produccion
-Produccion5;petersen.corp;172.30.17.211;Windows Server 2019 Datacenter;UNISYS-RT-QA02;Produccion
-Produccion5;petersen.corp;172.30.17.128;Windows Server 2019 Datacenter;UNISYS-SUPP02;Produccion
-Proxy1;petersen.corp;10.50.12.70;Windows Server 2016 Standard;SRVPRXVEEAM05P;Produccion
-Proxy1;petersen.corp;172.30.10.106;Windows Server 2019 Standard;VEEAMORCHEST01P;Produccion
-Proxy1;petersen.corp;10.50.41.21;Windows Server 2019 Standard;VEEAMPRX01;Produccion
-Proxy1;petersen.corp;10.50.41.23;Windows Server 2019 Standard;VEEAMPRX03;Produccion
-Proxy1;petersen.corp;10.50.42.224;Windows Server 2019 Standard;VEEAMPRX03_1;Produccion
-Proxy1;petersen.corp;10.50.42.225;Windows Server 2019 Standard;VEEAMPRX05_1;Produccion
-Proxy1;petersen.corp;172.30.10.111;Windows Server 2019 Standard;VEEAMPRX17;Produccion
-Proxy1;petersen.corp;10.50.41.29;Windows Server 2019 Standard;VEEAMPRXCL11;Produccion
-Proxy1;petersen.corp;10.50.41.46;Windows Server 2019 Standard;VEEAMPRXCL19;Produccion
-Proxy1;petersen.corp;10.50.13.164;Windows Server 2019 Standard;VEEAMPRXCL21;Produccion
-Proxy1;petersen.corp;10.50.41.222;Windows Server 2019 Standard;VEEAMPRXCL23;Produccion
-Proxy1;petersen.corp;10.50.41.12;Windows Server 2019 Standard;VPRX-CLD05-01C;Produccion
-Proxy1;petersen.corp;10.50.41.13;Windows Server 2019 Standard;VPRX-CLD05-02C;Produccion
-Proxy1;petersen.corp;10.50.41.161;Windows Server 2022 Standard;VPRX-CLD-07C;Produccion
-Proxy1;petersen.corp;10.50.41.157;Windows Server 2022 Standard;VPRX-CLD-08C;Produccion
-Proxy1;petersen.corp;10.50.41.163;Windows Server 2019 Standard;VPRX-CLD2-03I;Produccion
-Proxy1;petersen.corp;10.50.42.50;Windows Server 2019 Standard;VPRX-CLD2-07I;Produccion
-Proxy1;petersen.corp;10.50.41.2;Windows Server 2022 Standard;VPRX-CLD3-01C;Produccion
-Proxy1;petersen.corp;10.50.41.3;Windows Server 2022 Standard;VPRX-CLD3-02C;Produccion
-Proxy1;petersen.corp;10.50.41.128;Windows Server 2022 Standard;VPRX-CLD3-04C;Produccion
-Proxy1;petersen.corp;10.50.41.83;Windows Server 2022 Standard;VPRX-CLD3-07C;Produccion
-Proxy1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-04C;Produccion
-Proxy1;petersen.corp;10.50.13.139;Windows Server 2022 Standard;VPRX-CTRL-01C;Produccion
-Proxy1;petersen.corp;10.50.13.53;Windows Server 2019 Standard;VPRX-HBE-01C;Produccion
-Proxy1;petersen.corp;10.50.41.47;Windows Server 2019 Standard;VPRX-HBI-01C;Produccion
-Proxy1;petersen.corp;10.50.41.112;Windows Server 2019 Standard;VPRX-HBI-02C;Produccion
-Proxy1;petersen.corp;10.50.42.21;Windows Server 2022 Standard;VPRX-HBI-03I;Produccion
-Proxy1;petersen.corp;10.50.13.214;Windows Server 2019 Standard;VPRX-HBI-04C;Produccion
-Proxy1;petersen.corp;10.50.41.37;Windows Server 2019 Standard;VPRX-HBI-06C;Produccion
-Proxy1;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-HBI-07I;Produccion
-Proxy1;petersen.corp;10.50.13.75;Windows Server 2019 Standard;VPRX-PROD02-03C;Produccion
-Proxy1;petersen.corp;10.50.13.16;Windows Server 2019 Standard;VPRX-PROD02-04C;Produccion
-Proxy1;petersen.corp;10.50.42.17;Windows Server 2019 Standard;VPRX-PROD02-05C;Produccion
-Proxy1;petersen.corp;10.50.13.19;Windows Server 2019 Standard;VPRX-PROD02-10C;Produccion
-Proxy1;petersen.corp;10.50.13.205;Windows Server 2022 Standard;VPRX-PROD-05I;Produccion
-Proxy1;petersen.corp;10.50.13.209;Windows Server 2022 Standard;VPRX-PROD-09I;Produccion
-Proxy2;petersen.corp;172.30.10.10;Windows Server 2022 Standard;SRVEEAMBEM01P;Produccion
-Proxy2;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX01_1;Produccion
-Proxy2;petersen.corp;10.50.41.24;Windows Server 2019 Standard;VEEAMPRX04;Produccion
-Proxy2;petersen.corp;10.50.41.25;Windows Server 2019 Standard;VEEAMPRX05;Produccion
-Proxy2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX06_OLD;Produccion
-Proxy2;petersen.corp;10.50.41.27;Windows Server 2019 Standard;VEEAMPRX07;Produccion
-Proxy2;petersen.corp;10.50.41.45;Windows Server 2019 Standard;VEEAMPRXCL17;Produccion
-Proxy2;petersen.corp;172.30.10.110;Windows Server 2022 Standard;VEEAMV123;Produccion
-Proxy2;petersen.corp;10.50.41.220;Windows Server 2019 Standard;VPRX-BM-02C;Produccion
-Proxy2;petersen.corp;10.50.41.122;Windows Server 2019 Standard;VPRX-BM-03C;Produccion
-Proxy2;petersen.corp;10.50.13.50;Windows Server 2019 Standard;VPRX-CLD-01C;Produccion
-Proxy2;petersen.corp;10.50.41.14;Windows Server 2019 Standard;VPRX-CLD05-03C;Produccion
-Proxy2;petersen.corp;10.50.13.70;Windows Server 2019 Standard;VPRX-CLD-09C;Produccion
-Proxy2;petersen.corp;10.50.13.10;Windows Server 2019 Standard;VPRX-CLD2-01I;Produccion
-Proxy2;petersen.corp;10.50.42.56;Windows Server 2019 Standard;VPRX-CLD2-08I;Produccion
-Proxy2;petersen.corp;10.50.13.115;Windows Server 2022 Standard;VPRX-CLD2-10I;Produccion
-Proxy2;petersen.corp;10.50.41.36;Windows Server 2022 Standard;VPRX-CLD3-03C;Produccion
-Proxy2;petersen.corp;10.50.13.14;Windows Server 2022 Standard;VPRX-CLD3-06C;Produccion
-Proxy2;petersen.corp;10.50.13.85;Windows Server 2022 Standard;VPRX-CLD3-08C;Produccion
-Proxy2;petersen.corp;10.50.41.66;Windows Server 2022 Standard;VPRX-CLD3-09C;Produccion
-Proxy2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-03C;Produccion
-Proxy2;petersen.corp;10.50.41.110;Windows Server 2022 Standard;VPRX-CTRL-03C;Produccion
-Proxy2;petersen.corp;10.50.13.57;Windows Server 2019 Standard;VPRX-HBE-03C;Produccion
-Proxy2;petersen.corp;10.50.13.15;Windows Server 2019 Standard;VPRX-HBE-04C;Produccion
-Proxy2;petersen.corp;10.50.42.15;Windows Server 2022 Standard;VPRX-HBI-02I;Produccion
-Proxy2;petersen.corp;10.50.42.64;Windows Server 2022 Standard;VPRX-HBI-04I;Produccion
-Proxy2;petersen.corp;10.50.13.215;Windows Server 2019 Standard;VPRX-HBI-05C;Produccion
-Proxy2;petersen.corp;10.50.13.64;Windows Server 2019 Standard;VPRX-PROD02-01C;Produccion
-Proxy2;petersen.corp;10.50.42.65;Windows Server 2019 Standard;VPRX-PROD02-02C;Produccion
-Proxy2;petersen.corp;10.50.13.218;Windows Server 2022 Standard;VPRX-PROD02-06C;Produccion
-Proxy2;petersen.corp;10.50.13.221;Windows Server 2022 Standard;VPRX-PROD02-09C;Produccion
-Proxy2;petersen.corp;10.50.42.36;Windows Server 2022 Standard;VPRX-PROD-02I;Produccion
-Proxy2;petersen.corp;10.50.42.40;Windows Server 2022 Standard;VPRX-PROD-03I;Produccion
-Proxy2;petersen.corp;10.50.13.207;Windows Server 2022 Standard;VPRX-PROD-07I;Produccion
-Proxy2;petersen.corp;10.50.13.208;Windows Server 2022 Standard;VPRX-PROD-08I;Produccion
-Proxy2;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-10I_OLD;Produccion
-Proxy3;petersen.corp;172.30.10.60;Windows Server 2019 Standard;SRVVEEAMCLD01P;Produccion
-Proxy3;petersen.corp;172.30.10.25;Windows Server 2019 Standard;VEEAMONE;Produccion
-Proxy3;petersen.corp;10.50.41.22;Windows Server 2019 Standard;VEEAMPRX02;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX08_OLD;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX10-OLD;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX12_OLD;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX14_OLD;Produccion
-Proxy3;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX16_OLD;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX18_OLD;Produccion
-Proxy3;petersen.corp;10.50.13.226;Windows Server 2019 Standard;VPRX-BM-01C;Produccion
-Proxy3;petersen.corp;10.50.41.32;Windows Server 2019 Standard;VPRX-CLD05-04C;Produccion
-Proxy3;petersen.corp;10.50.12.43;Windows Server 2019 Standard;VPRX-CLD05-05C;Produccion
-Proxy3;petersen.corp;10.50.41.153;Windows Server 2022 Standard;VPRX-CLD-06C;Produccion
-Proxy3;petersen.corp;10.50.41.87;Windows Server 2019 Standard;VPRX-CLD2-02I;Produccion
-Proxy3;petersen.corp;10.50.42.71;Windows Server 2019 Standard;VPRX-CLD2-04I;Produccion
-Proxy3;petersen.corp;10.50.42.70;Windows Server 2019 Standard;VPRX-CLD2-05I;Produccion
-Proxy3;petersen.corp;10.50.13.138;Windows Server 2019 Standard;VPRX-CLD2-06I;Produccion
-Proxy3;petersen.corp;10.50.42.100;Windows Server 2022 Standard;VPRX-CLD2-09I;Produccion
-Proxy3;petersen.corp;10.50.41.69;Windows Server 2022 Standard;VPRX-CLD3-05C;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-01C;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-02C;Produccion
-Proxy3;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-05C;Produccion
-Proxy3;petersen.corp;10.50.13.140;Windows Server 2022 Standard;VPRX-CTRL-02C;Produccion
-Proxy3;petersen.corp;10.50.41.58;Windows Server 2019 Standard;VPRX-HBE-02C;Produccion
-Proxy3;petersen.corp;10.50.42.78;Windows Server 2022 Standard;VPRX-HBI-01I;Produccion
-Proxy3;petersen.corp;10.50.13.212;Windows Server 2019 Standard;VPRX-HBI-03C;Produccion
-Proxy3;petersen.corp;10.50.42.23;Windows Server 2022 Standard;VPRX-HBI-05I;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-HBI-06I;Produccion
-Proxy3;petersen.corp;10.50.13.217;Windows Server 2019 Standard;VPRX-HBI-07C;Produccion
-Proxy3;petersen.corp;10.50.42.35;Windows Server 2022 Standard;VPRX-PROD-01I;Produccion
-Proxy3;petersen.corp;10.50.13.219;Windows Server 2022 Standard;VPRX-PROD02-07C;Produccion
-Proxy3;petersen.corp;10.50.13.220;Windows Server 2022 Standard;VPRX-PROD02-08C;Produccion
-Proxy3;petersen.corp;10.50.13.13;Windows Server 2022 Standard;VPRX-PROD-04I;Produccion
-Proxy3;petersen.corp;10.50.13.206;Windows Server 2022 Standard;VPRX-PROD-06I;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-11I_OLD;Produccion
-Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-12I_OLD;Produccion
+Producción1;petersen.corp;172.30.17.43;Windows Server 2022 Datacenter;ABS9-BUILD01;Producción
+Producción1;petersen.corp;172.30.17.37;Windows Server 2022 Datacenter;ABS9-TOOLS;Producción
+Producción1;petersen.corp;10.50.89.98;Windows Server 2019 Standard;BERENROLLWEB02P;Producción
+Producción1;petersen.corp;10.50.89.96;Windows Server 2019 Standard;BERINSTWEB02P;Producción
+Producción1;petersen.corp;172.30.212.179;Windows Server 2022 Standard;BERMCISIS03P;Producción
+Producción1;petersen.corp;172.30.89.82;Windows Server 2019 Standard;BEROCEDB02P;Producción
+Producción1;petersen.corp;172.30.89.64;Windows Server 2019 Standard;BEROCEMS02P;Producción
+Producción1;petersen.corp;172.30.10.28;Windows Server 2019 Standard;BERPRICINGWEBP;Producción
+Producción1;petersenthieleycruz.com.ar;172.30.89.73;Windows Server 2019 Standard;BERSONPRTG01P;Producción
+Producción1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSCBPRISMSQL01P;Producción
+Producción1;petersen.corp;172.30.99.95;Windows Server 2019 Standard;BSCINSTBFF01P;Producción
+Producción1;petersen.corp;172.30.212.207;Windows Server 2022 Standard;BSCMCESIS02P;Producción
+Producción1;petersen.corp;172.30.99.62;Windows Server 2019 Standard;BSCOCEAPI03P;Producción
+Producción1;petersen.corp;172.30.99.68;Windows Server 2019 Standard;BSCOCEIS02P;Producción
+Producción1;petersen.corp;172.30.99.194;Windows Server 2019 Standard;BSCONBOARDDB01P;Producción
+Producción1;petersen.corp;172.30.99.59;Windows Server 2019 Standard;BSCPWRCRVDA02P;Producción
+Producción1;petersen.corp;172.30.99.186;Windows Server 2019 Standard;BSCVUFADB02P;Producción
+Producción1;petersen.corp;172.30.212.196;Windows Server 2022 Standard;BSFDEBMEDDB01P;Producción
+Producción1;petersen.corp;10.50.84.95;Windows Server 2019 Standard;BSFINSTWEB01P;Producción
+Producción1;petersen.corp;172.30.212.173;Windows Server 2022 Standard;BSFMCISIS01P;Producción
+Producción1;petersen.corp;172.30.84.61;Windows Server 2019 Standard;BSFOCEAPI02P;Producción
+Producción1;petersen.corp;172.30.84.67;Windows Server 2019 Standard;BSFOCEIS01P;Producción
+Producción1;petersen.corp;172.30.84.65;Windows Server 2019 Standard;BSFOCEMS03P;Producción
+Producción1;petersen.corp;172.30.84.59;Windows Server 2019 Standard;BSFPWRCRVDA02P;Producción
+Producción1;petersen.corp;172.30.84.73;Windows Server 2019 Standard;BSFSONPRTG01P;Producción
+Producción1;petersen.corp;10.50.92.141;Windows Server 2022 Standard;BSJAPIWSO2TDMZ;Producción
+Producción1;petersen.corp;10.50.94.98;Windows Server 2019 Standard;BSJENROLLWEB02P;Producción
+Producción1;petersen.corp;10.50.94.96;Windows Server 2019 Standard;BSJINSTWEB02P;Producción
+Producción1;petersen.corp;172.30.94.60;Windows Server 2019 Standard;BSJOCEAPI01P;Producción
+Producción1;petersen.corp;172.30.94.83;Windows Server 2019 Standard;BSJOCEDB03P;Producción
+Producción1;petersen.corp;172.30.94.65;Windows Server 2019 Standard;BSJOCEMS03P;Producción
+Producción1;petersen.corp;172.30.94.58;Windows Server 2019 Standard;BSJPWRCRVDA01P;Producción
+Producción1;petersen.corp;10.50.94.73;Windows Server 2019 Standard;BSJSONPRTG02P;Producción
+Producción1;petersen.corp;10.50.212.112;Windows Server 2019 Standard;CLOUDERAAPI02P;Producción
+Producción1;petersen.corp;10.50.212.120;Windows Server 2019 Standard;CLOUDERAAPI07P;Producción
+Producción1;petersen.corp;172.30.215.78;Windows Server 2019 Standard;CLOUDERAMS01P;Producción
+Producción1;petersen.corp;172.30.215.85;Windows Server 2019 Standard;CLOUDERAMS06P;Producción
+Producción1;petersen.corp;172.30.213.10;Windows Server 2019 Standard;EDH-SUPPORTWIN;Producción
+Producción1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEXC02;Producción
+Producción1;petersen.corp;172.30.210.88;Windows Server 2022 Standard;PWCCI-SIS-01D;Producción
+Producción1;petersen.corp;10.50.200.50;Windows Server 2016 Standard;SRVAGCTRLR01P;Producción
+Producción1;petersen.corp;172.30.10.3;Windows Server 2022 Standard;SRVBTAUX01P;Producción
+Producción1;petersen.corp;172.30.215.184;Windows Server 2019 Standard;SRVCAMPADOBEP03;Producción
+Producción1;petersen.corp;172.30.250.50;Windows Server 2019 Standard;SRVCITASWEB01P;Producción
+Producción1;petersen.corp;10.50.212.140;Windows Server 2022 Standard;SRVCOMFRON01P;Producción
+Producción1;petersen.corp;10.50.8.63;Windows Server 2019 Standard;SRVEFLOWTWEB01P;Producción
+Producción1;petersen.corp;172.30.10.79;Windows Server 2019 Standard;SRVENGWABSJ01P;Producción
+Producción1;petersen.corp;172.30.212.246;Windows Server 2022 Standard;SRVFDAPIDIC01P;Producción
+Producción1;petersen.corp;172.30.10.90;Windows Server 2016 Standard;SRVFSSAS01P;Producción
+Producción1;petersen.corp;10.50.212.102;Windows Server 2019 Standard;SRVGOADMZHA02P;Producción
+Producción1;petersen.corp;172.30.84.79;Windows Server 2022 Standard;SRVINTEG02P;Producción
+Producción1;petersen.corp;172.30.212.56;Windows Server 2016 Standard;SRVKIWICT01P;Producción
+Producción1;petersen.corp;172.30.212.115;Windows Server 2019 Standard;SRVMOODLSQL02P;Producción
+Producción1;petersen.corp;10.50.212.42;Windows Server 2016 Standard;SRVNUCLEUS01P;Producción
+Producción1;petersen.corp;172.30.10.47;Windows Server 2022 Standard;SRVPACTAS01;Producción
+Producción1;petersen.corp;172.30.215.71;Windows Server 2022 Standard;SRVPROCAN02P;Producción
+Producción1;petersen.corp;172.30.10.2;Windows Server 2019 Standard;SRVPRTG01P;Producción
+Producción1;petersen.corp;172.30.212.184;Windows Server 2022 Standard;SRVPWCSQLC1P;Producción
+Producción1;petersen.corp;172.30.212.71;Windows Server 2019 Standard;SRVPWRCRVSDS01P;Producción
+Producción1;petersen.corp;172.30.218.50;Windows Server 2019 Standard;SRVSNMPC02P;Producción
+Producción1;petersen.corp;172.30.212.5;Windows Server 2016 Standard;SRVSQLCITAS02P;Producción
+Producción1;petersen.corp;172.30.10.181;Windows Server 2019 Standard;SRVSQLTYS03P;Producción
+Producción1;petersen.corp;172.30.10.8;Windows Server 2022 Standard;SRVTACTAS01;Producción
+Producción1;petersen.corp;172.30.212.33;Windows Server 2019 Standard;SRVTMMOBILE01P;Producción
+Producción1;petersen.corp;172.30.212.55;Windows Server 2019 Standard;SRVTRENDMAC01P;Producción
+Producción1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTS06P (Nuevo Servidor Licencias TS);Producción
+Producción1;petersen.corp;172.30.10.105;Windows Server 2019 Standard;SRVTSGDD02P;Producción
+Producción1;petersen.corp;10.50.212.41;Windows Server 2019 Standard;SRVUASM01P;Producción
+Producción1;petersen.corp;172.30.17.197;Windows Server 2019 Datacenter;UNISYS-BUILD01;Producción
+Producción1;petersen.corp;172.30.17.121;Windows Server 2019 Datacenter;UNISYS-RT03;Producción
+Producción1;petersen.corp;172.30.17.212;Windows Server 2019 Datacenter;UNISYS-RT-QA03;Producción
+Producción1;petersen.corp;172.30.17.111;Windows Server 2019 Datacenter;UNISYS-TFS2;Producción
+Producción2;petersen.corp;172.30.17.44;Windows Server 2022 Datacenter;ABS9-BUILD02;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERBPRISMSQL01P;Producción
+Producción2;petersen.corp;172.30.89.246;Windows Server 2022 Standard;BERFDSQL01P;Producción
+Producción2;petersen.corp;172.30.212.202;Windows Server 2022 Standard;BERMCESIS01P;Producción
+Producción2;petersen.corp;172.30.89.60;Windows Server 2019 Standard;BEROCEAPI01P;Producción
+Producción2;petersen.corp;172.30.89.83;Windows Server 2019 Standard;BEROCEDB03P;Producción
+Producción2;petersen.corp;172.30.89.65;Windows Server 2019 Standard;BEROCEMS03P;Producción
+Producción2;petersen.corp;172.30.89.58;Windows Server 2019 Standard;BERPWRCRVDA01P;Producción
+Producción2;petersen.corp;10.50.89.73;Windows Server 2019 Standard;BERSONPRTG02P;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSCBPRISMSRV01P;Producción
+Producción2;petersen.corp;172.30.99.96;Windows Server 2019 Standard;BSCINSTBFF02P;Producción
+Producción2;petersen.corp;172.30.212.182;Windows Server 2022 Standard;BSCMCISIS01P;Producción
+Producción2;petersen.corp;172.30.99.81;Windows Server 2019 Standard;BSCOCEDB01P;Producción
+Producción2;petersen.corp;172.30.99.69;Windows Server 2019 Standard;BSCOCEIS03P;Producción
+Producción2;petersen.corp;10.50.99.194;Windows Server 2019 Standard;BSCONBOARDMS01P;Producción
+Producción2;petersen.corp;172.30.99.74;Windows Server 2019 Standard;BSCSBALSQL01P;Producción
+Producción2;petersen.corp;172.30.99.187;Windows Server 2019 Standard;BSCVUFADB03P;Producción
+Producción2;petersen.corp;10.50.84.98;Windows Server 2019 Standard;BSFENROLLWEB02P;Producción
+Producción2;petersen.corp;10.50.84.96;Windows Server 2019 Standard;BSFINSTWEB02P;Producción
+Producción2;petersen.corp;172.30.212.174;Windows Server 2022 Standard;BSFMCISIS02P;Producción
+Producción2;petersen.corp;172.30.84.62;Windows Server 2019 Standard;BSFOCEAPI03P;Producción
+Producción2;petersen.corp;172.30.84.68;Windows Server 2019 Standard;BSFOCEIS02P;Producción
+Producción2;petersen.corp;172.30.84.194;Windows Server 2019 Standard;BSFONBOARDDB01P;Producción
+Producción2;petersen.corp;172.30.84.56;Windows Server 2019 Standard;BSFPWRCRVDA03P;Producción
+Producción2;petersen.corp;10.50.84.73;Windows Server 2019 Standard;BSFSONPRTG02P;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSJBPRISMSQL01P;Producción
+Producción2;petersen.corp;172.30.94.246;Windows Server 2022 Standard;BSJFDSQL01P;Producción
+Producción2;petersen.corp;172.30.212.204;Windows Server 2022 Standard;BSJMCESIS01P;Producción
+Producción2;petersen.corp;172.30.94.61;Windows Server 2019 Standard;BSJOCEAPI02P;Producción
+Producción2;petersen.corp;172.30.94.67;Windows Server 2019 Standard;BSJOCEIS01P;Producción
+Producción2;petersen.corp;172.30.94.194;Windows Server 2019 Standard;BSJONBOARDDB01P;Producción
+Producción2;petersen.corp;172.30.94.59;Windows Server 2019 Standard;BSJPWRCRVDA02P;Producción
+Producción2;petersen.corp;172.30.94.185;Windows Server 2019 Standard;BSJVUFADB01P;Producción
+Producción2;petersen.corp;10.50.212.116;Windows Server 2019 Standard;CLOUDERAAPI03P;Producción
+Producción2;petersen.corp;10.50.212.121;Windows Server 2019 Standard;CLOUDERAAPI08P;Producción
+Producción2;petersen.corp;172.30.215.80;Windows Server 2019 Standard;CLOUDERAMS02P;Producción
+Producción2;petersen.corp;172.30.215.86;Windows Server 2019 Standard;CLOUDERAMS07P;Producción
+Producción2;petersen.corp;172.30.84.203;Windows Server 2019 Standard;GPSECMODO01P;Producción
+Producción2;petersen.corp;172.30.212.199;Windows Server 2022 Standard;PWCCE-DAS-01P;Producción
+Producción2;petersen.corp;10.50.6.210;Windows Server 2019 Standard;SRVAPIWIN03P;Producción
+Producción2;petersen.corp;172.30.215.73;Windows Server 2022 Standard;SRVAZRSQL01P;Producción
+Producción2;petersen.corp;172.30.10.21;Windows Server 2022 Standard;SRVBTAUX02P;Producción
+Producción2;petersen.corp;172.30.215.186;Windows Server 2019 Standard;SRVCAMPADOBEP04;Producción
+Producción2;petersen.corp;10.50.8.120;Windows Server 2019 Standard;SRVCITASWEB02P;Producción
+Producción2;petersen.corp;172.30.212.131;Windows Server 2019 Standard;SRVCORPWEB01P;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVDCBSF1;Producción
+Producción2;petersen.corp;172.30.212.27;Windows Server 2019 Standard;SRVDEPIIS01P;Producción
+Producción2;petersen.corp;172.30.10.73;Windows Server 2019 Standard;SRVEMANAGDB01P;Producción
+Producción2;petersen.corp;172.30.10.59;Windows Server 2016 Standard;SRVEXGPSA01P;Producción
+Producción2;petersen.corp;172.30.10.135;Windows Server 2019 Standard;SRVFS02P;Producción
+Producción2;petersen.corp;172.30.212.106;Windows Server 2019 Standard;SRVFSUSR01P;Producción
+Producción2;petersen.corp;172.30.212.141;Windows Server 2019 Standard;SRVGOAHA01P;Producción
+Producción2;petersen.corp;172.30.212.101;Windows Server 2019 Standard;SRVINVAM02P;Producción
+Producción2;petersen.corp;172.30.212.118;Windows Server 2022 Standard;SRVMEPSQL01P;Producción
+Producción2;petersen.corp;172.30.212.35;Windows Server 2019 Standard;SRVMSTIO01P;Producción
+Producción2;petersen.corp;172.30.212.236;Windows Server 2019 Standard;SRVOCRBAL01P;Producción
+Producción2;petersen.corp;172.30.10.5;Windows Server 2022 Standard;SRVPDBACTAS01;Producción
+Producción2;petersen.corp;172.30.215.69;Windows Server 2022 Standard;SRVPROCAN03P;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVPSWSAFE01P;Producción
+Producción2;petersen.corp;172.30.212.185;Windows Server 2022 Standard;SRVPWCSQLC2P;Producción
+Producción2;petersen.corp;172.30.11.34;Windows Server 2016 Standard;SRVRECGP01P;Producción
+Producción2;petersen.corp;172.30.212.91;Windows Server 2019 Standard;SRVSQL01P;Producción
+Producción2;petersen.corp;172.30.212.230;Windows Server 2019 Standard;SRVSQLMON02P;Producción
+Producción2;petersen.corp;172.30.212.40;Windows Server 2019 Standard;SRVSQLTYS04P;Producción
+Producción2;petersen.corp;172.30.212.57;Windows Server 2019 Standard;SRVTDATAETL01P;Producción
+Producción2;petersen.corp;10.50.212.55;Windows Server 2019 Datacenter;SRVTOUCHONE;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTS02P (TS usos varios)_restored_20072025;Producción
+Producción2;petersen.corp;172.30.218.51;Windows Server 2022 Standard;SRVTSAWS01P;Producción
+Producción2;petersen.corp;172.30.212.10;Windows Server 2022 Standard;SRVTSPAI01P;Producción
+Producción2;petersen.corp;172.30.17.81;Windows Server 2022 Standard;SRVUNISYSFS;Producción
+Producción2;petersen.corp;172.30.17.198;Windows Server 2019 Datacenter;UNISYS-BUILD02;Producción
+Producción2;petersen.corp;172.30.17.122;Windows Server 2019 Datacenter;UNISYS-RT04;Producción
+Producción2;petersen.corp;172.30.17.127;Windows Server 2019 Datacenter;UNISYS-RT-REL01;Producción
+Producción2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VM600DC00;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);ABS9-RT01;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERBPRISMSRV01P;Producción
+Producción3;petersen.corp;172.30.89.95;Windows Server 2019 Standard;BERINSTBFF01P;Producción
+Producción3;petersen.corp;172.30.212.203;Windows Server 2022 Standard;BERMCESIS02P;Producción
+Producción3;petersen.corp;172.30.89.61;Windows Server 2019 Standard;BEROCEAPI02P;Producción
+Producción3;petersen.corp;172.30.89.67;Windows Server 2019 Standard;BEROCEIS01P;Producción
+Producción3;petersen.corp;172.30.89.194;Windows Server 2019 Standard;BERONBOARDDB01P;Producción
+Producción3;petersen.corp;172.30.89.59;Windows Server 2019 Standard;BERPWRCRVDA02P;Producción
+Producción3;petersen.corp;172.30.89.185;Windows Server 2019 Standard;BERVUFADB01P;Producción
+Producción3;petersen.corp;10.50.212.80;Windows Server 2022 Standard;BSCDEBMEDAPP01P;Producción
+Producción3;petersen.corp;10.50.99.95;Windows Server 2019 Standard;BSCINSTWEB01P;Producción
+Producción3;petersen.corp;172.30.212.183;Windows Server 2022 Standard;BSCMCISIS02P;Producción
+Producción3;petersen.corp;172.30.99.82;Windows Server 2019 Standard;BSCOCEDB02P;Producción
+Producción3;petersen.corp;172.30.99.63;Windows Server 2019 Standard;BSCOCEMS01P;Producción
+Producción3;petersen.corp;172.30.99.184;Windows Server 2019 Standard;BSCONBOARDMS02P;Producción
+Producción3;petersen.corp;172.30.99.73;Windows Server 2019 Standard;BSCSONPRTG01P;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSFBPRISMSQL01P;Producción
+Producción3;petersen.corp;172.30.84.246;Windows Server 2022 Standard;BSFFDSQL01P;Producción
+Producción3;petersen.corp;10.50.84.99;Windows Server 2019 Standard;BSFINSTWEB03P;Producción
+Producción3;petersen.corp;172.30.212.175;Windows Server 2022 Standard;BSFMCISIS03P;Producción
+Producción3;petersen.corp;172.30.84.81;Windows Server 2019 Standard;BSFOCEDB01P;Producción
+Producción3;petersen.corp;172.30.84.69;Windows Server 2019 Standard;BSFOCEIS03P;Producción
+Producción3;petersen.corp;10.50.84.150;Windows Server 2019 Standard;BSFONBOARDMS01P;Producción
+Producción3;petersen.corp;172.30.84.57;Windows Server 2019 Standard;BSFPWRCRVDAS01P;Producción
+Producción3;petersen.corp;172.30.84.185;Windows Server 2019 Standard;BSFVUFADB01P;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSJBPRISMSRV01P;Producción
+Producción3;petersen.corp;172.30.94.95;Windows Server 2019 Standard;BSJINSTBFF01P;Producción
+Producción3;petersen.corp;172.30.212.205;Windows Server 2022 Standard;BSJMCESIS02P;Producción
+Producción3;petersen.corp;172.30.94.62;Windows Server 2019 Standard;BSJOCEAPI03P;Producción
+Producción3;petersen.corp;172.30.94.69;Windows Server 2019 Standard;BSJOCEIS03P;Producción
+Producción3;petersen.corp;10.50.94.150;Windows Server 2019 Standard;BSJONBOARDMS01P;Producción
+Producción3;petersen.corp;172.30.94.57;Windows Server 2019 Standard;BSJPWRCRVDAS01P;Producción
+Producción3;petersen.corp;172.30.94.186;Windows Server 2019 Standard;BSJVUFADB02P;Producción
+Producción3;petersen.corp;10.50.212.117;Windows Server 2019 Standard;CLOUDERAAPI04P;Producción
+Producción3;petersen.corp;172.30.215.79;Windows Server 2019 Standard;CLOUDERADB01P;Producción
+Producción3;petersen.corp;172.30.215.82;Windows Server 2019 Standard;CLOUDERAMS03P;Producción
+Producción3;petersen.corp;172.30.215.87;Windows Server 2019 Standard;CLOUDERAMS08P;Producción
+Producción3;petersen.corp;172.30.212.34;Windows Server 2022 Standard;INVGCONEC01P;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCDMZ01P;Producción
+Producción3;petersen.corp;172.30.212.198;Windows Server 2022 Datacenter;PWCCE-SDS-01P;Producción
+Producción3;petersen.corp;10.50.22.54;Windows Server 2016 Standard;SRVAPP01P;Producción
+Producción3;petersen.corp;172.30.10.115;Windows Server 2019 Standard;SRVBEYOND01P;Producción
+Producción3;petersen.corp;172.30.10.22;Windows Server 2016 Standard;SRVCA01P;Producción
+Producción3;petersen.corp;172.30.212.79;Windows Server 2019 Standard;SRVCAPAPP01P;Producción
+Producción3;petersen.corp;172.30.212.104;Windows Server 2019 Standard;SRVCMSBO01P;Producción
+Producción3;petersen.corp;172.30.212.132;Windows Server 2019 Standard;SRVCORPWEB02P;Producción
+Producción3;petersen.corp;172.30.212.28;Windows Server 2019 Standard;SRVDEPSQL01P;Producción
+Producción3;petersen.corp;172.30.10.29;Windows Server 2019 Standard;SRVENGWABER01P;Producción
+Producción3;petersen.corp;172.30.118.70;Windows Server 2022 Standard;SRVEXGPSA03P;Producción
+Producción3;petersen.corp;172.30.10.146;Windows Server 2019 Standard;SRVFSBKPSQL;Producción
+Producción3;petersen.corp;172.30.212.54;Windows Server 2019 Standard;SRVGDS01P;Producción
+Producción3;petersen.corp;172.30.212.142;Windows Server 2019 Standard;SRVGOAHA02P;Producción
+Producción3;petersen.corp;172.30.212.100;Windows Server 2019 Standard;SRVINVSD02P;Producción
+Producción3;petersen.corp;172.30.10.130;Windows Server 2019 Standard;SRVMERCAPDB01P;Producción
+Producción3;petersen.corp;172.30.10.62;Windows Server 2016 Standard;SRVNAP1601P;Producción
+Producción3;petersen.corp;172.30.212.58;Windows Server 2019 Standard;SRVOMNIBOPI01P;Producción
+Producción3;petersen.corp;172.30.10.35;Windows Server 2016 Standard;SRVPROBATCH01P;Producción
+Producción3;petersen.corp;172.30.215.68;Windows Server 2022 Standard;SRVPROCAN04P;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 (64-bit);SRVPSWSAFE02P;Producción
+Producción3;petersen.corp;172.30.212.186;Windows Server 2022 Standard;SRVPWCSQLC3P;Producción
+Producción3;petersen.corp;172.30.10.231;Windows Server 2016 Standard;SRVSMARTRISK01P;Producción
+Producción3;petersen.corp;172.30.212.92;Windows Server 2019 Standard;SRVSQL02P;Producción
+Producción3;petersen.corp;172.30.212.43;Windows Server 2019 Standard;SRVSQLTIPAI01P;Producción
+Producción3;petersen.corp;172.30.10.26;Windows Server 2022 Standard;SRVSTGSQLVB01P;Producción
+Producción3;petersen.corp;172.30.10.19;Windows Server 2022 Standard;SRVTDBACTAS01;Producción
+Producción3;petersen.corp;172.30.212.50;Windows Server 2019 Standard;SRVTRENDAPEX01P;Producción
+Producción3;petersen.corp;172.30.10.61;Windows Server 2019 Standard;SRVTS03P;Producción
+Producción3;petersen.corp;172.30.211.68;Windows Server 2022 Standard;SRVTSCCM01;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVTSVISA01P (Recupero);Producción
+Producción3;petersen.corp;172.30.10.57;Windows Server 2016 Standard;SRVWSUS02P;Producción
+Producción3;petersen.corp;;Microsoft Windows Server 2019 (64-bit);UNISYS-CLIENT-TOOLS;Producción
+Producción3;petersen.corp;172.30.17.123;Windows Server 2019 Datacenter;UNISYS-RT05;Producción
+Producción3;petersen.corp;172.30.17.126;Windows Server 2019 Datacenter;UNISYS-RT-REL02;Producción
+Producción3;petersen.corp;172.30.11.106;Windows Server 2019 Standard;VMCORP029;Producción
+Producción4;petersen.corp;172.30.17.40;Windows Server 2022 Datacenter;ABS9-SUP01;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIADB01P;Producción
+Producción4;petersen.corp;172.30.89.96;Windows Server 2019 Standard;BERINSTBFF02P;Producción
+Producción4;petersen.corp;172.30.212.177;Windows Server 2022 Standard;BERMCISIS01P;Producción
+Producción4;petersen.corp;172.30.89.62;Windows Server 2019 Standard;BEROCEAPI03P;Producción
+Producción4;petersen.corp;172.30.89.69;Windows Server 2019 Standard;BEROCEIS03P;Producción
+Producción4;petersen.corp;10.50.89.150;Windows Server 2019 Standard;BERONBOARDMS01P;Producción
+Producción4;petersen.corp;172.30.89.57;Windows Server 2019 Standard;BERPWRCRVDAS01P;Producción
+Producción4;petersen.corp;172.30.89.186;Windows Server 2019 Standard;BERVUFADB02P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSCDEBMEDIADB01P;Producción
+Producción4;petersen.corp;10.50.99.96;Windows Server 2019 Standard;BSCINSTWEB02P;Producción
+Producción4;petersen.corp;172.30.99.60;Windows Server 2019 Standard;BSCOCEAPI01P;Producción
+Producción4;petersen.corp;172.30.99.83;Windows Server 2019 Standard;BSCOCEDB03P;Producción
+Producción4;petersen.corp;172.30.99.64;Windows Server 2019 Standard;BSCOCEMS02P;Producción
+Producción4;petersen.corp;172.30.10.114;Windows Server 2019 Standard;BSCPRICINGWEBP;Producción
+Producción4;petersen.corp;10.50.99.73;Windows Server 2019 Standard;BSCSONPRTG02P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSFBPRISMSRV01P;Producción
+Producción4;petersen.corp;172.30.84.95;Windows Server 2019 Standard;BSFINSTBFF01P;Producción
+Producción4;petersen.corp;172.30.212.200;Windows Server 2022 Standard;BSFMCESIS01P;Producción
+Producción4;petersen.corp;172.30.212.176;Windows Server 2022 Standard;BSFMCISIS04P;Producción
+Producción4;petersen.corp;172.30.84.82;Windows Server 2019 Standard;BSFOCEDB02P;Producción
+Producción4;petersen.corp;172.30.84.63;Windows Server 2019 Standard;BSFOCEMS01P;Producción
+Producción4;petersen.corp;172.30.84.184;Windows Server 2019 Standard;BSFONBOARDMS02P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2016 (64-bit);BSFREGFIRMSQL;Producción
+Producción4;petersen.corp;172.30.84.186;Windows Server 2019 Standard;BSFVUFADB02P;Producción
+Producción4;petersen.corp;172.30.212.194;Windows Server 2022 Standard;BSJDEBMEDDB01P;Producción
+Producción4;petersen.corp;172.30.94.96;Windows Server 2019 Standard;BSJINSTBFF02P;Producción
+Producción4;petersen.corp;172.30.212.180;Windows Server 2022 Standard;BSJMCISIS01P;Producción
+Producción4;petersen.corp;172.30.94.81;Windows Server 2019 Standard;BSJOCEDB01P;Producción
+Producción4;petersen.corp;172.30.94.63;Windows Server 2019 Standard;BSJOCEMS01P;Producción
+Producción4;petersen.corp;172.30.94.184;Windows Server 2019 Standard;BSJONBOARDMS02P;Producción
+Producción4;petersen.corp;172.30.94.74;Windows Server 2019 Standard;BSJSBALSQL01P;Producción
+Producción4;petersen.corp;172.30.94.187;Windows Server 2019 Standard;BSJVUFADB03P;Producción
+Producción4;petersen.corp;10.50.212.118;Windows Server 2019 Standard;CLOUDERAAPI05P;Producción
+Producción4;petersen.corp;172.30.215.77;Windows Server 2019 Standard;CLOUDERAIS01P;Producción
+Producción4;petersen.corp;172.30.215.83;Windows Server 2019 Standard;CLOUDERAMS04P;Producción
+Producción4;petersen.corp;172.30.212.15;Windows Server 2022 Standard;CONECADINVP;Producción
+Producción4;petersen.corp;172.30.212.36;Windows Server 2022 Standard;INVGCONEC02P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEDC03;Producción
+Producción4;petersen.corp;172.30.212.172;Windows Server 2022 Standard;PWCCI-DAS-01P;Producción
+Producción4;petersen.corp;172.30.212.13;Windows Server 2022 Standard;SRVAPPFCI01P;Producción
+Producción4;petersen.corp;172.30.10.116;Windows Server 2019 Standard;SRVBEYOND02P;Producción
+Producción4;petersen.corp;172.30.215.182;Windows Server 2019 Standard;SRVCAMPADOBEP01;Producción
+Producción4;petersen.corp;172.30.212.89;Windows Server 2019 Standard;SRVCAPDB01P;Producción
+Producción4;petersen.corp;172.30.212.22;Windows Server 2022 Standard;SRVCOMANAG01P;Producción
+Producción4;petersen.corp;172.30.212.14;Windows Server 2022 Standard;SRVDBFCI01P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVDCNBER01;Producción
+Producción4;petersen.corp;10.50.8.55;Windows Server 2016 Standard;SRVDMZ01P;Producción
+Producción4;petersen.corp;172.30.10.83;Windows Server 2019 Standard;SRVENGWABSC01P;Producción
+Producción4;petersen.corp;172.30.118.71;Windows Server 2022 Standard;SRVEXGPSA04P;Producción
+Producción4;petersen.corp;172.30.212.31;Windows Server 2019 Standard;SRVFSCORP01P;Producción
+Producción4;petersen.corp;10.50.212.50;Windows Server 2019 Standard;SRVGENVCARD01P;Producción
+Producción4;petersen.corp;172.30.212.8;Windows Server 2022 Standard;SRVHELIX01P;Producción
+Producción4;petersen.corp;10.50.8.27;Windows Server 2019 Standard;SRVJIRA02P;Producción
+Producción4;petersen.corp;172.30.10.13;Windows Server 2019 Standard;SRVMONAPP01P;Producción
+Producción4;petersen.corp;172.30.10.81;Windows Server 2016 Standard;SRVNOCSQL01P;Producción
+Producción4;petersen.corp;172.30.212.111;Windows Server 2019 Standard;SRVOMNIPRTG01P;Producción
+Producción4;petersen.corp;172.30.10.50;Windows Server 2016 Standard;SRVPROBCORP01;Producción
+Producción4;petersen.corp;172.30.215.105;Windows Server 2022 Standard;SRVPROCAN05P;Producción
+Producción4;petersen.corp;172.30.10.171;Windows Server 2019 Standard;SRVPVTDBA01P;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVPWCSQLCID;Producción
+Producción4;petersen.corp;172.30.10.170;Windows Server 2022 Standard;SRVSNIPE01P;Producción
+Producción4;petersen.corp;172.30.212.93;Windows Server 2019 Standard;SRVSQL03P;Producción
+Producción4;petersen.corp;172.30.10.193;Windows Server 2016 Standard;SRVSQLTYS02P;Producción
+Producción4;petersen.corp;172.30.10.31;Windows Server 2019 Standard;SRVSTGSQLVB1P;Producción
+Producción4;petersen.corp;172.30.16.19;Windows Server 2022 Standard;SRVTMERCAPDB01;Producción
+Producción4;petersen.corp;172.30.212.76;Windows Server 2019 Standard;SRVTRENDDSM01P;Producción
+Producción4;petersen.corp;172.30.212.7;Windows Server 2019 Standard;SRVTS04P;Producción
+Producción4;petersen.corp;172.30.10.17;Windows Server 2022 Standard;SRVTSCOM01P;Producción
+Producción4;petersen.corp;172.30.212.11;Windows Server 2022 Standard;SRVTSVM01P;Producción
+Producción4;petersen.corp;10.50.8.21;Windows Server 2016 Standard;SRVXCOM01P;Producción
+Producción4;petersen.corp;172.30.17.119;Windows Server 2019 Datacenter;UNISYS-RT01;Producción
+Producción4;petersen.corp;172.30.17.210;Windows Server 2019 Datacenter;UNISYS-RT-QA01;Producción
+Producción4;petersen.corp;172.30.17.163;Windows Server 2019 Datacenter;UNISYS-SUPP01;Producción
+Producción4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VMCORP038 (AM);Producción
+Producción5;petersen.corp;172.30.17.39;Windows Server 2022 Datacenter;ABS9-SUP02;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIAPP01P;Producción
+Producción5;petersen.corp;10.50.89.95;Windows Server 2019 Standard;BERINSTWEB01P;Producción
+Producción5;petersen.corp;172.30.212.178;Windows Server 2022 Standard;BERMCISIS02P;Producción
+Producción5;petersen.corp;172.30.89.81;Windows Server 2019 Standard;BEROCEDB01P;Producción
+Producción5;petersen.corp;172.30.89.63;Windows Server 2019 Standard;BEROCEMS01P;Producción
+Producción5;petersen.corp;172.30.89.184;Windows Server 2019 Standard;BERONBOARDMS02P;Producción
+Producción5;petersen.corp;172.30.89.74;Windows Server 2019 Standard;BERSBALSQL01P;Producción
+Producción5;petersen.corp;172.30.89.187;Windows Server 2019 Standard;BERVUFADB03P;Producción
+Producción5;petersen.corp;172.30.99.246;Windows Server 2022 Standard;BSCFDSQL01P;Producción
+Producción5;petersen.corp;172.30.212.206;Windows Server 2022 Standard;BSCMCESIS01P;Producción
+Producción5;petersen.corp;172.30.99.61;Windows Server 2019 Standard;BSCOCEAPI02P;Producción
+Producción5;petersen.corp;172.30.99.67;Windows Server 2019 Standard;BSCOCEIS01P;Producción
+Producción5;petersen.corp;172.30.99.65;Windows Server 2019 Standard;BSCOCEMS03P;Producción
+Producción5;petersen.corp;172.30.99.58;Windows Server 2019 Standard;BSCPWRCRVDA01P;Producción
+Producción5;petersen.corp;172.30.99.185;Windows Server 2019 Standard;BSCVUFADB01P;Producción
+Producción5;petersen.corp;10.50.212.82;Windows Server 2022 Standard;BSFDEBMEDAPP01P;Producción
+Producción5;petersen.corp;172.30.84.96;Windows Server 2019 Standard;BSFINSTBFF02P;Producción
+Producción5;petersen.corp;172.30.212.201;Windows Server 2022 Standard;BSFMCESIS02P;Producción
+Producción5;petersen.corp;172.30.84.60;Windows Server 2019 Standard;BSFOCEAPI01P;Producción
+Producción5;petersen.corp;172.30.84.83;Windows Server 2019 Standard;BSFOCEDB03P;Producción
+Producción5;petersen.corp;172.30.84.64;Windows Server 2019 Standard;BSFOCEMS02P;Producción
+Producción5;petersen.corp;172.30.84.58;Windows Server 2019 Standard;BSFPWRCRVDA01P;Producción
+Producción5;petersen.corp;172.30.84.74;Windows Server 2019 Standard;BSFSBALSQL01P;Producción
+Producción5;petersen.corp;172.30.84.187;Windows Server 2019 Standard;BSFVUFADB03P;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSJDEBMEDIAP01P;Producción
+Producción5;petersen.corp;10.50.94.95;Windows Server 2019 Standard;BSJINSTWEB01P;Producción
+Producción5;petersen.corp;172.30.212.181;Windows Server 2022 Standard;BSJMCISIS02P;Producción
+Producción5;petersen.corp;172.30.94.82;Windows Server 2019 Standard;BSJOCEDB02P;Producción
+Producción5;petersen.corp;172.30.94.64;Windows Server 2019 Standard;BSJOCEMS02P;Producción
+Producción5;petersen.corp;172.30.10.98;Windows Server 2019 Standard;BSJPRICINGWEBP;Producción
+Producción5;petersen.corp;172.30.94.73;Windows Server 2019 Standard;BSJSONPRTG01P;Producción
+Producción5;petersen.corp;10.50.212.81;Windows Server 2019 Standard;CLOUDERAAPI01P;Producción
+Producción5;petersen.corp;10.50.212.119;Windows Server 2019 Standard;CLOUDERAAPI06P;Producción
+Producción5;petersen.corp;172.30.215.81;Windows Server 2019 Standard;CLOUDERAIS02P;Producción
+Producción5;petersen.corp;172.30.215.84;Windows Server 2019 Standard;CLOUDERAMS05P;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2022 (64-bit);edh-POC-BI-SRV01;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PAI-BLACKLIST;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);PTCEDC04;Producción
+Producción5;petersen.corp;172.30.212.171;Windows Server 2022 Datacenter;PWCCI-SDS-01P;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SIOPELBSC_RST;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVBSJDC01;Producción
+Producción5;petersen.corp;172.30.215.183;Windows Server 2019 Standard;SRVCAMPADOBEP02;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVCCTVGP01P;Producción
+Producción5;petersen.corp;172.30.212.23;Windows Server 2022 Standard;SRVCOMBACK01P;Producción
+Producción5;petersen.corp;172.30.17.196;Windows Server 2016 Standard;SRVEAE03P;Producción
+Producción5;petersen.corp;172.30.10.66;Windows Server 2019 Standard;SRVENGWABSF01P;Producción
+Producción5;petersen.corp;10.50.212.40;Windows Server 2019 Standard;SRVEXSR01P;Producción
+Producción5;petersen.corp;172.30.212.32;Windows Server 2019 Standard;SRVFSCORP02P;Producción
+Producción5;petersen.corp;10.50.212.101;Windows Server 2019 Standard;SRVGOADMZHA01P;Producción
+Producción5;petersen.corp;172.30.84.71;Windows Server 2022 Standard;SRVINTEG01P;Producción
+Producción5;petersen.corp;172.30.212.220;Windows Server 2019 Standard;SRVJMETERT01;Producción
+Producción5;petersen.corp;172.30.212.114;Windows Server 2019 Standard;SRVMOODLSQL01P;Producción
+Producción5;petersen.corp;10.50.8.30;Windows Server 2019 Standard;SRVNSCACHE01P;Producción
+Producción5;petersen.corp;172.30.212.112;Windows Server 2019 Standard;SRVOMNIPRTG02P;Producción
+Producción5;petersen.corp;172.30.215.70;Windows Server 2019 Standard;SRVPROCAN01P;Producción
+Producción5;petersen.corp;172.30.215.106;Windows Server 2019 Standard;SRVPROCAN06P;Producción
+Producción5;petersen.corp;172.30.212.208;Windows Server 2022 Standard;SRVPWCESQLC1P;Producción
+Producción5;petersen.corp;172.30.212.105;Windows Server 2019 Standard;SRVPWRCRVDAS01P;Producción
+Producción5;petersen.corp;172.30.10.109;Windows Server 2019 Standard;SRVSNMPC01P;Producción
+Producción5;petersen.corp;172.30.10.251;Windows Server 2016 Standard;SRVSQLCITAS01P;Producción
+Producción5;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVSQLTYS02P_restored;Producción
+Producción5;petersen.corp;172.30.10.86;Windows Server 2016 Standard;SRVTABLEAU01P;Producción
+Producción5;petersen.corp;172.30.16.17;Windows Server 2022 Standard;SRVTMERCAPP01;Producción
+Producción5;petersen.corp;172.30.10.24;Windows Server 2016 Standard;SRVTRENDDSM02P;Producción
+Producción5;petersen.corp;172.30.212.37;Windows Server 2022 Standard;SRVTS05P;Producción
+Producción5;petersen.corp;172.30.10.104;Windows Server 2022 Standard;SRVTSGDD01P;Producción
+Producción5;petersen.corp;172.30.10.194;Windows Server 2019 Standard;SRVTSWET01P;Producción
+Producción5;petersen.corp;172.30.17.152;Windows Server 2019 Datacenter;TFS-UNISYS;Producción
+Producción5;petersen.corp;172.30.17.120;Windows Server 2019 Datacenter;UNISYS-RT02;Producción
+Producción5;petersen.corp;172.30.17.211;Windows Server 2019 Datacenter;UNISYS-RT-QA02;Producción
+Producción5;petersen.corp;172.30.17.128;Windows Server 2019 Datacenter;UNISYS-SUPP02;Producción
+Proxy1;petersen.corp;10.50.12.70;Windows Server 2016 Standard;SRVPRXVEEAM05P;Producción
+Proxy1;petersen.corp;172.30.10.106;Windows Server 2019 Standard;VEEAMORCHEST01P;Producción
+Proxy1;petersen.corp;10.50.41.21;Windows Server 2019 Standard;VEEAMPRX01;Producción
+Proxy1;petersen.corp;10.50.41.23;Windows Server 2019 Standard;VEEAMPRX03;Producción
+Proxy1;petersen.corp;10.50.42.224;Windows Server 2019 Standard;VEEAMPRX03_1;Producción
+Proxy1;petersen.corp;10.50.42.225;Windows Server 2019 Standard;VEEAMPRX05_1;Producción
+Proxy1;petersen.corp;172.30.10.111;Windows Server 2019 Standard;VEEAMPRX17;Producción
+Proxy1;petersen.corp;10.50.41.29;Windows Server 2019 Standard;VEEAMPRXCL11;Producción
+Proxy1;petersen.corp;10.50.41.46;Windows Server 2019 Standard;VEEAMPRXCL19;Producción
+Proxy1;petersen.corp;10.50.13.164;Windows Server 2019 Standard;VEEAMPRXCL21;Producción
+Proxy1;petersen.corp;10.50.41.222;Windows Server 2019 Standard;VEEAMPRXCL23;Producción
+Proxy1;petersen.corp;10.50.41.12;Windows Server 2019 Standard;VPRX-CLD05-01C;Producción
+Proxy1;petersen.corp;10.50.41.13;Windows Server 2019 Standard;VPRX-CLD05-02C;Producción
+Proxy1;petersen.corp;10.50.41.161;Windows Server 2022 Standard;VPRX-CLD-07C;Producción
+Proxy1;petersen.corp;10.50.41.157;Windows Server 2022 Standard;VPRX-CLD-08C;Producción
+Proxy1;petersen.corp;10.50.41.163;Windows Server 2019 Standard;VPRX-CLD2-03I;Producción
+Proxy1;petersen.corp;10.50.42.50;Windows Server 2019 Standard;VPRX-CLD2-07I;Producción
+Proxy1;petersen.corp;10.50.41.2;Windows Server 2022 Standard;VPRX-CLD3-01C;Producción
+Proxy1;petersen.corp;10.50.41.3;Windows Server 2022 Standard;VPRX-CLD3-02C;Producción
+Proxy1;petersen.corp;10.50.41.128;Windows Server 2022 Standard;VPRX-CLD3-04C;Producción
+Proxy1;petersen.corp;10.50.41.83;Windows Server 2022 Standard;VPRX-CLD3-07C;Producción
+Proxy1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-04C;Producción
+Proxy1;petersen.corp;10.50.13.139;Windows Server 2022 Standard;VPRX-CTRL-01C;Producción
+Proxy1;petersen.corp;10.50.13.53;Windows Server 2019 Standard;VPRX-HBE-01C;Producción
+Proxy1;petersen.corp;10.50.41.47;Windows Server 2019 Standard;VPRX-HBI-01C;Producción
+Proxy1;petersen.corp;10.50.41.112;Windows Server 2019 Standard;VPRX-HBI-02C;Producción
+Proxy1;petersen.corp;10.50.42.21;Windows Server 2022 Standard;VPRX-HBI-03I;Producción
+Proxy1;petersen.corp;10.50.13.214;Windows Server 2019 Standard;VPRX-HBI-04C;Producción
+Proxy1;petersen.corp;10.50.41.37;Windows Server 2019 Standard;VPRX-HBI-06C;Producción
+Proxy1;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-HBI-07I;Producción
+Proxy1;petersen.corp;10.50.13.75;Windows Server 2019 Standard;VPRX-PROD02-03C;Producción
+Proxy1;petersen.corp;10.50.13.16;Windows Server 2019 Standard;VPRX-PROD02-04C;Producción
+Proxy1;petersen.corp;10.50.42.17;Windows Server 2019 Standard;VPRX-PROD02-05C;Producción
+Proxy1;petersen.corp;10.50.13.19;Windows Server 2019 Standard;VPRX-PROD02-10C;Producción
+Proxy1;petersen.corp;10.50.13.205;Windows Server 2022 Standard;VPRX-PROD-05I;Producción
+Proxy1;petersen.corp;10.50.13.209;Windows Server 2022 Standard;VPRX-PROD-09I;Producción
+Proxy2;petersen.corp;172.30.10.10;Windows Server 2022 Standard;SRVEEAMBEM01P;Producción
+Proxy2;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX01_1;Producción
+Proxy2;petersen.corp;10.50.41.24;Windows Server 2019 Standard;VEEAMPRX04;Producción
+Proxy2;petersen.corp;10.50.41.25;Windows Server 2019 Standard;VEEAMPRX05;Producción
+Proxy2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX06_OLD;Producción
+Proxy2;petersen.corp;10.50.41.27;Windows Server 2019 Standard;VEEAMPRX07;Producción
+Proxy2;petersen.corp;10.50.41.45;Windows Server 2019 Standard;VEEAMPRXCL17;Producción
+Proxy2;petersen.corp;172.30.10.110;Windows Server 2022 Standard;VEEAMV123;Producción
+Proxy2;petersen.corp;10.50.41.220;Windows Server 2019 Standard;VPRX-BM-02C;Producción
+Proxy2;petersen.corp;10.50.41.122;Windows Server 2019 Standard;VPRX-BM-03C;Producción
+Proxy2;petersen.corp;10.50.13.50;Windows Server 2019 Standard;VPRX-CLD-01C;Producción
+Proxy2;petersen.corp;10.50.41.14;Windows Server 2019 Standard;VPRX-CLD05-03C;Producción
+Proxy2;petersen.corp;10.50.13.70;Windows Server 2019 Standard;VPRX-CLD-09C;Producción
+Proxy2;petersen.corp;10.50.13.10;Windows Server 2019 Standard;VPRX-CLD2-01I;Producción
+Proxy2;petersen.corp;10.50.42.56;Windows Server 2019 Standard;VPRX-CLD2-08I;Producción
+Proxy2;petersen.corp;10.50.13.115;Windows Server 2022 Standard;VPRX-CLD2-10I;Producción
+Proxy2;petersen.corp;10.50.41.36;Windows Server 2022 Standard;VPRX-CLD3-03C;Producción
+Proxy2;petersen.corp;10.50.13.14;Windows Server 2022 Standard;VPRX-CLD3-06C;Producción
+Proxy2;petersen.corp;10.50.13.85;Windows Server 2022 Standard;VPRX-CLD3-08C;Producción
+Proxy2;petersen.corp;10.50.41.66;Windows Server 2022 Standard;VPRX-CLD3-09C;Producción
+Proxy2;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-03C;Producción
+Proxy2;petersen.corp;10.50.41.110;Windows Server 2022 Standard;VPRX-CTRL-03C;Producción
+Proxy2;petersen.corp;10.50.13.57;Windows Server 2019 Standard;VPRX-HBE-03C;Producción
+Proxy2;petersen.corp;10.50.13.15;Windows Server 2019 Standard;VPRX-HBE-04C;Producción
+Proxy2;petersen.corp;10.50.42.15;Windows Server 2022 Standard;VPRX-HBI-02I;Producción
+Proxy2;petersen.corp;10.50.42.64;Windows Server 2022 Standard;VPRX-HBI-04I;Producción
+Proxy2;petersen.corp;10.50.13.215;Windows Server 2019 Standard;VPRX-HBI-05C;Producción
+Proxy2;petersen.corp;10.50.13.64;Windows Server 2019 Standard;VPRX-PROD02-01C;Producción
+Proxy2;petersen.corp;10.50.42.65;Windows Server 2019 Standard;VPRX-PROD02-02C;Producción
+Proxy2;petersen.corp;10.50.13.218;Windows Server 2022 Standard;VPRX-PROD02-06C;Producción
+Proxy2;petersen.corp;10.50.13.221;Windows Server 2022 Standard;VPRX-PROD02-09C;Producción
+Proxy2;petersen.corp;10.50.42.36;Windows Server 2022 Standard;VPRX-PROD-02I;Producción
+Proxy2;petersen.corp;10.50.42.40;Windows Server 2022 Standard;VPRX-PROD-03I;Producción
+Proxy2;petersen.corp;10.50.13.207;Windows Server 2022 Standard;VPRX-PROD-07I;Producción
+Proxy2;petersen.corp;10.50.13.208;Windows Server 2022 Standard;VPRX-PROD-08I;Producción
+Proxy2;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-10I_OLD;Producción
+Proxy3;petersen.corp;172.30.10.60;Windows Server 2019 Standard;SRVVEEAMCLD01P;Producción
+Proxy3;petersen.corp;172.30.10.25;Windows Server 2019 Standard;VEEAMONE;Producción
+Proxy3;petersen.corp;10.50.41.22;Windows Server 2019 Standard;VEEAMPRX02;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX08_OLD;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX10-OLD;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX12_OLD;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX14_OLD;Producción
+Proxy3;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX16_OLD;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VEEAMPRX18_OLD;Producción
+Proxy3;petersen.corp;10.50.13.226;Windows Server 2019 Standard;VPRX-BM-01C;Producción
+Proxy3;petersen.corp;10.50.41.32;Windows Server 2019 Standard;VPRX-CLD05-04C;Producción
+Proxy3;petersen.corp;10.50.12.43;Windows Server 2019 Standard;VPRX-CLD05-05C;Producción
+Proxy3;petersen.corp;10.50.41.153;Windows Server 2022 Standard;VPRX-CLD-06C;Producción
+Proxy3;petersen.corp;10.50.41.87;Windows Server 2019 Standard;VPRX-CLD2-02I;Producción
+Proxy3;petersen.corp;10.50.42.71;Windows Server 2019 Standard;VPRX-CLD2-04I;Producción
+Proxy3;petersen.corp;10.50.42.70;Windows Server 2019 Standard;VPRX-CLD2-05I;Producción
+Proxy3;petersen.corp;10.50.13.138;Windows Server 2019 Standard;VPRX-CLD2-06I;Producción
+Proxy3;petersen.corp;10.50.42.100;Windows Server 2022 Standard;VPRX-CLD2-09I;Producción
+Proxy3;petersen.corp;10.50.41.69;Windows Server 2022 Standard;VPRX-CLD3-05C;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-01C;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-02C;Producción
+Proxy3;petersen.corp;-;Microsoft Windows Server 2016 or later (64-bit);VPRX-CLD7-05C;Producción
+Proxy3;petersen.corp;10.50.13.140;Windows Server 2022 Standard;VPRX-CTRL-02C;Producción
+Proxy3;petersen.corp;10.50.41.58;Windows Server 2019 Standard;VPRX-HBE-02C;Producción
+Proxy3;petersen.corp;10.50.42.78;Windows Server 2022 Standard;VPRX-HBI-01I;Producción
+Proxy3;petersen.corp;10.50.13.212;Windows Server 2019 Standard;VPRX-HBI-03C;Producción
+Proxy3;petersen.corp;10.50.42.23;Windows Server 2022 Standard;VPRX-HBI-05I;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-HBI-06I;Producción
+Proxy3;petersen.corp;10.50.13.217;Windows Server 2019 Standard;VPRX-HBI-07C;Producción
+Proxy3;petersen.corp;10.50.42.35;Windows Server 2022 Standard;VPRX-PROD-01I;Producción
+Proxy3;petersen.corp;10.50.13.219;Windows Server 2022 Standard;VPRX-PROD02-07C;Producción
+Proxy3;petersen.corp;10.50.13.220;Windows Server 2022 Standard;VPRX-PROD02-08C;Producción
+Proxy3;petersen.corp;10.50.13.13;Windows Server 2022 Standard;VPRX-PROD-04I;Producción
+Proxy3;petersen.corp;10.50.13.206;Windows Server 2022 Standard;VPRX-PROD-06I;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-11I_OLD;Producción
+Proxy3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);VPRX-PROD-12I_OLD;Producción
 Testing1;petersen.corp;172.30.211.130;Windows Server 2019 Standard;AONOCEDB01T;Test
 Testing1;petersen.corp;10.50.87.161;Windows Server 2022 Standard;BERCBANKIIS01T;Test
 Testing1;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIADB01T;Test
 Testing1;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BERDEBMEDIAPP01T;Test
 Testing1;petersen.corp;10.50.87.95;Windows Server 2019 Standard;BERINSTWEB01T;Test
 Testing1;petersen.corp;172.30.87.70;Windows Server 2019 Standard;BEROCEAPI01T;Test
-Testing1;petersen.corp;172.30.85.81;Windows Server 2016 Standard;BEROMNIPB01T.petersen.corp;Test
+Testing1;petersen.corp;172.30.85.81;Windows Server 2016 Standard;BEROMNIPB01T;Test
 Testing1;petersen.corp;172.30.16.160;Windows Server 2019 Standard;BERPREX01T;Test
 Testing1;petersen.corp;172.30.87.69;Windows Server 2019 Standard;BERPWRCRVDA01T;Test
 Testing1;petersen.corp;172.30.87.186;Windows Server 2019 Standard;BERVUFADB02T;Test
@@ -535,7 +550,7 @@ Testing1;petersen.corp;10.50.97.95;Windows Server 2019 Standard;BSCINSTWEB01T;Te
 Testing1;petersen.corp;172.30.211.221;Windows Server 2022 Standard;BSCMCESIS01T;Test
 Testing1;petersen.corp;172.30.97.70;Windows Server 2019 Standard;BSCOCEAPI01T;Test
 Testing1;petersen.corp;172.30.97.81;Windows Server 2019 Standard;BSCOMNIWS02T;Test
-Testing1;petersen.corp;172.30.97.74;Windows Server 2019 Standard;BSCSBALSQL01T.petersen.corp;Test
+Testing1;petersen.corp;172.30.97.74;Windows Server 2019 Standard;BSCSBALSQL01T;Test
 Testing1;petersen.corp;172.30.97.73;Windows Server 2019 Standard;BSCSONPRTG01T;Test
 Testing1;petersen.corp;172.30.97.186;Windows Server 2019 Standard;BSCVUFADB02T;Test
 Testing1;petersen.corp;172.30.82.122;Windows Server 2022 Standard;BSFFDSQL01T;Test
@@ -547,7 +562,7 @@ Testing1;petersen.corp;;Microsoft Windows Server 2016 (64-bit);BSFREGFIRMSQLT;Te
 Testing1;petersen.corp;10.50.82.73;Windows Server 2019 Standard;BSFSONPRTG02T;Test
 Testing1;petersen.corp;10.50.211.50;Windows Server 2022 Standard;BSJDEBMEDAPP01T;Test
 Testing1;petersen.corp;172.30.92.122;Windows Server 2022 Standard;BSJFDSQL01T;Test
-Testing1;petersen.corp;172.30.92.187;Windows Server 2019 Standard;BSJGCONTAWEB01T.petersen.corp;Test
+Testing1;petersen.corp;172.30.92.187;Windows Server 2019 Standard;BSJGCONTAWEB01T;Test
 Testing1;petersen.corp;172.30.92.71;Windows Server 2019 Standard;BSJOCEMS01T;Test
 Testing1;petersen.corp;10.50.92.140;Windows Server 2019 Standard;BSJONBOARDMS01T;Test
 Testing1;petersen.corp;172.30.92.69;Windows Server 2019 Standard;BSJPWRCRVDA01T;Test
@@ -556,7 +571,7 @@ Testing1;petersen.corp;10.50.92.73;Windows Server 2019 Standard;BSJSONPRTG02T;Te
 Testing1;petersen.corp;172.30.92.185;Windows Server 2019 Standard;BSJVUFADB01T;Test
 Testing1;petersen.corp;172.30.211.13;Windows Server 2022 Standard;SRVAPPFCI01T;Test
 Testing1;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);SRVCMSBO01T;Test
-Testing1;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVDBFCI01T.OLD.petersen.corp;Test
+Testing1;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVDBFCI01T.OLD;Test
 Testing1;petersen.corp;172.30.211.145;Windows Server 2019 Standard;SRVDEPSQL01T;Test
 Testing1;petersen.corp;172.30.211.90;Windows Server 2019 Standard;SRVEFLOWTSQL01T;Test
 Testing1;petersen.corp;172.30.211.122;Windows Server 2022 Standard;SRVFDAPIDIC01T;Test
@@ -580,7 +595,7 @@ Testing2;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSCABSRUNUAT;Test
 Testing2;petersen.corp;172.30.97.184;Windows Server 2019 Standard;BSCGCONTASQL01T;Test
 Testing2;petersen.corp;10.50.97.98;Windows Server 2019 Standard;BSCINSTWEB02T;Test
 Testing2;petersen.corp;172.30.211.173;Windows Server 2022 Standard;BSCMCISIS01T;Test
-Testing2;petersen.corp;172.30.97.72;Windows Server 2019 Standard;BSCOCEIS01T.petersen.corp;Test
+Testing2;petersen.corp;172.30.97.72;Windows Server 2019 Standard;BSCOCEIS01T;Test
 Testing2;petersen.corp;10.50.97.140;Windows Server 2019 Standard;BSCONBOARDMS01T;Test
 Testing2;petersen.corp;10.50.97.73;Windows Server 2019 Standard;BSCSONPRTG02T;Test
 Testing2;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSFDEBMEDIADB01T;Test
@@ -599,11 +614,11 @@ Testing2;petersen.corp;172.30.92.85;Windows Server 2019 Standard;BSJOMNIFS01T;Te
 Testing2;petersen.corp;172.30.92.181;Windows Server 2019 Standard;BSJONBOARDMS02T;Test
 Testing2;petersen.corp;172.30.92.68;Windows Server 2019 Standard;BSJPWRCRVDAS01T;Test
 Testing2;petersen.corp;10.50.211.81;Windows Server 2019 Standard;CLOUDERAAPI01T;Test
-Testing2;petersen.corp;172.30.211.78;Windows Server 2019 Standard;CLOUDERAMS01T.petersen.corp;Test
+Testing2;petersen.corp;172.30.211.78;Windows Server 2019 Standard;CLOUDERAMS01T;Test
 Testing2;petersen.corp;172.30.211.45;Windows Server 2022 Standard;SRVCOMANAG01T;Test
 Testing2;petersen.corp;10.50.211.140;Windows Server 2022 Standard;SRVCOMFRON01T;Test
 Testing2;petersen.corp;172.30.212.149;Windows Server 2019 Standard;SRVDBACADGDD01T;Test
-Testing2;petersen.corp;172.30.212.189;Windows Server 2019 Standard;SRVDOCDIN01T.petersen.corp;Test
+Testing2;petersen.corp;172.30.212.189;Windows Server 2019 Standard;SRVDOCDIN01T;Test
 Testing2;petersen.corp;172.30.17.91;Windows Server 2016 Standard;SRVEAE01T;Test
 Testing2;petersen.corp;172.30.82.82;Windows Server 2022 Standard;SRVINTEG02T;Test
 Testing2;petersen.corp;172.30.211.100;Windows Server 2019 Standard;SRVINVSD02T;Test
@@ -612,7 +627,7 @@ Testing2;petersen.corp;172.30.211.161;Windows Server 2022 Standard;SRVPACORESQL0
 Testing2;petersen.corp;172.30.211.211;Windows Server 2022 Standard;SRVPWCDASCIT;Test
 Testing2;petersen.corp;172.30.211.213;Windows Server 2022 Standard;SRVPWCSYSCIT;Test
 Testing2;petersen.corp;172.30.211.105;Windows Server 2019 Standard;SRVPWRCRVDAS01T;Test
-Testing2;petersen.corp;172.30.211.55;Windows Server 2019 Standard;SRVSELENI02T.petersen.corp;Test
+Testing2;petersen.corp;172.30.211.55;Windows Server 2019 Standard;SRVSELENI02T;Test
 Testing2;petersen.corp;172.30.16.181;Windows Server 2019 Standard;SRVSQLTYS03T;Test
 Testing3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERABSRUNUAT;Test
 Testing3;petersen.corp;172.30.87.122;Windows Server 2022 Standard;BERFDSQL01T;Test
@@ -621,13 +636,13 @@ Testing3;petersen.corp;172.30.87.192;Windows Server 2019 Standard;BERJENKCON02T;
 Testing3;petersen.corp;172.30.211.219;Windows Server 2022 Standard;BERMCESIS01T;Test
 Testing3;petersen.corp;172.30.87.72;Windows Server 2019 Standard;BEROCEIS01T;Test
 Testing3;petersen.corp;172.30.87.183;Windows Server 2019 Standard;BERONBOARDDB01T;Test
-Testing3;petersen.corp;172.30.87.181;Windows Server 2019 Standard;BERONBOARDMS02T.petersen.corp;Test
+Testing3;petersen.corp;172.30.87.181;Windows Server 2019 Standard;BERONBOARDMS02T;Test
 Testing3;petersen.corp;172.30.87.74;Windows Server 2019 Standard;BERSBALSQL01T;Test
 Testing3;petersen.corp;172.30.87.73;Windows Server 2019 Standard;BERSONPRTG01T;Test
 Testing3;petersen.corp;;Microsoft Windows Server 2019 (64-bit);BSCDEBMEDIADB01T;Test
 Testing3;petersen.corp;172.30.97.187;Windows Server 2019 Standard;BSCGCONTAWEB01T;Test
 Testing3;petersen.corp;172.30.97.71;Windows Server 2019 Standard;BSCOCEMS01T;Test
-Testing3;petersen.corp;172.30.97.85;Windows Server 2019 Standard;BSCOMNIFS01T.petersen.corp;Test
+Testing3;petersen.corp;172.30.97.85;Windows Server 2019 Standard;BSCOMNIFS01T;Test
 Testing3;petersen.corp;172.30.97.183;Windows Server 2019 Standard;BSCONBOARDDB01T;Test
 Testing3;petersen.corp;172.30.97.181;Windows Server 2019 Standard;BSCONBOARDMS02T;Test
 Testing3;petersen.corp;172.30.97.69;Windows Server 2019 Standard;BSCPWRCRVDA01T;Test
@@ -636,13 +651,13 @@ Testing3;petersen.corp;172.30.82.184;Windows Server 2019 Standard;BSFGCONTASQL01
 Testing3;petersen.corp;10.50.82.95;Windows Server 2019 Standard;BSFINSTWEB01T;Test
 Testing3;petersen.corp;172.30.211.170;Windows Server 2022 Standard;BSFMCISIS01T;Test
 Testing3;petersen.corp;172.30.82.183;Windows Server 2019 Standard;BSFONBOARDDB01T;Test
-Testing3;petersen.corp;172.30.82.69;Windows Server 2019 Standard;BSFPWRCRVDA01T.petersen.corp;Test
+Testing3;petersen.corp;172.30.82.69;Windows Server 2019 Standard;BSFPWRCRVDA01T;Test
 Testing3;petersen.corp;172.30.82.73;Windows Server 2019 Standard;BSFSONPRTG01T;Test
 Testing3;petersen.corp;172.30.82.185;Windows Server 2019 Standard;BSFVUFADB01T;Test
 Testing3;petersen.corp;172.30.92.188;Windows Server 2022 Standard;BSJAPIWSO2T;Test
 Testing3;petersen.corp;172.30.211.172;Windows Server 2022 Standard;BSJMCISIS01T;Test
 Testing3;petersen.corp;172.30.92.70;Windows Server 2019 Standard;BSJOCEAPI01T;Test
-Testing3;petersen.corp;172.30.92.88;Windows Server 2019 Standard;BSJOMNIRATL02T.petersen.corp;Test
+Testing3;petersen.corp;172.30.92.88;Windows Server 2019 Standard;BSJOMNIRATL02T;Test
 Testing3;petersen.corp;172.30.92.81;Windows Server 2019 Standard;BSJOMNIWS02T;Test
 Testing3;petersen.corp;172.30.92.76;Windows Server 2019 Standard;BSJONBOARDMS03T;Test
 Testing3;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BSJSIBLINKUAT;Test
@@ -658,7 +673,7 @@ Testing3;petersen.corp;10.50.211.42;Windows Server 2016 Standard;SRVNUCLEUS01T;T
 Testing3;petersen.corp;172.30.211.36;Windows Server 2019 Standard;SRVOCRBAL01T;Test
 Testing3;petersen.corp;172.30.211.57;Windows Server 2019 Standard;SRVOMNITOSCA01T;Test
 Testing3;petersen.corp;172.30.211.222;Windows Server 2022 Standard;SRVPWCESQLCI2T;Test
-Testing3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVPWCSDSCI2T.petersen.corp;Test
+Testing3;petersen.corp;;Microsoft Windows Server 2022 (64-bit);SRVPWCSDSCI2T;Test
 Testing3;petersen.corp;172.30.211.193;Windows Server 2016 Standard;SRVSQLCITAS01T;Test
 Testing3;petersen.corp;172.30.211.40;Windows Server 2019 Standard;SRVSQLTYS04T;Test
 Testing4;petersen.corp;;Microsoft Windows Server 2016 or later (64-bit);BERABSTFS01T;Test
@@ -666,7 +681,7 @@ Testing4;petersen.corp;172.30.233.30;Windows Server 2019 Standard;BERAPPRAT01T;T
 Testing4;petersen.corp;172.30.87.187;Windows Server 2019 Standard;BERGCONTAWEB01T;Test
 Testing4;petersen.corp;172.30.87.95;Windows Server 2019 Standard;BERINSTBFF01T;Test
 Testing4;petersen.corp;172.30.211.171;Windows Server 2022 Standard;BERMCISIS01T;Test
-Testing4;petersen.corp;172.30.87.71;Windows Server 2019 Standard;BEROCEMS01T.petersen.corp;Test
+Testing4;petersen.corp;172.30.87.71;Windows Server 2019 Standard;BEROCEMS01T;Test
 Testing4;petersen.corp;10.50.87.140;Windows Server 2019 Standard;BERONBOARDMS01T;Test
 Testing4;petersen.corp;10.50.87.73;Windows Server 2019 Standard;BERSONPRTG02T;Test
 Testing4;petersen.corp;172.30.87.185;Windows Server 2019 Standard;BERVUFADB01T;Test
@@ -680,7 +695,7 @@ Testing4;petersen.corp;172.30.97.185;Windows Server 2019 Standard;BSCVUFADB01T;T
 Testing4;petersen.corp;10.50.82.161;Windows Server 2022 Standard;BSFCBANKIIS01T;Test
 Testing4;petersen.corp;10.50.82.97;Windows Server 2019 Standard;BSFENROLLWEB01T;Test
 Testing4;petersen.corp;172.30.82.187;Windows Server 2019 Standard;BSFGCONTAWEB01T;Test
-Testing4;petersen.corp;10.50.82.98;Windows Server 2019 Standard;BSFINSTWEB02T.petersen.corp;Test
+Testing4;petersen.corp;10.50.82.98;Windows Server 2019 Standard;BSFINSTWEB02T;Test
 Testing4;petersen.corp;172.30.82.85;Windows Server 2019 Standard;BSFOMNIFS01T;Test
 Testing4;petersen.corp;10.50.82.140;Windows Server 2019 Standard;BSFONBOARDMS01T;Test
 Testing4;petersen.corp;172.30.82.67;Windows Server 2019 Standard;BSFPWRCRVDA02T;Test
@@ -700,11 +715,11 @@ Testing4;petersen.corp;172.30.211.14;Windows Server 2022 Standard;SRVDBFCI01T;Te
 Testing4;petersen.corp;172.30.211.135;Windows Server 2019 Standard;SRVDEPIIS01T;Test
 Testing4;petersen.corp;172.30.16.51;Windows Server 2019 Standard;SRVENGAGEWA01T;Test
 Testing4;petersen.corp;172.30.211.66;Windows Server 2019 Standard;SRVENGWABSF01T;Test
-Testing4;petersen.corp;172.30.82.81;Windows Server 2022 Standard;SRVINTEG01T.petersen.corp;Test
+Testing4;petersen.corp;172.30.82.81;Windows Server 2022 Standard;SRVINTEG01T;Test
 Testing4;petersen.corp;172.30.211.102;Windows Server 2019 Standard;SRVMIGEKM01T;Test
 Testing4;petersen.corp;172.30.211.56;Windows Server 2019 Standard;SRVOMNIBOPI01T;Test
 Testing4;petersen.corp;172.30.211.223;Windows Server 2022 Standard;SRVPWCESQLCIT;Test
 Testing4;petersen.corp;172.30.211.174;Windows Server 2022 Standard;SRVPWCSQLCI2T;Test
-Testing4;petersen.corp;172.30.211.217;Windows Server 2022 Standard;SRVPWCSYSCET.petersen.corp;Test
+Testing4;petersen.corp;172.30.211.217;Windows Server 2022 Standard;SRVPWCSYSCET;Test
 Testing4;petersen.corp;172.30.16.193;Windows Server 2016 Standard;SRVSQLTYS02T;Test
 Testing4;petersen.corp;172.30.212.148;Windows Server 2019 Standard;SRVTSACADGDD01T;Test

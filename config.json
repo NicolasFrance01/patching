@@ -1,0 +1,21 @@
+{
+  "PsExecPath": "",
+  "RemoteRel": "Windows\\Temp\\WUU",
+  "PatchTimeoutMinutes": 90,
+  "ConnectivityTimeoutSec": 3,
+  "CleanupRemoteOnSuccess": true,
+  "Dashboard": {
+    "Enabled": true,
+    "Url": "https://algeibapatching.vercel.app/api/upload"
+  },
+  "ScheduledReport": {
+    "Enabled": false,
+    "Hour": 8,
+    "Minute": 0,
+    "TaskName": "WUU_ReporteAutomatico"
+  },
+  "History": {
+    "Enabled": true,
+    "RetentionDays": 90
+  }
+}

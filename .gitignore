@@ -1,0 +1,17 @@
+# Logs locales de ejecucion
+Logs/
+WUU_Log.csv
+
+# Paquetes de parche locales (grandes)
+Fix/*.msu
+Fix/*.cab
+Fix/*.exe
+
+# Dependencias Node
+dashboard/node_modules/
+dashboard/.next/
+
+# Entorno local
+.env
+.env.local
+config.local.json

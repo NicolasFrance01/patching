@@ -1,0 +1,5 @@
+﻿"Dominio","Servidor","IP","Sistema_Operativo","Version_Sistema_Operativo","Fecha_Instalacion","KBs_Instaladas","Fecha_Reinicio","Descripcion_Error"
+"ber01.corp","BERDC01P","172.30.158.11","Microsoft Windows Server 2016 Standard","10.0.14393.0 (rs1_release.160715-1616)","12/03/2026","Ninguna/No detectada","12/03/2026 18:22","N/A"
+"N/A","PTCDC03P","172.30.158.11","N/A","N/A","N/A","Ninguna/No detectada","N/A","No se genero WU-ReportInfo.json en el servidor remoto"
+"petersen.corp","SRVAZDCONN03P","10.50.212.46","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","14/05/2026","Ninguna/No detectada","14/05/2026 13:02","N/A"
+"petersen.corp","SRVDCOMNIPP01P","172.30.118.20","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","10/12/2025","Ninguna/No detectada","10/12/2025 17:18","N/A"

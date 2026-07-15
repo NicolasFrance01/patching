@@ -1,0 +1,7 @@
+﻿"Dominio","Servidor","IP","Sistema_Operativo","Version_Sistema_Operativo","Fecha_Instalacion","KBs_Instaladas","Fecha_Reinicio","Running_Time","Descripcion_Error"
+"N/A","ASJDC01","N/A","N/A","N/A","N/A","Ninguna/No detectada","N/A","N/A","No hay conectividad WinRM ni acceso administrativo a \\ASJDC01\C$"
+"N/A","BERDC01P","N/A","N/A","N/A","N/A","Ninguna/No detectada","N/A","N/A","No hay conectividad WinRM ni acceso administrativo a \\BERDC01P\C$"
+"N/A","PTCDC03P","N/A","N/A","N/A","N/A","Ninguna/No detectada","N/A","N/A","No hay conectividad WinRM ni acceso administrativo a \\PTCDC03P\C$"
+"N/A","QUALIADC03","N/A","N/A","N/A","N/A","Ninguna/No detectada","N/A","N/A","No hay conectividad WinRM ni acceso administrativo a \\QUALIADC03\C$"
+"petersen.corp","SRVAZDCONN03P","10.50.212.46","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","14/05/2026","Ninguna/No detectada","14/05/2026 13:02","695:38:37","N/A"
+"petersen.corp","SRVDCOMNIPP01P","172.30.118.20","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","10/12/2025","Ninguna/No detectada","10/12/2025 17:18","4410:22:43","N/A"

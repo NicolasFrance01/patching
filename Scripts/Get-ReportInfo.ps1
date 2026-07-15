@@ -42,7 +42,9 @@ function Get-ReportIPv4Addresses {
 try {
     $domain = $null
     $osCaption = $null
+    $osVersion = $null
     $lastBoot = $null
+    $runningTime = $null
 
     $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
     if ($cs) { $domain = $cs.Domain }
@@ -52,8 +54,16 @@ try {
         $osCaption = $osInfo.Caption
         if ($osInfo.LastBootUpTime) {
             $lastBoot = [datetime]$osInfo.LastBootUpTime
+            $up = (Get-Date) - $lastBoot
+            $runningTime = '{0:00}:{1:00}:{2:00}' -f [int]$up.TotalHours, $up.Minutes, $up.Seconds
         }
     }
+
+    # Version del SO segun netlogon.dll (formato file version).
+    try {
+        $osVersion = (Get-Item -Path 'C:\Windows\System32\netlogon.dll' -ErrorAction Stop).VersionInfo.FileVersion
+    }
+    catch { $osVersion = $null }
 
     $ips = @(Get-ReportIPv4Addresses)
     $hotFixes = @(Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.InstalledOn })
@@ -74,7 +84,9 @@ try {
         Domain      = if ($domain) { [string]$domain } else { 'N/A' }
         IP          = if ($ips.Count -gt 0) { ($ips -join ', ') } else { 'N/A' }
         OS          = if ($osCaption) { [string]$osCaption } else { 'N/A' }
+        OSVersion   = if ($osVersion) { [string]$osVersion } else { 'N/A' }
         LastBoot    = if ($lastBoot) { $lastBoot.ToString('o') } else { $null }
+        RunningTime = if ($runningTime) { [string]$runningTime } else { 'N/A' }
         LastInstall = if ($latestInstall) { ([datetime]$latestInstall).ToString('o') } else { $null }
         KBsToday    = if ($kbsToday.Count -gt 0) { ($kbsToday -join ', ') } else { 'Ninguna/No detectada' }
     }
@@ -89,7 +101,9 @@ catch {
         Domain      = 'N/A'
         IP          = 'N/A'
         OS          = 'N/A'
+        OSVersion   = 'N/A'
         LastBoot    = $null
+        RunningTime = 'N/A'
         LastInstall = $null
         KBsToday    = 'Ninguna/No detectada'
         Error       = $_.Exception.Message

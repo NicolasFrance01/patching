@@ -1,0 +1,7 @@
+﻿"Dominio","Servidor","IP","Sistema_Operativo","Version_Sistema_Operativo","Fecha_Instalacion","KBs_Instaladas","Fecha_Reinicio","Descripcion_Error"
+"asj.corp","ASJDC04","172.30.39.11","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","21/05/2026","Ninguna/No detectada","03/06/2026 22:53","N/A"
+"bsj01.corp","BSJDC01P","172.30.128.11","Microsoft Windows Server 2016 Standard","10.0.14393.0 (rs1_release.160715-1616)","01/04/2026","Ninguna/No detectada","01/04/2026 18:01","N/A"
+"petersenenergia.corp","PTCEDC01","172.30.16.218","Microsoft Windows Server 2019 Standard","10.0.17763.7671 (WinBuild.160101.0800)","26/03/2026","Ninguna/No detectada","26/03/2026 18:21","N/A"
+"root.corp","ROOTDC1601","172.30.10.183","Microsoft Windows Server 2016 Standard","10.0.14393.8330 (rs1_release.250801-1749)","11/06/2026","Ninguna/No detectada","11/06/2026 04:43","N/A"
+"petersen.corp","SRVDC01","172.30.10.184","Microsoft Windows Server 2016 Standard","10.0.14393.8330 (rs1_release.250801-1749)","11/06/2026","Ninguna/No detectada","19/02/2026 18:29","N/A"
+"petersen.corp","SRVDCOMNIPP02P","172.30.118.21","Microsoft Windows Server 2022 Standard","10.0.20348.4050 (WinBuild.160101.0800)","29/08/2025","Ninguna/No detectada","29/08/2025 04:35","N/A"

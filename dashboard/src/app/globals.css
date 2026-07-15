@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-html {
-  font-size: 13px; /* scale down ~20% so 100% zoom looks like 80% */
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
