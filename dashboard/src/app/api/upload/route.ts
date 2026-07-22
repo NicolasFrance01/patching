@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const seen = new Set<string>();
-    const unique = data.filter((item) => {
+    const unique = data.filter((item: any) => {
       const name = String(item.Servidor ?? "").trim();
       if (!name || seen.has(name)) return false;
       seen.add(name);
