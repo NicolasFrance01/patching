@@ -22,7 +22,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-zinc-950 text-zinc-100">
+      <body className="min-h-full bg-zinc-950 text-zinc-100" style={{ zoom: "0.75" }}>
         <SessionProvider>
           {isAuth ? (
             <div className="flex min-h-screen">
