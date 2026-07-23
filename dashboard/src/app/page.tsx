@@ -1,3 +1,6 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import DashboardView from "@/components/DashboardView";
 import { ServerStatus } from "@/types";
@@ -5,6 +8,11 @@ import { ServerStatus } from "@/types";
 export const revalidate = 0; // Disable static caching so it always fetches fresh data
 
 export default async function Home() {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    redirect("/login");
+  }
+
   const raw = await prisma.serverStatus.findMany({
     orderBy: {
       updatedAt: "desc",

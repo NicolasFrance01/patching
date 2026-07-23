@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
+    "prestart": "rm -f .next/server/middleware.js build/server/middleware.js",
     "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "eslint"
   },
