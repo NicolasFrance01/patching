@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail } from "lucide-react";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
+import EmailModal, { EmailPayload } from "./EmailModal";
 
 interface SyncRecord {
   id: string;
@@ -69,6 +70,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
   const [recordSearch, setRecordSearch] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
+  const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
 
   const filteredRuns = useMemo(() => {
     return syncRuns.filter((run) => {
@@ -301,6 +303,20 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                               <span className="text-rose-400">✕ {filteredErrors}</span>
                               <span className="text-zinc-500">― {filteredNoData}</span>
                               <span className="text-zinc-400">{syncSuccessRate}%</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEmailPayload({
+                                    attachmentType: "history",
+                                    summaryText: `Sincronización ${syncTime} (${filteredTotal} servidores)`,
+                                    data: run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter)),
+                                  });
+                                }}
+                                title="Enviar por correo"
+                                className="ml-2 p-1.5 rounded-lg border border-zinc-700/50 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-colors"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </button>
 
@@ -387,6 +403,12 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           })}
         </div>
       )}
+
+      <EmailModal 
+        isOpen={!!emailPayload} 
+        onClose={() => setEmailPayload(null)} 
+        payload={emailPayload} 
+      />
     </div>
   );
 }

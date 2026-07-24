@@ -6,8 +6,9 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
-import { ChevronDown, ChevronRight, Info, Search, Download, Filter } from "lucide-react";
+import { ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail } from "lucide-react";
 import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
+import EmailModal, { EmailPayload } from "./EmailModal";
 
 interface SyncRunData {
   id: string;
@@ -164,6 +165,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [errorSearch, setErrorSearch] = useState("");
   const [selectedError, setSelectedError] = useState<string | null>(null);
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
+  const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Bank type filter
@@ -846,6 +848,24 @@ export default function ReportesView({ data }: ReportesViewProps) {
                             >
                               <Download className="w-3 h-3" /> PDF
                             </button>
+                            <button
+                              onClick={() => {
+                                setEmailPayload({
+                                  attachmentType: "report",
+                                  summaryText: `Reporte de Error: ${g.message} (${g.servers.length} servidores)`,
+                                  data: buildRows().map((row) => ({
+                                    serverName: row.servidor,
+                                    ip: row.ip,
+                                    status: "error",
+                                    os: row.os,
+                                    errorDescription: g.message,
+                                  })),
+                                });
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-medium hover:bg-indigo-600/30 transition-colors ml-2"
+                            >
+                              <Mail className="w-3 h-3" /> Enviar
+                            </button>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
@@ -864,6 +884,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
           )}
         </div>
       )}
+
+      <EmailModal 
+        isOpen={!!emailPayload} 
+        onClose={() => setEmailPayload(null)} 
+        payload={emailPayload} 
+      />
     </div>
   );
 }
