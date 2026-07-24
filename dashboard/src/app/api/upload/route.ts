@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
     if (items.length > 0) {
       await prisma.syncHistory.createMany({
-        data: items.map((item) => ({
+        data: items.map((item: any) => ({
           syncRunId: syncRun.id,
           serverName: item.serverName,
           domain: item.domain,
