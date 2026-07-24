@@ -18,42 +18,74 @@ export async function POST(req: Request) {
     }
 
     const seen = new Set<string>();
-    const unique = data.filter((item: any) => {
+    const validItems = data.filter((item: any) => {
       const name = String(item.Servidor ?? "").trim();
       if (!name || seen.has(name)) return false;
       seen.add(name);
       return true;
     });
 
-    const results = [];
+    let success = 0, errors = 0, noData = 0;
+    const items = validItems.map((item: any) => {
+      const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
+      const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
+      const status = isError ? "error" : isNoData ? "nodata" : "ok";
+      if (status === "ok") success++;
+      else if (status === "error") errors++;
+      else noData++;
+      return {
+        serverName: String(item.Servidor).trim(),
+        domain: item.Dominio ? String(item.Dominio) : null,
+        ip: item.IP ? String(item.IP) : null,
+        os: item.Sistema_Operativo ? String(item.Sistema_Operativo) : null,
+        installDate: item.Fecha_Instalacion ? String(item.Fecha_Instalacion) : null,
+        installedKBs: item.KBs_Instaladas ? String(item.KBs_Instaladas) : null,
+        rebootDate: item.Fecha_Reinicio ? String(item.Fecha_Reinicio) : null,
+        errorDescription: item.Descripcion_Error ? String(item.Descripcion_Error) : null,
+        status,
+      };
+    });
 
-    for (const item of unique) {
+    const syncRun = await prisma.syncRun.create({
+      data: { total: items.length, success, errors, noData },
+    });
 
-      const serverStatus = await prisma.serverStatus.upsert({
-        where: { serverName: item.Servidor },
-        update: {
-          domain: item.Dominio,
-          ip: item.IP,
-          os: item.Sistema_Operativo,
-          installDate: item.Fecha_Instalacion,
-          installedKBs: item.KBs_Instaladas,
-          errorDescription: item.Descripcion_Error,
-        },
-        create: {
-          serverName: item.Servidor,
-          domain: item.Dominio,
-          ip: item.IP,
-          os: item.Sistema_Operativo,
-          installDate: item.Fecha_Instalacion,
-          installedKBs: item.KBs_Instaladas,
-          errorDescription: item.Descripcion_Error,
-        },
+    for (const item of items) {
+      const payload = {
+        domain: item.domain,
+        ip: item.ip,
+        os: item.os,
+        installDate: item.installDate,
+        installedKBs: item.installedKBs,
+        rebootDate: item.rebootDate,
+        errorDescription: item.errorDescription,
+      };
+
+      await prisma.serverStatus.upsert({
+        where: { serverName: item.serverName },
+        update: payload,
+        create: { serverName: item.serverName, ...payload },
       });
-
-      results.push(serverStatus);
     }
 
-    return NextResponse.json({ success: true, count: results.length });
+    if (items.length > 0) {
+      await prisma.syncHistory.createMany({
+        data: items.map((item) => ({
+          syncRunId: syncRun.id,
+          serverName: item.serverName,
+          domain: item.domain,
+          ip: item.ip,
+          os: item.os,
+          installDate: item.installDate,
+          installedKBs: item.installedKBs,
+          rebootDate: item.rebootDate,
+          errorDescription: item.errorDescription,
+          status: item.status,
+        })),
+      });
+    }
+
+    return NextResponse.json({ success: true, count: items.length, syncRunId: syncRun.id });
   } catch (error: any) {
     console.error("Upload API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
