@@ -168,7 +168,10 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                   <th className="px-3 py-2 font-medium">Servidor</th>
                   <th className="px-3 py-2 font-medium">IP</th>
                   <th className="px-3 py-2 font-medium hidden md:table-cell">Sistema Operativo</th>
+                  <th className="px-3 py-2 font-medium hidden lg:table-cell">Versión SO</th>
                   <th className="px-3 py-2 font-medium">Estado</th>
+                  <th className="px-3 py-2 font-medium hidden lg:table-cell">Running Time</th>
+                  <th className="px-3 py-2 font-medium hidden lg:table-cell">Espacio en Disco</th>
                   <th className="px-3 py-2 font-medium hidden lg:table-cell">KBs Instaladas</th>
                   <th className="px-3 py-2 font-medium hidden lg:table-cell">Últ. Instalación</th>
                   <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
@@ -189,10 +192,13 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.ip ?? "N/A"}</td>
-                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell min-w-[200px]">
+                      <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell min-w-[180px]">
                         <span className="block" title={server.os ?? ""}>
                           {server.os && server.os !== "N/A" ? server.os : <span className="text-zinc-600">—</span>}
                         </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell whitespace-nowrap">
+                        {server.osVersion ?? "—"}
                       </td>
                       <td className="px-3 py-2.5">
                         {isUnreachable ? (
@@ -208,6 +214,14 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                             OK
                           </span>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell whitespace-nowrap">
+                        {server.runningTime ?? "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[150px]">
+                        <span className="block truncate" title={server.diskSpace ?? ""}>
+                          {server.diskSpace ?? "—"}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[150px]">
                         <span className="block break-words" title={server.installedKBs ?? ""}>
@@ -231,7 +245,7 @@ export default function DashboardView({ initialData }: DashboardViewProps) {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-zinc-600">
+                    <td colSpan={10} className="px-4 py-10 text-center text-zinc-600">
                       No se encontraron servidores con ese criterio de búsqueda.
                     </td>
                   </tr>

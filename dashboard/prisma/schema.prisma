@@ -13,9 +13,12 @@ model ServerStatus {
   domain           String?
   ip               String?
   os               String?
+  osVersion        String?
   installDate      String?
   installedKBs     String?
   rebootDate       String?
+  runningTime      String?
+  diskSpace        String?
   errorDescription String?
   updatedAt        DateTime @updatedAt
   createdAt        DateTime @default(now())
@@ -39,9 +42,12 @@ model SyncHistory {
   domain           String?
   ip               String?
   os               String?
+  osVersion        String?
   installDate      String?
   installedKBs     String?
   rebootDate       String?
+  runningTime      String?
+  diskSpace        String?
   errorDescription String?
   status           String
   createdAt        DateTime @default(now())
