@@ -35,6 +35,17 @@ export interface FullReportPDFPayload {
   };
 }
 
+const BANK_RGB: Record<string, [number, number, number]> = {
+  ASJ: [99, 102, 241],
+  BSC: [6, 182, 212],
+  BSJ: [16, 185, 129],
+  Corp: [245, 158, 11],
+  NBERSA: [239, 68, 68],
+  NBSF: [139, 92, 246],
+  QUALIA: [236, 72, 153],
+  "Sin clasificar": [113, 113, 122],
+};
+
 const HEADERS = [
   "Servidor", "Dominio", "IP", "Tipo", "Ambiente",
   "OS", "Fecha Instalación", "KBs Instaladas", "Fecha Reinicio", "Estado", "Error",
@@ -118,9 +129,8 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y = 34;
 
-  // Helper for section headers
   const addSectionHeader = (title: string, colorRGB: [number, number, number] = [79, 70, 229]) => {
-    if (y > 250) { doc.addPage(); y = 15; }
+    if (y > 240) { doc.addPage(); y = 15; }
     doc.setFillColor(...colorRGB);
     doc.rect(14, y, 182, 7, "F");
     doc.setFontSize(9.5);
@@ -130,8 +140,114 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     y += 10;
   };
 
-  // Section 1: Por Tipo
+  // ── SECTION 1: Por Tipo (With Vector Charts & Progress Bars) ──
   addSectionHeader("1. Resumen por Tipo de Banco", [79, 70, 229]);
+
+  // Chart 1.1: Visual Progress Bars (Tasa de éxito por tipo)
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("Gráfico: Tasa de éxito y volumen por banco", 14, y);
+  y += 4;
+
+  payload.byType.forEach((item) => {
+    if (y > 260) { doc.addPage(); y = 15; }
+    const color = BANK_RGB[item.name] ?? [99, 102, 241];
+    
+    // Bank label
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(51, 65, 85);
+    doc.text(item.name, 14, y + 3.5);
+
+    // Progress track background
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(42, y, 110, 4.5, 1, 1, "F");
+
+    // Filled progress bar
+    const filledWidth = Math.max(2, (110 * item.successRate) / 100);
+    doc.setFillColor(...color);
+    doc.roundedRect(42, y, filledWidth, 4.5, 1, 1, "F");
+
+    // Percentage & server count text
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${item.successRate}%`, 156, y + 3.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(`(${item.total} srv: ${item.ok} OK, ${item.error} Err)`, 168, y + 3.5);
+
+    y += 6;
+  });
+
+  y += 4;
+
+  // Chart 1.2: Vector Stacked Bar Chart (Servidores por tipo)
+  if (y > 220) { doc.addPage(); y = 15; }
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 41, 59);
+  doc.text("Gráfico Apilado: Distribución de OK, Errores y Sin datos", 14, y);
+  y += 4;
+
+  const chartX = 14;
+  const chartY = y;
+  const chartW = 182;
+  const chartH = 36;
+
+  // Background grid box
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(chartX, chartY, chartW, chartH, "FD");
+
+  // Maximum scale
+  const maxTotal = Math.max(...payload.byType.map((d) => d.total), 1);
+  const colWidth = Math.min(22, (chartW - 20) / Math.max(1, payload.byType.length));
+
+  payload.byType.forEach((item, idx) => {
+    const barX = chartX + 12 + idx * colWidth;
+    const okH = (chartH - 8) * (item.ok / maxTotal);
+    const errH = (chartH - 8) * (item.error / maxTotal);
+    const nodataH = (chartH - 8) * (item.nodata / maxTotal);
+
+    let currY = chartY + chartH - 4;
+
+    // Draw OK segment (Green)
+    if (okH > 0) {
+      currY -= okH;
+      doc.setFillColor(16, 185, 129);
+      doc.rect(barX, currY, colWidth - 4, okH, "F");
+    }
+    // Draw Error segment (Red)
+    if (errH > 0) {
+      currY -= errH;
+      doc.setFillColor(239, 68, 68);
+      doc.rect(barX, currY, colWidth - 4, errH, "F");
+    }
+    // Draw Sin datos segment (Gray)
+    if (nodataH > 0) {
+      currY -= nodataH;
+      doc.setFillColor(100, 116, 139);
+      doc.rect(barX, currY, colWidth - 4, nodataH, "F");
+    }
+
+    // Label bank below bar
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(71, 85, 105);
+    doc.text(item.name.slice(0, 7), barX + (colWidth - 4) / 2, chartY + chartH - 1, { align: "center" });
+
+    // Total count above bar
+    doc.setFontSize(6);
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(item.total), barX + (colWidth - 4) / 2, currY - 1, { align: "center" });
+  });
+
+  y = chartY + chartH + 6;
+
+  // Table 1: Summary Table
   autoTable(doc, {
     startY: y,
     head: [["Tipo / Banco", "Total Servidores", "OK", "Errores", "Sin Datos", "Tasa de Éxito %"]],
@@ -143,8 +259,80 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Section 2: Errores por Sync (Tendencia)
+  // ── SECTION 2: Errores por Sync (With Vector Line Chart) ──
   addSectionHeader("2. Tendencia de Errores por Sincronización", [3, 105, 161]);
+
+  if (payload.errorTrend.length > 0) {
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Gráfico Vectorial: Tendencia de Errores (Rojo) y OK (Verde) en el Tiempo", 14, y);
+    y += 4;
+
+    const lineChartX = 14;
+    const lineChartY = y;
+    const lineChartW = 182;
+    const lineChartH = 40;
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(lineChartX, lineChartY, lineChartW, lineChartH, "FD");
+
+    const maxVal = Math.max(...payload.errorTrend.map((d) => Math.max(d.errores, d.ok, d.total)), 1);
+    const pointsCount = payload.errorTrend.length;
+    const stepX = pointsCount > 1 ? (lineChartW - 24) / (pointsCount - 1) : 0;
+
+    // Grid lines
+    doc.setDrawColor(241, 245, 249);
+    doc.setLineWidth(0.2);
+    for (let g = 1; g <= 3; g++) {
+      const gy = lineChartY + (lineChartH / 4) * g;
+      doc.line(lineChartX + 10, gy, lineChartX + lineChartW - 10, gy);
+    }
+
+    // Plot points & lines
+    for (let i = 0; i < pointsCount; i++) {
+      const curr = payload.errorTrend[i];
+      const cx = lineChartX + 12 + i * stepX;
+      
+      const errY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * curr.errores) / maxVal;
+      const okY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * curr.ok) / maxVal;
+
+      if (i > 0) {
+        const prev = payload.errorTrend[i - 1];
+        const px = lineChartX + 12 + (i - 1) * stepX;
+        const pErrY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * prev.errores) / maxVal;
+        const pOkY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * prev.ok) / maxVal;
+
+        // Line Error (Red)
+        doc.setDrawColor(239, 68, 68);
+        doc.setLineWidth(0.8);
+        doc.line(px, pErrY, cx, errY);
+
+        // Line OK (Green)
+        doc.setDrawColor(16, 185, 129);
+        doc.setLineWidth(0.8);
+        doc.line(px, pOkY, cx, okY);
+      }
+
+      // Nodes circles
+      doc.setFillColor(239, 68, 68);
+      doc.circle(cx, errY, 1.2, "F");
+
+      doc.setFillColor(16, 185, 129);
+      doc.circle(cx, okY, 1.2, "F");
+
+      // X Labels
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(curr.label, cx, lineChartY + lineChartH - 1, { align: "center" });
+    }
+
+    y = lineChartY + lineChartH + 6;
+  }
+
+  // Table 2: Trend Table
   autoTable(doc, {
     startY: y,
     head: [["Fecha Sync", "Total Servidores", "Servidores OK", "Servidores con Error"]],
@@ -156,7 +344,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Section 3: Listado de Syncs
+  // ── SECTION 3: Listado de Syncs ──
   addSectionHeader("3. Listado de Sincronizaciones por Día", [4, 120, 87]);
   autoTable(doc, {
     startY: y,
@@ -169,7 +357,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Section 4: Top Errores
+  // ── SECTION 4: Top Errores ──
   addSectionHeader("4. Top Errores Más Frecuentes", [159, 18, 57]);
   autoTable(doc, {
     startY: y,
@@ -183,17 +371,48 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Section 5: Evoluciones e Histórico
+  // ── SECTION 5: Evoluciones (With Visual Metric Cards & Diff Tables) ──
   addSectionHeader("5. Evolución Histórica y Comparativa", [124, 58, 237]);
   
-  if (y > 240) { doc.addPage(); y = 15; }
-  doc.setFontSize(8);
+  if (y > 220) { doc.addPage(); y = 15; }
+
+  // KPI Card 1: Baseline
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(14, y, 88, 22, 2, 2, "FD");
+  doc.setFillColor(100, 116, 139);
+  doc.rect(14, y, 3, 22, "F");
+
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(71, 85, 105);
+  doc.text(payload.evoluciones.baselineTitle.toUpperCase(), 20, y + 5);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(30, 41, 59);
-  doc.text(`BASELINE (${payload.evoluciones.baselineTitle}): Total ${payload.evoluciones.baselineTotal} | OK: ${payload.evoluciones.baselineOk} | Errores: ${payload.evoluciones.baselineErrors} | Sin datos: ${payload.evoluciones.baselineNoData}`, 14, y);
-  y += 4;
-  doc.text(`TARGET (${payload.evoluciones.targetTitle}): Total ${payload.evoluciones.targetTotal} | OK: ${payload.evoluciones.targetOk} | Errores: ${payload.evoluciones.targetErrors} | Sin datos: ${payload.evoluciones.targetNoData}`, 14, y);
-  y += 7;
+  doc.text(`Total Servidores: ${payload.evoluciones.baselineTotal}`, 20, y + 10);
+  doc.text(`OK: ${payload.evoluciones.baselineOk}  |  Errores: ${payload.evoluciones.baselineErrors}  |  Sin datos: ${payload.evoluciones.baselineNoData}`, 20, y + 15);
+
+  // KPI Card 2: Target
+  doc.setFillColor(240, 242, 254);
+  doc.setDrawColor(199, 210, 254);
+  doc.roundedRect(108, y, 88, 22, 2, 2, "FD");
+  doc.setFillColor(79, 70, 229);
+  doc.rect(108, y, 3, 22, "F");
+
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(67, 56, 202);
+  doc.text(payload.evoluciones.targetTitle.toUpperCase(), 114, y + 5);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Total Servidores: ${payload.evoluciones.targetTotal}`, 114, y + 10);
+  doc.text(`OK: ${payload.evoluciones.targetOk}  |  Errores: ${payload.evoluciones.targetErrors}  |  Sin datos: ${payload.evoluciones.targetNoData}`, 114, y + 15);
+
+  y += 28;
 
   // Subtable 5.1 Errores Solucionados
   doc.setFontSize(8);
