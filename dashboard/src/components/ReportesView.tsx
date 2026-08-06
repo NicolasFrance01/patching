@@ -367,10 +367,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [trendTo, setTrendTo] = useState("");
 
   // Card Bank Sub-tab Filter States inside Evoluciones cards
-  const [solucionadosBank, setSolucionadosBank] = useState<string>("all");
-  const [erroresBank, setErroresBank] = useState<string>("all");
-  const [nuevosBank, setNuevosBank] = useState<string>("all");
-  const [inactivosBank, setInactivosBank] = useState<string>("all");
+  const [solucionadosBank, setSolucionadosBank] = useState<string | null>(null);
+  const [erroresBank, setErroresBank] = useState<string | null>(null);
+  const [nuevosBank, setNuevosBank] = useState<string | null>(null);
+  const [inactivosBank, setInactivosBank] = useState<string | null>(null);
 
   // Modal State for KPI metrics
   const [metricModalOpen, setMetricModalOpen] = useState(false);
@@ -397,15 +397,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     setTabKey((k) => k + 1);
   };
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   const enrichedServers = useMemo(() =>
     data.currentServers.map((s) => ({
       ...s,
@@ -421,11 +412,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, trendFrom, trendTo)
     ),
     [enrichedServers, selectedBanks, timeFilter, trendFrom, trendTo]
-  );
-
-  const unclassifiedServers = useMemo(
-    () => filteredEnrichedServers.filter((s) => !s.info),
-    [filteredEnrichedServers]
   );
 
   const activeBankList = useMemo(() => {
@@ -845,7 +831,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
     setMetricModalOpen(true);
   };
 
-  // Helper to group array items by Bank for multi-bank structured rendering inside cards
+  // Helper to group array items by Bank for multi-bank horizontal button row below card titles
   const getBankCounts = <T extends { bank: string }>(items: T[]): Array<{ name: string; count: number }> => {
     const counts: Record<string, number> = {};
     items.forEach((item) => {
@@ -1110,7 +1096,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* ── EVOLUCIONES (PANELES KPI INTERACTIVOS + PESTAÑAS DE BANCOS EN CADA TARJETA + COLORES DE BADGES CORREGIDOS) ── */}
+      {/* ── EVOLUCIONES (PESTAÑAS DE BANCO DIRECTAMENTE DEBAJO DEL TÍTULO DE LA TARJETA + COLORES DE BADGES CORREGIDOS) ── */}
       {activeTab === "Evoluciones" && (
         <div key={`evoluciones-${tabKey}`} className="space-y-5">
           {/* Interactive Metric Cards (Clickable for Detail Justification Modal) */}
@@ -1192,75 +1178,70 @@ export default function ReportesView({ data }: ReportesViewProps) {
             </div>
           </div>
 
-          {/* Diffs List - With Bank Tabs Inside Cards & Corrected Badge Colors */}
+          {/* Diffs List - Bank selector row DIRECTLY BELOW card title */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* 1. ERRORES SOLUCIONADOS */}
             <div className="glass rounded-2xl p-5 border border-emerald-500/30 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                      Errores Solucionados ({evolucionesData.solucionados.length})
-                    </h3>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    Errores Solucionados ({evolucionesData.solucionados.length})
+                  </h3>
+                </div>
 
-                  {/* Bank Tabs inside Card Header */}
-                  {getBankCounts(evolucionesData.solucionados).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        onClick={() => setSolucionadosBank("all")}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-                          solucionadosBank === "all"
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                        }`}
-                      >
-                        Todos ({evolucionesData.solucionados.length})
-                      </button>
-                      {getBankCounts(evolucionesData.solucionados).map(({ name, count }) => {
+                {/* Horizontal Bank Button Row DIRECTLY BELOW title */}
+                {(() => {
+                  const counts = getBankCounts(evolucionesData.solucionados);
+                  if (counts.length === 0) return null;
+                  const activeBank = solucionadosBank || counts[0]?.name;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 my-2 pt-1 pb-2 border-b border-zinc-800/60">
+                      {counts.map(({ name, count }) => {
                         const color = TYPE_COLORS[name] ?? "#10b981";
-                        const isAct = solucionadosBank === name;
+                        const isAct = activeBank === name;
                         return (
                           <button
                             key={name}
                             onClick={() => setSolucionadosBank(name)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
-                            style={
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
                               isAct
-                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
-                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
-                            }
+                                ? "bg-white/10 text-white border-zinc-500 shadow-sm scale-105"
+                                : "bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                            }`}
+                            style={isAct ? { borderColor: color, backgroundColor: color + "25", color: "#fff" } : {}}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                            {name} ({count})
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                            <span style={isAct ? { color: "#fff" } : { color }}>{name}</span>
+                            <span className="text-[10px] opacity-75">({count})</span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
-                {/* List of items */}
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {evolucionesData.solucionados.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">Sin errores resueltos en este período.</p>
-                  ) : (
-                    evolucionesData.solucionados
-                      .filter((item) => solucionadosBank === "all" || item.bank === solucionadosBank)
-                      .map((item, idx) => (
-                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
-                            <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.pastError}</p>
-                          </div>
-                          {/* BADGE: VERDE 🟢 */}
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
-                            [Solucionado]
-                          </span>
+                {/* List of items for selected bank */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mt-2">
+                  {(() => {
+                    const counts = getBankCounts(evolucionesData.solucionados);
+                    if (counts.length === 0) {
+                      return <p className="text-xs text-zinc-500 py-6 text-center">Sin errores resueltos en este período.</p>;
+                    }
+                    const activeBank = solucionadosBank || counts[0]?.name;
+                    const items = evolucionesData.solucionados.filter((item) => item.bank === activeBank);
+                    return items.map((item, idx) => (
+                      <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
+                          <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.pastError}</p>
                         </div>
-                      ))
-                  )}
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
+                          [Solucionado]
+                        </span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
@@ -1268,74 +1249,69 @@ export default function ReportesView({ data }: ReportesViewProps) {
             {/* 2. ERRORES ACTUALES */}
             <div className="glass rounded-2xl p-5 border border-rose-500/30 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400" />
-                    <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
-                      Errores Actuales ({evolucionesData.nuevosErrores.length})
-                    </h3>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+                    Errores Actuales ({evolucionesData.nuevosErrores.length})
+                  </h3>
+                </div>
 
-                  {/* Bank Tabs inside Card Header */}
-                  {getBankCounts(evolucionesData.nuevosErrores).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        onClick={() => setErroresBank("all")}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-                          erroresBank === "all"
-                            ? "bg-rose-500/20 text-rose-300 border-rose-500/50"
-                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                        }`}
-                      >
-                        Todos ({evolucionesData.nuevosErrores.length})
-                      </button>
-                      {getBankCounts(evolucionesData.nuevosErrores).map(({ name, count }) => {
+                {/* Horizontal Bank Button Row DIRECTLY BELOW title */}
+                {(() => {
+                  const counts = getBankCounts(evolucionesData.nuevosErrores);
+                  if (counts.length === 0) return null;
+                  const activeBank = erroresBank || counts[0]?.name;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 my-2 pt-1 pb-2 border-b border-zinc-800/60">
+                      {counts.map(({ name, count }) => {
                         const color = TYPE_COLORS[name] ?? "#ef4444";
-                        const isAct = erroresBank === name;
+                        const isAct = activeBank === name;
                         return (
                           <button
                             key={name}
                             onClick={() => setErroresBank(name)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
-                            style={
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
                               isAct
-                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
-                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
-                            }
+                                ? "bg-white/10 text-white border-zinc-500 shadow-sm scale-105"
+                                : "bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                            }`}
+                            style={isAct ? { borderColor: color, backgroundColor: color + "25", color: "#fff" } : {}}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                            {name} ({count})
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                            <span style={isAct ? { color: "#fff" } : { color }}>{name}</span>
+                            <span className="text-[10px] opacity-75">({count})</span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
-                {/* List of items */}
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {evolucionesData.nuevosErrores.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">¡Sin errores reportados en este período!</p>
-                  ) : (
-                    evolucionesData.nuevosErrores
-                      .filter((item) => erroresBank === "all" || item.bank === erroresBank)
-                      .map((item, idx) => (
-                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
-                            <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
-                          </div>
-                          {/* BADGE: ROJO 🔴 */}
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm shrink-0 border ${
-                            item.isRecurring
-                              ? "bg-rose-600/30 text-rose-300 border-rose-500/60"
-                              : "bg-rose-500/20 text-rose-400 border-rose-500/40"
-                          }`}>
-                            {item.isRecurring ? "[Reincidente]" : "[Nuevo Error]"}
-                          </span>
+                {/* List of items for selected bank */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mt-2">
+                  {(() => {
+                    const counts = getBankCounts(evolucionesData.nuevosErrores);
+                    if (counts.length === 0) {
+                      return <p className="text-xs text-zinc-500 py-6 text-center">¡Sin errores reportados en este período!</p>;
+                    }
+                    const activeBank = erroresBank || counts[0]?.name;
+                    const items = evolucionesData.nuevosErrores.filter((item) => item.bank === activeBank);
+                    return items.map((item, idx) => (
+                      <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
+                          <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
                         </div>
-                      ))
-                  )}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm shrink-0 border ${
+                          item.isRecurring
+                            ? "bg-rose-600/30 text-rose-300 border-rose-500/60"
+                            : "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                        }`}>
+                          {item.isRecurring ? "[Reincidente]" : "[Nuevo Error]"}
+                        </span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
@@ -1343,84 +1319,80 @@ export default function ReportesView({ data }: ReportesViewProps) {
             {/* 3. NUEVOS SERVIDORES INGRESADOS */}
             <div className="glass rounded-2xl p-5 border border-indigo-500/30 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <PlusCircle className="w-4 h-4 text-indigo-400" />
-                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                      Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})
-                    </h3>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <PlusCircle className="w-4 h-4 text-indigo-400" />
+                  <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                    Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})
+                  </h3>
+                </div>
 
-                  {/* Bank Tabs inside Card Header */}
-                  {getBankCounts(evolucionesData.nuevosServidores).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        onClick={() => setNuevosBank("all")}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-                          nuevosBank === "all"
-                            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/50"
-                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                        }`}
-                      >
-                        Todos ({evolucionesData.nuevosServidores.length})
-                      </button>
-                      {getBankCounts(evolucionesData.nuevosServidores).map(({ name, count }) => {
+                {/* Horizontal Bank Button Row DIRECTLY BELOW title */}
+                {(() => {
+                  const counts = getBankCounts(evolucionesData.nuevosServidores);
+                  if (counts.length === 0) return null;
+                  const activeBank = nuevosBank || counts[0]?.name;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 my-2 pt-1 pb-2 border-b border-zinc-800/60">
+                      {counts.map(({ name, count }) => {
                         const color = TYPE_COLORS[name] ?? "#6366f1";
-                        const isAct = nuevosBank === name;
+                        const isAct = activeBank === name;
                         return (
                           <button
                             key={name}
                             onClick={() => setNuevosBank(name)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
-                            style={
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
                               isAct
-                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
-                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
-                            }
+                                ? "bg-white/10 text-white border-zinc-500 shadow-sm scale-105"
+                                : "bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                            }`}
+                            style={isAct ? { borderColor: color, backgroundColor: color + "25", color: "#fff" } : {}}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                            {name} ({count})
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                            <span style={isAct ? { color: "#fff" } : { color }}>{name}</span>
+                            <span className="text-[10px] opacity-75">({count})</span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
-                {/* List of items */}
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {evolucionesData.nuevosServidores.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">Sin nuevos servidores en este período.</p>
-                  ) : (
-                    evolucionesData.nuevosServidores
-                      .filter((item) => nuevosBank === "all" || item.bank === nuevosBank)
-                      .map((item, idx) => {
-                        const isErr = item.status === "Error";
-                        const isOk = item.status === "OK";
-                        return (
-                          <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
-                              <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
-                            </div>
-                            {/* BADGE: ROJO 🔴 si Error, VERDE 🟢 si OK */}
-                            {isErr ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm shrink-0">
-                                [Nuevo (Error)]
-                              </span>
-                            ) : isOk ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
-                                [Nuevo (OK)]
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shadow-sm shrink-0">
-                                [Nuevo (Sin datos)]
-                              </span>
-                            )}
+                {/* List of items for selected bank */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mt-2">
+                  {(() => {
+                    const counts = getBankCounts(evolucionesData.nuevosServidores);
+                    if (counts.length === 0) {
+                      return <p className="text-xs text-zinc-500 py-6 text-center">Sin nuevos servidores en este período.</p>;
+                    }
+                    const activeBank = nuevosBank || counts[0]?.name;
+                    const items = evolucionesData.nuevosServidores.filter((item) => item.bank === activeBank);
+                    return items.map((item, idx) => {
+                      const isErr = item.status === "Error";
+                      const isOk = item.status === "OK";
+                      return (
+                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
+                            <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
                           </div>
-                        );
-                      })
-                  )}
+                          {/* BADGE: ROJO 🔴 si Error, VERDE 🟢 si OK */}
+                          {isErr ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm shrink-0">
+                              [Nuevo (Error)]
+                            </span>
+                          ) : isOk ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
+                              [Nuevo (OK)]
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shadow-sm shrink-0">
+                              [Nuevo (Sin datos)]
+                            </span>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -1428,69 +1400,64 @@ export default function ReportesView({ data }: ReportesViewProps) {
             {/* 4. SERVIDORES REMOVIDOS / INACTIVOS */}
             <div className="glass rounded-2xl p-5 border border-zinc-700/50 flex flex-col justify-between">
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <MinusCircle className="w-4 h-4 text-zinc-400" />
-                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                      Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})
-                    </h3>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MinusCircle className="w-4 h-4 text-zinc-400" />
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                    Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})
+                  </h3>
+                </div>
 
-                  {/* Bank Tabs inside Card Header */}
-                  {getBankCounts(evolucionesData.servidoresInactivos).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        onClick={() => setInactivosBank("all")}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
-                          inactivosBank === "all"
-                            ? "bg-zinc-800 text-zinc-200 border-zinc-600"
-                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                        }`}
-                      >
-                        Todos ({evolucionesData.servidoresInactivos.length})
-                      </button>
-                      {getBankCounts(evolucionesData.servidoresInactivos).map(({ name, count }) => {
+                {/* Horizontal Bank Button Row DIRECTLY BELOW title */}
+                {(() => {
+                  const counts = getBankCounts(evolucionesData.servidoresInactivos);
+                  if (counts.length === 0) return null;
+                  const activeBank = inactivosBank || counts[0]?.name;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 my-2 pt-1 pb-2 border-b border-zinc-800/60">
+                      {counts.map(({ name, count }) => {
                         const color = TYPE_COLORS[name] ?? "#71717a";
-                        const isAct = inactivosBank === name;
+                        const isAct = activeBank === name;
                         return (
                           <button
                             key={name}
                             onClick={() => setInactivosBank(name)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
-                            style={
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
                               isAct
-                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
-                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
-                            }
+                                ? "bg-white/10 text-white border-zinc-500 shadow-sm scale-105"
+                                : "bg-zinc-900/90 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                            }`}
+                            style={isAct ? { borderColor: color, backgroundColor: color + "25", color: "#fff" } : {}}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                            {name} ({count})
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+                            <span style={isAct ? { color: "#fff" } : { color }}>{name}</span>
+                            <span className="text-[10px] opacity-75">({count})</span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
-                {/* List of items */}
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {evolucionesData.servidoresInactivos.length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-6 text-center">Sin servidores inactivos en este período.</p>
-                  ) : (
-                    evolucionesData.servidoresInactivos
-                      .filter((item) => inactivosBank === "all" || item.bank === inactivosBank)
-                      .map((item, idx) => (
-                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-zinc-300">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
-                          </div>
-                          {/* BADGE: GRIS ⚪ */}
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0">
-                            [Inactivo]
-                          </span>
+                {/* List of items for selected bank */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mt-2">
+                  {(() => {
+                    const counts = getBankCounts(evolucionesData.servidoresInactivos);
+                    if (counts.length === 0) {
+                      return <p className="text-xs text-zinc-500 py-6 text-center">Sin servidores inactivos en este período.</p>;
+                    }
+                    const activeBank = inactivosBank || counts[0]?.name;
+                    const items = evolucionesData.servidoresInactivos.filter((item) => item.bank === activeBank);
+                    return items.map((item, idx) => (
+                      <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-zinc-300">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
                         </div>
-                      ))
-                  )}
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0">
+                          [Inactivo]
+                        </span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
