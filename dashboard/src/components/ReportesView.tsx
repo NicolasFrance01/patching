@@ -11,7 +11,7 @@ import {
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
   TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send
 } from "lucide-react";
-import { downloadCSV, downloadPDF, downloadFullReportPDF, FullReportPDFPayload, ExportRow } from "@/lib/exportUtils";
+import { downloadCSV, downloadPDF, downloadFullReportPDF, svgToPngDataUrl, FullReportPDFPayload, ExportRow } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
 
 interface SyncRunData {
@@ -356,6 +356,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [tabKey, setTabKey] = useState(0);
   const [errorSearch, setErrorSearch] = useState("");
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
   // Multi-bank selection state
@@ -839,6 +840,31 @@ export default function ReportesView({ data }: ReportesViewProps) {
     };
   }, [selectedBanks, timeFilter, trendFrom, trendTo, byTypeData, errorTrendData, syncListDayGroups, errorGroups, evolucionesData]);
 
+  // Capture DOM rendered SVG charts to PNG Data URLs
+  const handleExportPDFWithCharts = async () => {
+    setIsExportingPDF(true);
+    try {
+      const chartImages: FullReportPDFPayload["chartImages"] = {};
+      const svgElements = Array.from(document.querySelectorAll<SVGElement>("svg.recharts-surface"));
+
+      if (svgElements[0]) chartImages.byTypeBar = await svgToPngDataUrl(svgElements[0]);
+      if (svgElements[1]) chartImages.byTypePie = await svgToPngDataUrl(svgElements[1]);
+      if (svgElements[2]) chartImages.trendLine = await svgToPngDataUrl(svgElements[2]);
+
+      const payloadWithCharts = {
+        ...fullReportPayload,
+        chartImages,
+      };
+
+      downloadFullReportPDF(payloadWithCharts, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      console.error("PDF export error:", e);
+      downloadFullReportPDF(fullReportPayload, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   // Open Metric Detail Modal with justification
   const openMetricModal = (
     panelName: string,
@@ -917,7 +943,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
               Obtener o enviar Reporte Completo
               <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
-                5 Submódulos Integrados
+                5 Submódulos + Gráficos
               </span>
             </h2>
             <p className="text-xs text-zinc-400">
@@ -928,18 +954,28 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => downloadFullReportPDF(fullReportPayload, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`)}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg flex items-center gap-2"
+            disabled={isExportingPDF}
+            onClick={handleExportPDFWithCharts}
+            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            Descargar PDF Completo
+            {isExportingPDF ? "Generando PDF con Gráficos..." : "Descargar PDF Completo"}
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
+              const chartImages = await (async () => {
+                const imgs: FullReportPDFPayload["chartImages"] = {};
+                const svgs = Array.from(document.querySelectorAll<SVGElement>("svg.recharts-surface"));
+                if (svgs[0]) imgs.byTypeBar = await svgToPngDataUrl(svgs[0]);
+                if (svgs[1]) imgs.byTypePie = await svgToPngDataUrl(svgs[1]);
+                if (svgs[2]) imgs.trendLine = await svgToPngDataUrl(svgs[2]);
+                return imgs;
+              })();
+
               setEmailPayload({
                 attachmentType: "report",
                 summaryText: `Reporte Completo Integrado - Banco(s): ${fullReportPayload.selectedBanksText} | Tiempo: ${fullReportPayload.timeFilterText}`,
-                data: [fullReportPayload],
+                data: [{ ...fullReportPayload, chartImages }],
               });
             }}
             className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all shadow-md flex items-center gap-2"

@@ -19,6 +19,11 @@ export interface FullReportPDFPayload {
   selectedBanksText: string;
   timeFilterText: string;
   generatedAt: string;
+  chartImages?: {
+    byTypeBar?: string;
+    byTypePie?: string;
+    trendLine?: string;
+  };
   byType: Array<{ name: string; total: number; ok: number; error: number; nodata: number; successRate: number }>;
   errorTrend: Array<{ label: string; ok: number; errores: number; total: number }>;
   syncList: Array<{ day: string; serverCount: number; totalSuccess: number; totalErrors: number; successRate: number }>;
@@ -56,6 +61,44 @@ function toRow(r: ExportRow): string[] {
     r.servidor, r.dominio, r.ip, r.tipo, r.ambiente,
     r.os, r.fechaInstalacion, r.kbsInstaladas, r.fechaReinicio, r.estado, r.error,
   ];
+}
+
+export async function svgToPngDataUrl(svgElement: SVGElement): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const clone = svgElement.cloneNode(true) as SVGElement;
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const svgString = new XMLSerializer().serializeToString(clone);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+      
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = 2;
+        const w = (svgElement.clientWidth || 600) * scale;
+        const h = (svgElement.clientHeight || 300) * scale;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#18181b"; // Dark background theme
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(image, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/png");
+          URL.revokeObjectURL(blobURL);
+          resolve(dataUrl);
+        } else {
+          resolve("");
+        }
+      };
+      image.onerror = () => resolve("");
+      image.src = blobURL;
+    } catch (e) {
+      resolve("");
+    }
+  });
 }
 
 export function downloadCSV(rows: ExportRow[], filename: string) {
@@ -140,36 +183,55 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     y += 10;
   };
 
-  // ── SECTION 1: Por Tipo (With Vector Charts & Progress Bars) ──
+  // ── SECTION 1: Por Tipo ──
   addSectionHeader("1. Resumen por Tipo de Banco", [79, 70, 229]);
 
-  // Chart 1.1: Visual Progress Bars (Tasa de éxito por tipo)
+  // Embed captured DOM PNG images if present
+  if (payload.chartImages?.byTypeBar) {
+    if (y > 200) { doc.addPage(); y = 15; }
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Gráfico Capturado: Servidores por Tipo (Barras)", 14, y);
+    y += 3;
+    doc.addImage(payload.chartImages.byTypeBar, "PNG", 14, y, 182, 55);
+    y += 58;
+  }
+
+  if (payload.chartImages?.byTypePie) {
+    if (y > 200) { doc.addPage(); y = 15; }
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Gráfico Capturado: Distribución por Tipo (Dona)", 14, y);
+    y += 3;
+    doc.addImage(payload.chartImages.byTypePie, "PNG", 14, y, 182, 55);
+    y += 58;
+  }
+
+  // Chart 1.1: Visual Progress Bars
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
-  doc.text("Gráfico: Tasa de éxito y volumen por banco", 14, y);
+  doc.text("Tasa de Éxito y Volumen por Banco", 14, y);
   y += 4;
 
   payload.byType.forEach((item) => {
     if (y > 260) { doc.addPage(); y = 15; }
     const color = BANK_RGB[item.name] ?? [99, 102, 241];
     
-    // Bank label
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(51, 65, 85);
     doc.text(item.name, 14, y + 3.5);
 
-    // Progress track background
     doc.setFillColor(241, 245, 249);
     doc.roundedRect(42, y, 110, 4.5, 1, 1, "F");
 
-    // Filled progress bar
     const filledWidth = Math.max(2, (110 * item.successRate) / 100);
     doc.setFillColor(...color);
     doc.roundedRect(42, y, filledWidth, 4.5, 1, 1, "F");
 
-    // Percentage & server count text
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 41, 59);
@@ -184,12 +246,12 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y += 4;
 
-  // Chart 1.2: Vector Stacked Bar Chart (Servidores por tipo)
+  // Chart 1.2: Vector Stacked Bar Chart
   if (y > 220) { doc.addPage(); y = 15; }
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
-  doc.text("Gráfico Apilado: Distribución de OK, Errores y Sin datos", 14, y);
+  doc.text("Gráfico Vectorial: Distribución de OK, Errores y Sin datos", 14, y);
   y += 4;
 
   const chartX = 14;
@@ -197,12 +259,10 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   const chartW = 182;
   const chartH = 36;
 
-  // Background grid box
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
   doc.rect(chartX, chartY, chartW, chartH, "FD");
 
-  // Maximum scale
   const maxTotal = Math.max(...payload.byType.map((d) => d.total), 1);
   const colWidth = Math.min(22, (chartW - 20) / Math.max(1, payload.byType.length));
 
@@ -214,32 +274,27 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
     let currY = chartY + chartH - 4;
 
-    // Draw OK segment (Green)
     if (okH > 0) {
       currY -= okH;
       doc.setFillColor(16, 185, 129);
       doc.rect(barX, currY, colWidth - 4, okH, "F");
     }
-    // Draw Error segment (Red)
     if (errH > 0) {
       currY -= errH;
       doc.setFillColor(239, 68, 68);
       doc.rect(barX, currY, colWidth - 4, errH, "F");
     }
-    // Draw Sin datos segment (Gray)
     if (nodataH > 0) {
       currY -= nodataH;
       doc.setFillColor(100, 116, 139);
       doc.rect(barX, currY, colWidth - 4, nodataH, "F");
     }
 
-    // Label bank below bar
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(71, 85, 105);
     doc.text(item.name.slice(0, 7), barX + (colWidth - 4) / 2, chartY + chartH - 1, { align: "center" });
 
-    // Total count above bar
     doc.setFontSize(6);
     doc.setTextColor(30, 41, 59);
     doc.text(String(item.total), barX + (colWidth - 4) / 2, currY - 1, { align: "center" });
@@ -259,8 +314,19 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // ── SECTION 2: Errores por Sync (With Vector Line Chart) ──
+  // ── SECTION 2: Errores por Sync ──
   addSectionHeader("2. Tendencia de Errores por Sincronización", [3, 105, 161]);
+
+  if (payload.chartImages?.trendLine) {
+    if (y > 200) { doc.addPage(); y = 15; }
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Gráfico Capturado: Tendencia de Errores por Sincronización", 14, y);
+    y += 3;
+    doc.addImage(payload.chartImages.trendLine, "PNG", 14, y, 182, 55);
+    y += 58;
+  }
 
   if (payload.errorTrend.length > 0) {
     doc.setFontSize(8.5);
@@ -282,7 +348,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     const pointsCount = payload.errorTrend.length;
     const stepX = pointsCount > 1 ? (lineChartW - 24) / (pointsCount - 1) : 0;
 
-    // Grid lines
     doc.setDrawColor(241, 245, 249);
     doc.setLineWidth(0.2);
     for (let g = 1; g <= 3; g++) {
@@ -290,7 +355,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
       doc.line(lineChartX + 10, gy, lineChartX + lineChartW - 10, gy);
     }
 
-    // Plot points & lines
     for (let i = 0; i < pointsCount; i++) {
       const curr = payload.errorTrend[i];
       const cx = lineChartX + 12 + i * stepX;
@@ -304,25 +368,21 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
         const pErrY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * prev.errores) / maxVal;
         const pOkY = lineChartY + lineChartH - 6 - ((lineChartH - 12) * prev.ok) / maxVal;
 
-        // Line Error (Red)
         doc.setDrawColor(239, 68, 68);
         doc.setLineWidth(0.8);
         doc.line(px, pErrY, cx, errY);
 
-        // Line OK (Green)
         doc.setDrawColor(16, 185, 129);
         doc.setLineWidth(0.8);
         doc.line(px, pOkY, cx, okY);
       }
 
-      // Nodes circles
       doc.setFillColor(239, 68, 68);
       doc.circle(cx, errY, 1.2, "F");
 
       doc.setFillColor(16, 185, 129);
       doc.circle(cx, okY, 1.2, "F");
 
-      // X Labels
       doc.setFontSize(6);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 116, 139);
@@ -371,7 +431,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // ── SECTION 5: Evoluciones (With Visual Metric Cards & Diff Tables) ──
+  // ── SECTION 5: Evoluciones ──
   addSectionHeader("5. Evolución Histórica y Comparativa", [124, 58, 237]);
   
   if (y > 220) { doc.addPage(); y = 15; }
