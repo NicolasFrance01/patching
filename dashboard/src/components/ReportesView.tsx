@@ -8,7 +8,7 @@ import {
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
-  Calendar, ArrowRightLeft, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
+  Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
   TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText
 } from "lucide-react";
 import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
@@ -45,7 +45,6 @@ type ByTypeItem = {
 
 type TimeFilter = "all" | "hoy" | "semana" | "mes" | "custom";
 type BankFilter = "all" | ServerType | "unclassified";
-type EvolutionPreset = "15d" | "30d" | "custom";
 
 const TABS = ["Por Tipo", "Errores por Sync", "Listado de Syncs", "Top Errores", "Evoluciones"] as const;
 type Tab = (typeof TABS)[number];
@@ -356,8 +355,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [showUnclassified, setShowUnclassified] = useState(false);
   const [tabKey, setTabKey] = useState(0);
   const [errorSearch, setErrorSearch] = useState("");
-  const [selectedError, setSelectedError] = useState<string | null>(null);
-  const [autocompleteOpen, setAutocompleteOpen] = useState(false);
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
@@ -369,9 +366,11 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
 
-  // Evoluciones custom date range state
-  const [evoFrom, setEvoFrom] = useState("");
-  const [evoTo, setEvoTo] = useState("");
+  // Card Bank Sub-tab Filter States inside Evoluciones cards
+  const [solucionadosBank, setSolucionadosBank] = useState<string>("all");
+  const [erroresBank, setErroresBank] = useState<string>("all");
+  const [nuevosBank, setNuevosBank] = useState<string>("all");
+  const [inactivosBank, setInactivosBank] = useState<string>("all");
 
   // Modal State for KPI metrics
   const [metricModalOpen, setMetricModalOpen] = useState(false);
@@ -401,7 +400,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
-        setAutocompleteOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -418,7 +416,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     [data.currentServers]
   );
 
-  // Filtered enriched servers based on bank & unified time filter
   const filteredEnrichedServers = useMemo(() =>
     enrichedServers.filter(
       (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, trendFrom, trendTo)
@@ -544,11 +541,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     return errorGroups.filter((g) => g.message.toLowerCase().includes(errorSearch.toLowerCase()));
   }, [errorGroups, errorSearch]);
 
-  const autocompleteSuggestions = useMemo(() => {
-    const q = errorSearch.toLowerCase();
-    return errorGroups.filter((g) => !q || g.message.toLowerCase().includes(q)).slice(0, 8);
-  }, [errorGroups, errorSearch]);
-
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
     const validRuns = hasSyncHistory
@@ -612,21 +604,28 @@ export default function ReportesView({ data }: ReportesViewProps) {
       .filter((g) => g.serverCount > 0);
   }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks, timeFilter, trendFrom, trendTo]);
 
-  // ── EVOLUCIONES COMPUTE (BASELINE VS TARGET/HASTA) ─────────────────────────
+  // ── EVOLUCIONES COMPUTE (BASELINE VS TARGET DRIVEN BY UNIFIED TOP TIME FILTER) ────────────────
   const evolucionesData = useMemo(() => {
     const now = new Date();
     
-    // 1. Determine Baseline Date (Desde)
+    // 1. Determine Baseline Date from unified timeFilter
     let baselineDate = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
-    if (evoFrom) {
-      baselineDate = new Date(evoFrom);
+    if (timeFilter === "semana") {
+      baselineDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeFilter === "mes") {
+      baselineDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (timeFilter === "all" && data.syncRuns.length > 0) {
+      const sorted = [...data.syncRuns].sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime());
+      baselineDate = new Date(sorted[0].syncedAt);
+    } else if (timeFilter === "custom" && trendFrom) {
+      baselineDate = new Date(trendFrom);
     }
 
-    // 2. Determine Target Date (Hasta)
+    // 2. Determine Target Date from trendTo
     let isTargetToday = true;
     let targetDate = now;
-    if (evoTo) {
-      const t = new Date(evoTo);
+    if (timeFilter === "custom" && trendTo) {
+      const t = new Date(trendTo);
       t.setHours(23, 59, 59, 999);
       if (toLocalDayKey(t.toISOString()) !== toLocalDayKey(now.toISOString())) {
         isTargetToday = false;
@@ -634,7 +633,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Resolve run closest to baselineDate
+    // Resolve baseline run closest to baselineDate
     let baselineRun: SyncRunData | null = null;
     if (data.syncRuns.length > 0) {
       let minDiff = Infinity;
@@ -647,7 +646,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Resolve run closest to targetDate (if target is not today)
+    // Resolve target run (if target is not today)
     let targetRun: SyncRunData | null = null;
     if (!isTargetToday && data.syncRuns.length > 0) {
       let minDiff = Infinity;
@@ -660,7 +659,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Map for Target state records
+    // Map Target state records
     const targetRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
 
     if (isTargetToday || !targetRun) {
@@ -695,7 +694,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       });
     }
 
-    // Map for Baseline state records
+    // Map Baseline state records
     const baselineRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
     if (baselineRun) {
       baselineRun.records.forEach((r) => {
@@ -787,7 +786,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       targetTotal, targetErrors, targetOk, targetNoData, targetSuccessRate, targetRecordsMap,
       solucionados, nuevosErrores, nuevosServidores, servidoresInactivos,
     };
-  }, [data.syncRuns, filteredEnrichedServers, evoFrom, evoTo, selectedBanks]);
+  }, [data.syncRuns, filteredEnrichedServers, timeFilter, trendFrom, trendTo, selectedBanks]);
 
   // Open Metric Detail Modal with justification
   const openMetricModal = (
@@ -846,15 +845,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
     setMetricModalOpen(true);
   };
 
-  // Helper to group array items by Bank for multi-bank structured rendering
-  const groupByBank = <T extends { bank: string }>(items: T[]): Record<string, T[]> => {
-    const res: Record<string, T[]> = {};
-    for (const item of items) {
+  // Helper to group array items by Bank for multi-bank structured rendering inside cards
+  const getBankCounts = <T extends { bank: string }>(items: T[]): Array<{ name: string; count: number }> => {
+    const counts: Record<string, number> = {};
+    items.forEach((item) => {
       const b = item.bank || "Sin clasificar";
-      if (!res[b]) res[b] = [];
-      res[b].push(item);
-    }
-    return res;
+      counts[b] = (counts[b] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
   };
 
   return (
@@ -984,14 +982,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
                       <span className="text-xs text-zinc-400 w-20 text-right">
                         {d.successRate}% <span className="text-zinc-600">({d.total})</span>
                       </span>
-                      {isUnclassified && d.total > 0 && (
-                        <button
-                          onClick={() => setShowUnclassified((v) => !v)}
-                          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors ml-1 underline shrink-0"
-                        >
-                          {showUnclassified ? "ocultar" : "ver cuáles"}
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
@@ -1120,43 +1110,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* ── EVOLUCIONES (MEJORADO CON INTERACTIVIDAD Y AGRUPADO POR BANCO) ── */}
+      {/* ── EVOLUCIONES (PANELES KPI INTERACTIVOS + PESTAÑAS DE BANCOS EN CADA TARJETA + COLORES DE BADGES CORREGIDOS) ── */}
       {activeTab === "Evoluciones" && (
         <div key={`evoluciones-${tabKey}`} className="space-y-5">
-          {/* Preset / Custom Controls Bar */}
-          <div className="glass rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-semibold text-zinc-200">Período de Comparación:</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 font-medium">Desde:</span>
-              <input
-                type="date"
-                value={evoFrom}
-                onChange={(e) => setEvoFrom(e.target.value)}
-                className="px-2.5 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
-              />
-              <span className="text-xs text-zinc-400 font-medium ml-1">Hasta:</span>
-              <input
-                type="date"
-                value={evoTo}
-                onChange={(e) => setEvoTo(e.target.value)}
-                placeholder="Hoy"
-                className="px-2.5 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
-              />
-              <button
-                onClick={() => { setEvoFrom(""); setEvoTo(""); }}
-                className="px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200 bg-zinc-800/80 rounded-lg transition-colors ml-1"
-              >
-                Resetear (Hace 15d)
-              </button>
-            </div>
-          </div>
-
           {/* Interactive Metric Cards (Clickable for Detail Justification Modal) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Panel 1: Estado Histórico (Desde) */}
+            {/* Panel 1: Estado Histórico (Baseline Date) */}
             <div className="glass rounded-2xl p-5 border-l-4 border-l-zinc-500 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{evolucionesData.baselineTitle}</span>
@@ -1194,7 +1153,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
               </div>
             </div>
 
-            {/* Panel 2: Estado Actual / Estado Histórico (Hasta) */}
+            {/* Panel 2: Estado Actual / Estado Histórico (Target Date) */}
             <div className="glass rounded-2xl p-5 border-l-4 border-l-indigo-500 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">{evolucionesData.targetTitle}</span>
@@ -1233,164 +1192,306 @@ export default function ReportesView({ data }: ReportesViewProps) {
             </div>
           </div>
 
-          {/* Diffs List - Grouped by Bank for Multi-Select */}
+          {/* Diffs List - With Bank Tabs Inside Cards & Corrected Badge Colors */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Errores Solucionados */}
-            <div className="glass rounded-2xl p-5 border border-emerald-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  Errores Solucionados ({evolucionesData.solucionados.length})
-                </h3>
-              </div>
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {evolucionesData.solucionados.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">Sin errores resueltos en este período.</p>
-                ) : (
-                  Object.entries(groupByBank(evolucionesData.solucionados)).map(([bankName, items]) => {
-                    const color = TYPE_COLORS[bankName] ?? "#10b981";
-                    return (
-                      <div key={bankName} className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                          <span style={{ color }}>{bankName}</span>
-                          <span className="text-[10px] text-zinc-500">({items.length})</span>
-                        </div>
-                        {items.map((item) => (
-                          <div key={item.serverName} className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-zinc-100">{item.serverName}</p>
-                              <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.pastError}</p>
-                            </div>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
-                              [Solucionado]
-                            </span>
+            {/* 1. ERRORES SOLUCIONADOS */}
+            <div className="glass rounded-2xl p-5 border border-emerald-500/30 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                      Errores Solucionados ({evolucionesData.solucionados.length})
+                    </h3>
+                  </div>
+
+                  {/* Bank Tabs inside Card Header */}
+                  {getBankCounts(evolucionesData.solucionados).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => setSolucionadosBank("all")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          solucionadosBank === "all"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                        }`}
+                      >
+                        Todos ({evolucionesData.solucionados.length})
+                      </button>
+                      {getBankCounts(evolucionesData.solucionados).map(({ name, count }) => {
+                        const color = TYPE_COLORS[name] ?? "#10b981";
+                        const isAct = solucionadosBank === name;
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => setSolucionadosBank(name)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
+                            style={
+                              isAct
+                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
+                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
+                            }
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* List of items */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {evolucionesData.solucionados.length === 0 ? (
+                    <p className="text-xs text-zinc-500 py-6 text-center">Sin errores resueltos en este período.</p>
+                  ) : (
+                    evolucionesData.solucionados
+                      .filter((item) => solucionadosBank === "all" || item.bank === solucionadosBank)
+                      .map((item, idx) => (
+                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
+                            <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.pastError}</p>
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
+                          {/* BADGE: VERDE 🟢 */}
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
+                            [Solucionado]
+                          </span>
+                        </div>
+                      ))
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Errores Actuales / Reincidentes */}
-            <div className="glass rounded-2xl p-5 border border-rose-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-rose-400" />
-                <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
-                  Errores Actuales ({evolucionesData.nuevosErrores.length})
-                </h3>
-              </div>
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {evolucionesData.nuevosErrores.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">¡Sin errores en este período!</p>
-                ) : (
-                  Object.entries(groupByBank(evolucionesData.nuevosErrores)).map(([bankName, items]) => {
-                    const color = TYPE_COLORS[bankName] ?? "#ef4444";
-                    return (
-                      <div key={bankName} className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                          <span style={{ color }}>{bankName}</span>
-                          <span className="text-[10px] text-zinc-500">({items.length})</span>
-                        </div>
-                        {items.map((item) => (
-                          <div key={item.serverName} className="p-2 rounded-lg bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-zinc-100">{item.serverName}</p>
-                              <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
-                            </div>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm border ${
-                              item.isRecurring
-                                ? "bg-rose-500/25 text-rose-300 border-rose-500/50"
-                                : "bg-amber-500/25 text-amber-300 border-amber-500/50"
-                            }`}>
-                              {item.isRecurring ? "[Reincidente]" : "[Nuevo Error]"}
-                            </span>
+            {/* 2. ERRORES ACTUALES */}
+            <div className="glass rounded-2xl p-5 border border-rose-500/30 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                    <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+                      Errores Actuales ({evolucionesData.nuevosErrores.length})
+                    </h3>
+                  </div>
+
+                  {/* Bank Tabs inside Card Header */}
+                  {getBankCounts(evolucionesData.nuevosErrores).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => setErroresBank("all")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          erroresBank === "all"
+                            ? "bg-rose-500/20 text-rose-300 border-rose-500/50"
+                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                        }`}
+                      >
+                        Todos ({evolucionesData.nuevosErrores.length})
+                      </button>
+                      {getBankCounts(evolucionesData.nuevosErrores).map(({ name, count }) => {
+                        const color = TYPE_COLORS[name] ?? "#ef4444";
+                        const isAct = erroresBank === name;
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => setErroresBank(name)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
+                            style={
+                              isAct
+                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
+                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
+                            }
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* List of items */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {evolucionesData.nuevosErrores.length === 0 ? (
+                    <p className="text-xs text-zinc-500 py-6 text-center">¡Sin errores reportados en este período!</p>
+                  ) : (
+                    evolucionesData.nuevosErrores
+                      .filter((item) => erroresBank === "all" || item.bank === erroresBank)
+                      .map((item, idx) => (
+                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
+                            <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
+                          {/* BADGE: ROJO 🔴 */}
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm shrink-0 border ${
+                            item.isRecurring
+                              ? "bg-rose-600/30 text-rose-300 border-rose-500/60"
+                              : "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                          }`}>
+                            {item.isRecurring ? "[Reincidente]" : "[Nuevo Error]"}
+                          </span>
+                        </div>
+                      ))
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Nuevos Servidores Ingresados */}
-            <div className="glass rounded-2xl p-5 border border-indigo-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <PlusCircle className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                  Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})
-                </h3>
-              </div>
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {evolucionesData.nuevosServidores.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">Sin nuevos servidores en el período.</p>
-                ) : (
-                  Object.entries(groupByBank(evolucionesData.nuevosServidores)).map(([bankName, items]) => {
-                    const color = TYPE_COLORS[bankName] ?? "#6366f1";
-                    return (
-                      <div key={bankName} className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                          <span style={{ color }}>{bankName}</span>
-                          <span className="text-[10px] text-zinc-500">({items.length})</span>
-                        </div>
-                        {items.map((item) => (
-                          <div key={item.serverName} className="p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between text-xs">
+            {/* 3. NUEVOS SERVIDORES INGRESADOS */}
+            <div className="glass rounded-2xl p-5 border border-indigo-500/30 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <PlusCircle className="w-4 h-4 text-indigo-400" />
+                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})
+                    </h3>
+                  </div>
+
+                  {/* Bank Tabs inside Card Header */}
+                  {getBankCounts(evolucionesData.nuevosServidores).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => setNuevosBank("all")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          nuevosBank === "all"
+                            ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/50"
+                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                        }`}
+                      >
+                        Todos ({evolucionesData.nuevosServidores.length})
+                      </button>
+                      {getBankCounts(evolucionesData.nuevosServidores).map(({ name, count }) => {
+                        const color = TYPE_COLORS[name] ?? "#6366f1";
+                        const isAct = nuevosBank === name;
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => setNuevosBank(name)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
+                            style={
+                              isAct
+                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
+                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
+                            }
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* List of items */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {evolucionesData.nuevosServidores.length === 0 ? (
+                    <p className="text-xs text-zinc-500 py-6 text-center">Sin nuevos servidores en este período.</p>
+                  ) : (
+                    evolucionesData.nuevosServidores
+                      .filter((item) => nuevosBank === "all" || item.bank === nuevosBank)
+                      .map((item, idx) => {
+                        const isErr = item.status === "Error";
+                        const isOk = item.status === "OK";
+                        return (
+                          <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between text-xs">
                             <div>
-                              <p className="font-bold text-zinc-100">{item.serverName}</p>
+                              <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
                               <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
                             </div>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm">
-                              [Nuevo ({item.status})]
-                            </span>
+                            {/* BADGE: ROJO 🔴 si Error, VERDE 🟢 si OK */}
+                            {isErr ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm shrink-0">
+                                [Nuevo (Error)]
+                              </span>
+                            ) : isOk ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shrink-0">
+                                [Nuevo (OK)]
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shadow-sm shrink-0">
+                                [Nuevo (Sin datos)]
+                              </span>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
+                        );
+                      })
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Servidores Removidos / Inactivos */}
-            <div className="glass rounded-2xl p-5 border border-zinc-700/50">
-              <div className="flex items-center gap-2 mb-3">
-                <MinusCircle className="w-4 h-4 text-zinc-400" />
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                  Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})
-                </h3>
-              </div>
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {evolucionesData.servidoresInactivos.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">Sin servidores inactivos en el período.</p>
-                ) : (
-                  Object.entries(groupByBank(evolucionesData.servidoresInactivos)).map(([bankName, items]) => {
-                    const color = TYPE_COLORS[bankName] ?? "#71717a";
-                    return (
-                      <div key={bankName} className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                          <span style={{ color }}>{bankName}</span>
-                          <span className="text-[10px] text-zinc-500">({items.length})</span>
-                        </div>
-                        {items.map((item) => (
-                          <div key={item.serverName} className="p-2 rounded-lg bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-zinc-300">{item.serverName}</p>
-                            </div>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-700/40 text-zinc-400 border border-zinc-600/40">
-                              [Inactivo]
-                            </span>
+            {/* 4. SERVIDORES REMOVIDOS / INACTIVOS */}
+            <div className="glass rounded-2xl p-5 border border-zinc-700/50 flex flex-col justify-between">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <MinusCircle className="w-4 h-4 text-zinc-400" />
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                      Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})
+                    </h3>
+                  </div>
+
+                  {/* Bank Tabs inside Card Header */}
+                  {getBankCounts(evolucionesData.servidoresInactivos).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => setInactivosBank("all")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          inactivosBank === "all"
+                            ? "bg-zinc-800 text-zinc-200 border-zinc-600"
+                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                        }`}
+                      >
+                        Todos ({evolucionesData.servidoresInactivos.length})
+                      </button>
+                      {getBankCounts(evolucionesData.servidoresInactivos).map(({ name, count }) => {
+                        const color = TYPE_COLORS[name] ?? "#71717a";
+                        const isAct = inactivosBank === name;
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => setInactivosBank(name)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1"
+                            style={
+                              isAct
+                                ? { backgroundColor: color + "33", borderColor: color + "88", color: "#fff" }
+                                : { backgroundColor: "#18181b", borderColor: "#27272a", color }
+                            }
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {name} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* List of items */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {evolucionesData.servidoresInactivos.length === 0 ? (
+                    <p className="text-xs text-zinc-500 py-6 text-center">Sin servidores inactivos en este período.</p>
+                  ) : (
+                    evolucionesData.servidoresInactivos
+                      .filter((item) => inactivosBank === "all" || item.bank === inactivosBank)
+                      .map((item, idx) => (
+                        <div key={`${item.serverName}-${idx}`} className="p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-zinc-300">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
+                          {/* BADGE: GRIS ⚪ */}
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0">
+                            [Inactivo]
+                          </span>
+                        </div>
+                      ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
