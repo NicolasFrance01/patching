@@ -6,7 +6,11 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
-import { ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail, Calendar, ArrowRightLeft, CheckCircle, AlertCircle, PlusCircle, MinusCircle, TrendingUp } from "lucide-react";
+import {
+  ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
+  Calendar, ArrowRightLeft, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
+  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText
+} from "lucide-react";
 import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
 
@@ -17,7 +21,7 @@ interface SyncRunData {
   success: number;
   errors: number;
   noData: number;
-  records: { serverName: string; ip: string | null; status: string; errorDescription: string | null }[];
+  records: { serverName: string; ip: string | null; status: string; errorDescription: string | null; os?: string | null; installedKBs?: string | null }[];
 }
 
 interface ServerData {
@@ -39,7 +43,7 @@ type ByTypeItem = {
   name: string; total: number; ok: number; error: number; nodata: number; successRate: number;
 };
 
-type TrendFilter = "all" | "hoy" | "semana" | "mes" | "custom";
+type TimeFilter = "all" | "hoy" | "semana" | "mes" | "custom";
 type BankFilter = "all" | ServerType | "unclassified";
 type EvolutionPreset = "15d" | "30d" | "custom";
 
@@ -76,12 +80,36 @@ function formatDayHeader(dayKey: string): string {
   });
 }
 
-/** Returns true if server matches any of the active bank filters */
 function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boolean {
   if (selectedBanks.includes("all")) return true;
   const info = getServerInfo(serverName);
   const bank = info ? info.type : "unclassified";
   return selectedBanks.includes(bank as BankFilter);
+}
+
+function isDateInRange(isoDate: string, timeFilter: TimeFilter, fromStr: string, toStr: string): boolean {
+  if (timeFilter === "all") return true;
+  const d = new Date(isoDate);
+  const now = new Date();
+
+  if (timeFilter === "hoy") {
+    return toLocalDayKey(isoDate) === toLocalDayKey(now.toISOString());
+  }
+  if (timeFilter === "semana") {
+    const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return d >= cutoff;
+  }
+  if (timeFilter === "mes") {
+    const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return d >= cutoff;
+  }
+  if (timeFilter === "custom") {
+    let from = fromStr ? new Date(fromStr) : new Date(0);
+    let to = toStr ? new Date(toStr) : new Date();
+    to.setHours(23, 59, 59, 999);
+    return d >= from && d <= to;
+  }
+  return true;
 }
 
 const ByTypeCharts = memo(function ByTypeCharts({ byTypeData }: { byTypeData: ByTypeItem[] }) {
@@ -178,6 +206,149 @@ const MultiBankTrendChart = memo(function MultiBankTrendChart({
   );
 });
 
+/* Modal de Justificación de Métricas KPI */
+interface MetricModalData {
+  title: string;
+  subtitle: string;
+  metricType: "total" | "ok" | "errors" | "nodata";
+  panelName: string;
+  servers: Array<{
+    serverName: string;
+    ip: string | null;
+    os: string | null;
+    installedKBs: string | null;
+    errorDescription: string | null;
+    status: string;
+    bank: string;
+    justification: string;
+  }>;
+}
+
+function MetricDetailModal({
+  isOpen,
+  onClose,
+  modalData,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  modalData: MetricModalData | null;
+}) {
+  const [search, setSearch] = useState("");
+  if (!isOpen || !modalData) return null;
+
+  const filtered = modalData.servers.filter(
+    (s) =>
+      s.serverName.toLowerCase().includes(search.toLowerCase()) ||
+      (s.ip ?? "").includes(search) ||
+      s.bank.toLowerCase().includes(search.toLowerCase()) ||
+      (s.errorDescription ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      <div className="glass rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
+          <div>
+            <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-400" />
+              {modalData.title}
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">{modalData.subtitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Toolbar */}
+        <div className="px-6 py-3 border-b border-zinc-800/60 bg-black/20 flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Buscar servidor, IP, banco..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <span className="text-xs text-zinc-400">
+            Mostrando <strong className="text-white">{filtered.length}</strong> de {modalData.servers.length} servidores
+          </span>
+        </div>
+
+        {/* Modal Table Content */}
+        <div className="flex-1 overflow-auto p-6 space-y-3">
+          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+            <table className="w-full text-xs text-left">
+              <thead className="sticky top-0 bg-zinc-950 text-zinc-400 uppercase border-b border-zinc-800">
+                <tr>
+                  <th className="px-3 py-2.5 font-semibold">Servidor</th>
+                  <th className="px-3 py-2.5 font-semibold">Banco</th>
+                  <th className="px-3 py-2.5 font-semibold">IP</th>
+                  <th className="px-3 py-2.5 font-semibold">Estado</th>
+                  <th className="px-3 py-2.5 font-semibold">Justificación / Motivo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {filtered.map((s, idx) => {
+                  const color = TYPE_COLORS[s.bank] ?? "#a855f7";
+                  return (
+                    <tr key={`${s.serverName}-${idx}`} className="hover:bg-white/[0.02]">
+                      <td className="px-3 py-2.5 font-medium text-zinc-200 whitespace-nowrap">{s.serverName}</td>
+                      <td className="px-3 py-2.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold border" style={{ color, borderColor: color + "44", backgroundColor: color + "15" }}>
+                          {s.bank}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{s.ip ?? "—"}</td>
+                      <td className="px-3 py-2.5">
+                        {s.status === "ok" ? (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
+                        ) : s.status === "error" ? (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">Error</span>
+                        ) : (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-zinc-300 text-[11px] min-w-[260px]">
+                        <span className="block p-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                          {s.justification}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                      No se encontraron servidores con ese filtro.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-3 border-t border-zinc-800 bg-zinc-900/80 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportesView({ data }: ReportesViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Por Tipo");
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
@@ -193,16 +364,18 @@ export default function ReportesView({ data }: ReportesViewProps) {
   // Multi-bank selection state
   const [selectedBanks, setSelectedBanks] = useState<BankFilter[]>(["all"]);
 
-  // Errores por Sync date filter
-  const [trendFilter, setTrendFilter] = useState<TrendFilter>("all");
+  // Unified Time Filter State across ALL modules
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
 
-  // Evoluciones state
-  const [evoPreset, setEvoPreset] = useState<EvolutionPreset>("15d");
+  // Evoluciones custom date range state
   const [evoFrom, setEvoFrom] = useState("");
   const [evoTo, setEvoTo] = useState("");
-  const [evoSearch, setEvoSearch] = useState("");
+
+  // Modal State for KPI metrics
+  const [metricModalOpen, setMetricModalOpen] = useState(false);
+  const [metricModalData, setMetricModalData] = useState<MetricModalData | null>(null);
 
   const hasSyncHistory = data.syncRuns.length > 0;
 
@@ -225,7 +398,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     setTabKey((k) => k + 1);
   };
 
-  // Close autocomplete on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
@@ -246,10 +418,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
     [data.currentServers]
   );
 
-  // Filtered enriched servers based on active multi-bank selection
+  // Filtered enriched servers based on bank & unified time filter
   const filteredEnrichedServers = useMemo(() =>
-    enrichedServers.filter((s) => matchesBankFilter(s.serverName, selectedBanks)),
-    [enrichedServers, selectedBanks]
+    enrichedServers.filter(
+      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, trendFrom, trendTo)
+    ),
+    [enrichedServers, selectedBanks, timeFilter, trendFrom, trendTo]
   );
 
   const unclassifiedServers = useMemo(
@@ -257,7 +431,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     [filteredEnrichedServers]
   );
 
-  // Active bank list for multi-select rendering
   const activeBankList = useMemo(() => {
     if (selectedBanks.includes("all")) return ["all"];
     return selectedBanks;
@@ -296,31 +469,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
     if (!hasSyncHistory) {
       const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
       const errores = filteredEnrichedServers.filter((s) => s.isError).length;
-      const sinDatos = filteredEnrichedServers.filter((s) => s.isNoData).length;
-      return [{ label: "Estado actual", errores, ok, sinDatos, total: filteredEnrichedServers.length }];
+      return [{ label: "Estado actual", errores, ok, total: filteredEnrichedServers.length }];
     }
 
-    const now = new Date();
-    let runs = [...data.syncRuns];
-
-    if (trendFilter === "hoy") {
-      const today = toLocalDayKey(now.toISOString());
-      runs = runs.filter((r) => toLocalDayKey(r.syncedAt) === today);
-    } else if (trendFilter === "semana") {
-      const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      runs = runs.filter((r) => new Date(r.syncedAt) >= cutoff);
-    } else if (trendFilter === "mes") {
-      const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      runs = runs.filter((r) => new Date(r.syncedAt) >= cutoff);
-    } else if (trendFilter === "custom" && trendFrom && trendTo) {
-      const from = new Date(trendFrom);
-      const to = new Date(trendTo);
-      to.setHours(23, 59, 59, 999);
-      runs = runs.filter((r) => {
-        const d = new Date(r.syncedAt);
-        return d >= from && d <= to;
-      });
-    }
+    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo));
 
     const dayMap: Record<string, SyncRunData> = {};
     for (const run of runs) {
@@ -344,7 +496,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
           total: filteredRecords.length,
         };
 
-        // If specific banks selected, compute errors per bank for parallel lines
         if (!selectedBanks.includes("all")) {
           for (const b of selectedBanks) {
             const bankRecords = filteredRecords.filter((r) => {
@@ -359,13 +510,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
         return row;
       })
       .filter((d) => d.total > 0);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, trendFilter, trendFrom, trendTo, selectedBanks]);
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, timeFilter, trendFrom, trendTo, selectedBanks]);
 
   // ── Top Errores ───────────────────────────────────────────────────────────
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      for (const run of data.syncRuns) {
+      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo));
+      for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
           if (r.status === "error" && r.errorDescription) {
@@ -385,7 +537,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
     return Object.entries(map)
       .map(([message, servers]) => ({ message, servers: Array.from(servers).sort(), count: servers.size }))
       .sort((a, b) => b.count - a.count);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, selectedBanks]);
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, selectedBanks, timeFilter, trendFrom, trendTo]);
 
   const filteredErrorGroups = useMemo(() => {
     if (!errorSearch) return errorGroups;
@@ -399,29 +551,31 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
-    const runs: SyncRunData[] = hasSyncHistory ? data.syncRuns : (() => {
-      if (filteredEnrichedServers.length === 0) return [];
-      const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
-      const errors = filteredEnrichedServers.filter((s) => s.isError).length;
-      const noData = filteredEnrichedServers.filter((s) => s.isNoData).length;
-      return [{
-        id: "snapshot-current",
-        syncedAt: data.currentServers[0]?.updatedAt ?? new Date().toISOString(),
-        total: filteredEnrichedServers.length,
-        success: ok,
-        errors,
-        noData,
-        records: filteredEnrichedServers.map((s) => ({
-          serverName: s.serverName,
-          ip: s.ip,
-          status: s.isError ? "error" : s.isNoData ? "nodata" : "ok",
-          errorDescription: s.errorDescription,
-        })),
-      }];
-    })();
+    const validRuns = hasSyncHistory
+      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo))
+      : (() => {
+          if (filteredEnrichedServers.length === 0) return [];
+          const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
+          const errors = filteredEnrichedServers.filter((s) => s.isError).length;
+          const noData = filteredEnrichedServers.filter((s) => s.isNoData).length;
+          return [{
+            id: "snapshot-current",
+            syncedAt: data.currentServers[0]?.updatedAt ?? new Date().toISOString(),
+            total: filteredEnrichedServers.length,
+            success: ok,
+            errors,
+            noData,
+            records: filteredEnrichedServers.map((s) => ({
+              serverName: s.serverName,
+              ip: s.ip,
+              status: s.isError ? "error" : s.isNoData ? "nodata" : "ok",
+              errorDescription: s.errorDescription,
+            })),
+          }];
+        })();
 
     const groups: Record<string, SyncRunData[]> = {};
-    for (const run of runs) {
+    for (const run of validRuns) {
       const key = toLocalDayKey(run.syncedAt);
       if (!groups[key]) groups[key] = [];
       groups[key].push(run);
@@ -456,73 +610,137 @@ export default function ReportesView({ data }: ReportesViewProps) {
         };
       })
       .filter((g) => g.serverCount > 0);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks]);
+  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks, timeFilter, trendFrom, trendTo]);
 
-  // ── EVOLUCIONES COMPUTE ───────────────────────────────────────────────────
+  // ── EVOLUCIONES COMPUTE (BASELINE VS TARGET/HASTA) ─────────────────────────
   const evolucionesData = useMemo(() => {
     const now = new Date();
-    let targetDate = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
-    if (evoPreset === "30d") {
-      targetDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else if (evoPreset === "custom" && evoFrom) {
-      targetDate = new Date(evoFrom);
+    
+    // 1. Determine Baseline Date (Desde)
+    let baselineDate = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
+    if (evoFrom) {
+      baselineDate = new Date(evoFrom);
     }
 
-    // Find run closest to targetDate
-    let pastRun: SyncRunData | null = null;
+    // 2. Determine Target Date (Hasta)
+    let isTargetToday = true;
+    let targetDate = now;
+    if (evoTo) {
+      const t = new Date(evoTo);
+      t.setHours(23, 59, 59, 999);
+      if (toLocalDayKey(t.toISOString()) !== toLocalDayKey(now.toISOString())) {
+        isTargetToday = false;
+        targetDate = t;
+      }
+    }
+
+    // Resolve run closest to baselineDate
+    let baselineRun: SyncRunData | null = null;
     if (data.syncRuns.length > 0) {
+      let minDiff = Infinity;
+      for (const run of data.syncRuns) {
+        const diff = Math.abs(new Date(run.syncedAt).getTime() - baselineDate.getTime());
+        if (diff < minDiff) {
+          minDiff = diff;
+          baselineRun = run;
+        }
+      }
+    }
+
+    // Resolve run closest to targetDate (if target is not today)
+    let targetRun: SyncRunData | null = null;
+    if (!isTargetToday && data.syncRuns.length > 0) {
       let minDiff = Infinity;
       for (const run of data.syncRuns) {
         const diff = Math.abs(new Date(run.syncedAt).getTime() - targetDate.getTime());
         if (diff < minDiff) {
           minDiff = diff;
-          pastRun = run;
+          targetRun = run;
         }
       }
     }
 
-    // Current state records filtered by active bank
-    const currentRecordsMap = new Map<string, typeof enrichedServers[0]>();
-    filteredEnrichedServers.forEach((s) => currentRecordsMap.set(s.serverName, s));
+    // Map for Target state records
+    const targetRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
 
-    // Past state records filtered by active bank
-    const pastRecordsMap = new Map<string, { status: string; errorDescription: string | null; ip: string | null }>();
-    if (pastRun) {
-      pastRun.records.forEach((r) => {
+    if (isTargetToday || !targetRun) {
+      filteredEnrichedServers.forEach((s) => {
+        const bank = s.info ? s.info.type : "Sin clasificar";
+        const status = s.isError ? "error" : s.isNoData ? "nodata" : "ok";
+        targetRecordsMap.set(s.serverName, {
+          serverName: s.serverName,
+          ip: s.ip,
+          os: s.os,
+          installedKBs: s.installedKBs,
+          errorDescription: s.errorDescription,
+          status,
+          bank,
+        });
+      });
+    } else {
+      targetRun.records.forEach((r) => {
         if (matchesBankFilter(r.serverName, selectedBanks)) {
-          pastRecordsMap.set(r.serverName, r);
+          const inf = getServerInfo(r.serverName);
+          const bank = inf ? inf.type : "Sin clasificar";
+          targetRecordsMap.set(r.serverName, {
+            serverName: r.serverName,
+            ip: r.ip,
+            os: r.os ?? null,
+            installedKBs: r.installedKBs ?? null,
+            errorDescription: r.errorDescription,
+            status: r.status,
+            bank,
+          });
         }
       });
     }
 
-    // Diffs calculation
+    // Map for Baseline state records
+    const baselineRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
+    if (baselineRun) {
+      baselineRun.records.forEach((r) => {
+        if (matchesBankFilter(r.serverName, selectedBanks)) {
+          const inf = getServerInfo(r.serverName);
+          const bank = inf ? inf.type : "Sin clasificar";
+          baselineRecordsMap.set(r.serverName, {
+            serverName: r.serverName,
+            ip: r.ip,
+            os: r.os ?? null,
+            installedKBs: r.installedKBs ?? null,
+            errorDescription: r.errorDescription,
+            status: r.status,
+            bank,
+          });
+        }
+      });
+    }
+
+    // Compute diffs
     const solucionados: Array<{ serverName: string; ip: string | null; pastError: string; bank: string }> = [];
     const nuevosErrores: Array<{ serverName: string; ip: string | null; currentError: string; isRecurring: boolean; bank: string }> = [];
     const nuevosServidores: Array<{ serverName: string; ip: string | null; status: string; bank: string }> = [];
     const servidoresInactivos: Array<{ serverName: string; ip: string | null; pastStatus: string; bank: string }> = [];
 
-    // Check current servers vs past
-    for (const [sName, sCurr] of currentRecordsMap.entries()) {
-      const past = pastRecordsMap.get(sName);
-      const bank = sCurr.info ? sCurr.info.type : "Sin clasificar";
+    for (const [sName, sCurr] of targetRecordsMap.entries()) {
+      const base = baselineRecordsMap.get(sName);
 
-      if (!past) {
+      if (!base) {
         nuevosServidores.push({
           serverName: sName,
           ip: sCurr.ip,
-          status: sCurr.isError ? "Error" : sCurr.isNoData ? "Sin datos" : "OK",
-          bank,
+          status: sCurr.status === "error" ? "Error" : sCurr.status === "nodata" ? "Sin datos" : "OK",
+          bank: sCurr.bank,
         });
       } else {
-        const wasError = past.status === "error";
-        const isError = sCurr.isError;
+        const wasError = base.status === "error";
+        const isError = sCurr.status === "error";
 
         if (wasError && !isError) {
           solucionados.push({
             serverName: sName,
             ip: sCurr.ip,
-            pastError: past.errorDescription ?? "Error previo resuelto",
-            bank,
+            pastError: base.errorDescription ?? "Error previo resuelto",
+            bank: sCurr.bank,
           });
         } else if (isError) {
           nuevosErrores.push({
@@ -530,47 +748,118 @@ export default function ReportesView({ data }: ReportesViewProps) {
             ip: sCurr.ip,
             currentError: sCurr.errorDescription ?? "Error detectado",
             isRecurring: wasError,
-            bank,
+            bank: sCurr.bank,
           });
         }
       }
     }
 
-    // Check past servers missing currently
-    for (const [pName, pRec] of pastRecordsMap.entries()) {
-      if (!currentRecordsMap.has(pName)) {
-        const inf = getServerInfo(pName);
-        const bank = inf ? inf.type : "Sin clasificar";
+    for (const [pName, pRec] of baselineRecordsMap.entries()) {
+      if (!targetRecordsMap.has(pName)) {
         servidoresInactivos.push({
           serverName: pName,
           ip: pRec.ip,
           pastStatus: pRec.status === "error" ? "Error" : "OK",
-          bank,
+          bank: pRec.bank,
         });
       }
     }
 
-    const pastTotal = pastRecordsMap.size;
-    const pastErrors = Array.from(pastRecordsMap.values()).filter((r) => r.status === "error").length;
-    const pastOk = Array.from(pastRecordsMap.values()).filter((r) => r.status === "ok").length;
-    const pastSuccessRate = pastTotal > 0 ? Math.round((pastOk / pastTotal) * 100) : 0;
+    const baselineTotal = baselineRecordsMap.size;
+    const baselineErrors = Array.from(baselineRecordsMap.values()).filter((r) => r.status === "error").length;
+    const baselineOk = Array.from(baselineRecordsMap.values()).filter((r) => r.status === "ok").length;
+    const baselineNoData = Array.from(baselineRecordsMap.values()).filter((r) => r.status === "nodata").length;
+    const baselineSuccessRate = baselineTotal > 0 ? Math.round((baselineOk / baselineTotal) * 100) : 0;
 
-    const currentTotal = currentRecordsMap.size;
-    const currentErrors = Array.from(currentRecordsMap.values()).filter((s) => s.isError).length;
-    const currentOk = Array.from(currentRecordsMap.values()).filter((s) => !s.isError && !s.isNoData).length;
-    const currentSuccessRate = currentTotal > 0 ? Math.round((currentOk / currentTotal) * 100) : 0;
+    const targetTotal = targetRecordsMap.size;
+    const targetErrors = Array.from(targetRecordsMap.values()).filter((r) => r.status === "error").length;
+    const targetOk = Array.from(targetRecordsMap.values()).filter((r) => r.status === "ok").length;
+    const targetNoData = Array.from(targetRecordsMap.values()).filter((r) => r.status === "nodata").length;
+    const targetSuccessRate = targetTotal > 0 ? Math.round((targetOk / targetTotal) * 100) : 0;
+
+    const targetTitle = isTargetToday ? "Estado Actual" : `Estado Histórico (${new Date(targetDate).toLocaleDateString("es-AR")})`;
+    const baselineTitle = `Estado Histórico (${baselineRun ? new Date(baselineRun.syncedAt).toLocaleDateString("es-AR") : "Desde"})`;
 
     return {
-      pastDateLabel: pastRun ? new Date(pastRun.syncedAt).toLocaleDateString("es-AR") : "Sin historial previo",
-      pastTotal, pastErrors, pastOk, pastSuccessRate,
-      currentTotal, currentErrors, currentOk, currentSuccessRate,
+      baselineTitle,
+      baselineTotal, baselineErrors, baselineOk, baselineNoData, baselineSuccessRate, baselineRecordsMap,
+      targetTitle,
+      targetTotal, targetErrors, targetOk, targetNoData, targetSuccessRate, targetRecordsMap,
       solucionados, nuevosErrores, nuevosServidores, servidoresInactivos,
     };
-  }, [data.syncRuns, filteredEnrichedServers, evoPreset, evoFrom, selectedBanks]);
+  }, [data.syncRuns, filteredEnrichedServers, evoFrom, evoTo, selectedBanks]);
+
+  // Open Metric Detail Modal with justification
+  const openMetricModal = (
+    panelName: string,
+    metricType: "total" | "ok" | "errors" | "nodata",
+    recordsMap: Map<string, any>
+  ) => {
+    const serversArray: MetricModalData["servers"] = [];
+
+    recordsMap.forEach((rec, sName) => {
+      let isMatch = false;
+      let justification = "";
+
+      if (metricType === "total") {
+        isMatch = true;
+        justification = `Servidor registrado y activo en la sincronización de ${panelName}.`;
+      } else if (metricType === "ok" && rec.status === "ok") {
+        isMatch = true;
+        justification = `El agente reportó estado exitoso (sin errores de parches ni fallos de comunicación).`;
+      } else if (metricType === "errors" && rec.status === "error") {
+        isMatch = true;
+        justification = `Contabilizado en Errores debido al reporte: "${rec.errorDescription ?? "Error de ejecución"}".`;
+      } else if (metricType === "nodata" && rec.status === "nodata") {
+        isMatch = true;
+        justification = `Sin datos reportados de Sistema Operativo o sin comunicación en la prueba WUU.`;
+      }
+
+      if (isMatch) {
+        serversArray.push({
+          serverName: sName,
+          ip: rec.ip ?? null,
+          os: rec.os ?? null,
+          installedKBs: rec.installedKBs ?? null,
+          errorDescription: rec.errorDescription ?? null,
+          status: rec.status,
+          bank: rec.bank ?? "Sin clasificar",
+          justification,
+        });
+      }
+    });
+
+    const labelsMap: Record<string, string> = {
+      total: "Total de Servidores Registrados",
+      ok: "Servidores Correctos (OK)",
+      errors: "Servidores con Errores",
+      nodata: "Servidores Sin Datos",
+    };
+
+    setMetricModalData({
+      title: `Justificación: ${labelsMap[metricType]} (${panelName})`,
+      subtitle: `Análisis detallado de los ${serversArray.length} servidores contabilizados bajo esta métrica.`,
+      metricType,
+      panelName,
+      servers: serversArray,
+    });
+    setMetricModalOpen(true);
+  };
+
+  // Helper to group array items by Bank for multi-bank structured rendering
+  const groupByBank = <T extends { bank: string }>(items: T[]): Record<string, T[]> => {
+    const res: Record<string, T[]> = {};
+    for (const item of items) {
+      const b = item.bank || "Sin clasificar";
+      if (!res[b]) res[b] = [];
+      res[b].push(item);
+    }
+    return res;
+  };
 
   return (
     <div className="space-y-4">
-      {/* ── Multi-Bank Selection Bar with Color Legend ── */}
+      {/* ── Multi-Bank Selection & Color Legend Bar ── */}
       <div className="glass rounded-xl px-4 py-3 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco(s):</span>
@@ -600,7 +889,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
           })}
         </div>
 
-        {/* Visual Color Legend */}
         {!selectedBanks.includes("all") && (
           <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-zinc-800/60 text-[10px]">
             <span className="text-zinc-500">Diferenciación por color:</span>
@@ -618,6 +906,48 @@ export default function ReportesView({ data }: ReportesViewProps) {
         )}
       </div>
 
+      {/* ── Unified Time Filter Bar across ALL Submodules ── */}
+      <div className="glass rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="text-xs font-semibold text-zinc-300">Filtro de Tiempo:</span>
+          <div className="flex flex-wrap gap-1 ml-1">
+            {(["all", "hoy", "semana", "mes", "custom"] as TimeFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setTimeFilter(f)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors border ${
+                  timeFilter === f
+                    ? "bg-indigo-600 text-white border-transparent shadow"
+                    : "text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                }`}
+              >
+                {f === "all" ? "Todo" : f === "hoy" ? "Hoy" : f === "semana" ? "Semana" : f === "mes" ? "Mes" : "Rango Personalizado"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {timeFilter === "custom" && (
+          <div className="flex items-center gap-2 bg-zinc-900/80 px-3 py-1 rounded-lg border border-zinc-800">
+            <span className="text-[11px] text-zinc-400 font-medium">Desde:</span>
+            <input
+              type="date"
+              value={trendFrom}
+              onChange={(e) => setTrendFrom(e.target.value)}
+              className="px-2 py-0.5 text-xs bg-black/40 border border-zinc-700 rounded text-zinc-200 focus:outline-none focus:border-indigo-500"
+            />
+            <span className="text-[11px] text-zinc-400 font-medium ml-1">Hasta:</span>
+            <input
+              type="date"
+              value={trendTo}
+              onChange={(e) => setTrendTo(e.target.value)}
+              className="px-2 py-0.5 text-xs bg-black/40 border border-zinc-700 rounded text-zinc-200 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+        )}
+      </div>
+
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 p-1 bg-zinc-900 rounded-xl w-fit border border-zinc-800">
         {TABS.map((tab) => (
@@ -625,7 +955,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
             key={tab}
             onClick={() => handleTabChange(tab)}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeTab === tab ? "bg-indigo-600 text-white shadow-lg" : "text-zinc-400 hover:text-zinc-200"
+              activeTab === tab ? "bg-indigo-600 text-white shadow-lg font-bold" : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             {tab}
@@ -657,23 +987,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
                       {isUnclassified && d.total > 0 && (
                         <button
                           onClick={() => setShowUnclassified((v) => !v)}
-                          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors ml-1 underline underline-offset-2 shrink-0"
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors ml-1 underline shrink-0"
                         >
                           {showUnclassified ? "ocultar" : "ver cuáles"}
                         </button>
                       )}
                     </div>
-                    {isUnclassified && showUnclassified && unclassifiedServers.length > 0 && (
-                      <div className="mt-2 ml-28 pl-2 border-l border-zinc-700/50 space-y-1">
-                        {unclassifiedServers.map((s) => (
-                          <div key={s.id} className="flex items-center gap-3 text-[10px] text-zinc-500">
-                            <span className="font-medium text-zinc-400 w-48 truncate">{s.serverName}</span>
-                            <span className="text-zinc-600">{s.ip ?? "sin IP"}</span>
-                            {s.isError && <span className="text-rose-400/70">error</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -689,28 +1008,9 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <InfoBanner text="Aún no hay syncs históricas registradas. Se mostrará el estado actual como referencia." />
           )}
           <div className="glass rounded-2xl p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="text-sm font-semibold text-zinc-200">
-                Tendencia de errores {!selectedBanks.includes("all") ? `(${selectedBanks.join(", ")})` : ""}
-              </h2>
-              {hasSyncHistory && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {(["all", "hoy", "semana", "mes", "custom"] as TrendFilter[]).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setTrendFilter(f)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors border ${
-                        trendFilter === f
-                          ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                          : "text-zinc-500 border-zinc-700/50 hover:text-zinc-300"
-                      }`}
-                    >
-                      {f === "all" ? "Todo" : f === "hoy" ? "Hoy" : f === "semana" ? "Semana" : f === "mes" ? "Mes" : "Rango"}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <h2 className="text-sm font-semibold text-zinc-200 mb-4">
+              Tendencia de errores {!selectedBanks.includes("all") ? `(${selectedBanks.join(", ")})` : ""}
+            </h2>
             {errorTrendData.length === 0 ? (
               <p className="text-zinc-500 text-sm text-center py-12">Sin datos para el período y banco seleccionados.</p>
             ) : (
@@ -761,22 +1061,16 @@ export default function ReportesView({ data }: ReportesViewProps) {
                 {isDayOpen && (
                   <div className="border-t border-zinc-800/60 divide-y divide-zinc-800/30">
                     {runs.map((run) => {
-                      const isSyncOpen = expandedSync === run.id;
                       const filteredRunRecords = run.records.filter((r) => matchesBankFilter(r.serverName, selectedBanks));
                       const filteredSuccess = filteredRunRecords.filter((r) => r.status === "ok").length;
                       const filteredErrors = filteredRunRecords.filter((r) => r.status === "error").length;
                       return (
-                        <div key={run.id}>
-                          <button
-                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors text-left"
-                            onClick={() => setExpandedSync(isSyncOpen ? null : run.id)}
-                          >
-                            <span className="text-xs font-medium text-zinc-300">Sync {new Date(run.syncedAt).toLocaleTimeString("es-AR")}</span>
-                            <div className="flex items-center gap-4 text-[11px]">
-                              <span className="text-emerald-400">✓ {filteredSuccess}</span>
-                              <span className="text-rose-400">✕ {filteredErrors}</span>
-                            </div>
-                          </button>
+                        <div key={run.id} className="px-6 py-3 flex items-center justify-between text-xs">
+                          <span className="font-medium text-zinc-300">Sync {new Date(run.syncedAt).toLocaleTimeString("es-AR")}</span>
+                          <div className="flex items-center gap-4 text-[11px]">
+                            <span className="text-emerald-400">✓ {filteredSuccess}</span>
+                            <span className="text-rose-400">✕ {filteredErrors}</span>
+                          </div>
                         </div>
                       );
                     })}
@@ -807,12 +1101,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
                 <div>
                   <span className="text-xs text-zinc-300 font-medium">#{i + 1} {g.message}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {g.servers.slice(0, 10).map((srv) => {
+                    {g.servers.slice(0, 12).map((srv) => {
                       const inf = getServerInfo(srv);
                       const bankLabel = inf ? inf.type : "Sin clasificar";
                       const color = TYPE_COLORS[bankLabel] ?? "#6b7280";
                       return (
-                        <span key={srv} className="px-1.5 py-0.5 rounded text-[9px] bg-zinc-900 border" style={{ color, borderColor: color + "44" }}>
+                        <span key={srv} className="px-1.5 py-0.5 rounded text-[9px] bg-zinc-900 border font-bold" style={{ color, borderColor: color + "44" }}>
                           {srv} ({bankLabel})
                         </span>
                       );
@@ -826,190 +1120,289 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* ── EVOLUCIONES (NUEVA SOLAPA) ── */}
+      {/* ── EVOLUCIONES (MEJORADO CON INTERACTIVIDAD Y AGRUPADO POR BANCO) ── */}
       {activeTab === "Evoluciones" && (
         <div key={`evoluciones-${tabKey}`} className="space-y-5">
-          {/* Controls bar */}
+          {/* Preset / Custom Controls Bar */}
           <div className="glass rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-semibold text-zinc-200">Período de comparación:</span>
+              <span className="text-xs font-semibold text-zinc-200">Período de Comparación:</span>
             </div>
             <div className="flex items-center gap-2">
-              {(["15d", "30d", "custom"] as EvolutionPreset[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setEvoPreset(p)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                    evoPreset === p
-                      ? "bg-indigo-600 text-white border-transparent shadow"
-                      : "text-zinc-400 border-zinc-800 hover:text-zinc-200"
-                  }`}
-                >
-                  {p === "15d" ? "Hace 15 días" : p === "30d" ? "Hace 1 mes" : "Personalizado"}
-                </button>
-              ))}
-              {evoPreset === "custom" && (
-                <input
-                  type="date"
-                  value={evoFrom}
-                  onChange={(e) => setEvoFrom(e.target.value)}
-                  className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-300"
-                />
-              )}
+              <span className="text-xs text-zinc-400 font-medium">Desde:</span>
+              <input
+                type="date"
+                value={evoFrom}
+                onChange={(e) => setEvoFrom(e.target.value)}
+                className="px-2.5 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
+              />
+              <span className="text-xs text-zinc-400 font-medium ml-1">Hasta:</span>
+              <input
+                type="date"
+                value={evoTo}
+                onChange={(e) => setEvoTo(e.target.value)}
+                placeholder="Hoy"
+                className="px-2.5 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={() => { setEvoFrom(""); setEvoTo(""); }}
+                className="px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200 bg-zinc-800/80 rounded-lg transition-colors ml-1"
+              >
+                Resetear (Hace 15d)
+              </button>
             </div>
           </div>
 
-          {/* Comparative Metrics Overview */}
+          {/* Interactive Metric Cards (Clickable for Detail Justification Modal) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="glass rounded-2xl p-5 border-l-4 border-l-zinc-500">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Estado Histórico ({evolucionesData.pastDateLabel})</span>
-                <span className="text-xs font-bold text-zinc-300">{evolucionesData.pastTotal} Servidores</span>
+            {/* Panel 1: Estado Histórico (Desde) */}
+            <div className="glass rounded-2xl p-5 border-l-4 border-l-zinc-500 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{evolucionesData.baselineTitle}</span>
+                <span className="text-xs font-bold text-zinc-300">{evolucionesData.baselineTotal} Servidores</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-base font-bold text-emerald-400">{evolucionesData.pastOk}</p>
-                  <p className="text-[10px] text-zinc-500">OK ({evolucionesData.pastSuccessRate}%)</p>
-                </div>
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                  <p className="text-base font-bold text-rose-400">{evolucionesData.pastErrors}</p>
-                  <p className="text-[10px] text-zinc-500">Errores</p>
-                </div>
-                <div className="p-2 rounded-xl bg-zinc-800/60 border border-zinc-700/50">
-                  <p className="text-base font-bold text-zinc-300">{evolucionesData.pastTotal - evolucionesData.pastOk - evolucionesData.pastErrors}</p>
-                  <p className="text-[10px] text-zinc-500">Sin datos</p>
-                </div>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => openMetricModal(evolucionesData.baselineTitle, "total", evolucionesData.baselineRecordsMap)}
+                  className="p-2 rounded-xl bg-zinc-800/60 border border-zinc-700/50 hover:bg-zinc-800 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-zinc-200 group-hover:scale-105 transition-transform">{evolucionesData.baselineTotal}</p>
+                  <p className="text-[10px] text-zinc-400">Total</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.baselineTitle, "ok", evolucionesData.baselineRecordsMap)}
+                  className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-emerald-400 group-hover:scale-105 transition-transform">{evolucionesData.baselineOk}</p>
+                  <p className="text-[10px] text-emerald-300">OK ({evolucionesData.baselineSuccessRate}%)</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.baselineTitle, "errors", evolucionesData.baselineRecordsMap)}
+                  className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-rose-400 group-hover:scale-105 transition-transform">{evolucionesData.baselineErrors}</p>
+                  <p className="text-[10px] text-rose-300">Errores</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.baselineTitle, "nodata", evolucionesData.baselineRecordsMap)}
+                  className="p-2 rounded-xl bg-zinc-800/40 border border-zinc-700/40 hover:bg-zinc-800/80 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-zinc-400 group-hover:scale-105 transition-transform">{evolucionesData.baselineNoData}</p>
+                  <p className="text-[10px] text-zinc-400">Sin datos</p>
+                </button>
               </div>
             </div>
 
-            <div className="glass rounded-2xl p-5 border-l-4 border-l-indigo-500">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-medium text-indigo-400 uppercase tracking-wider">Estado Actual</span>
-                <span className="text-xs font-bold text-zinc-200">{evolucionesData.currentTotal} Servidores</span>
+            {/* Panel 2: Estado Actual / Estado Histórico (Hasta) */}
+            <div className="glass rounded-2xl p-5 border-l-4 border-l-indigo-500 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">{evolucionesData.targetTitle}</span>
+                <span className="text-xs font-bold text-zinc-200">{evolucionesData.targetTotal} Servidores</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-base font-bold text-emerald-400">{evolucionesData.currentOk}</p>
-                  <p className="text-[10px] text-zinc-500">OK ({evolucionesData.currentSuccessRate}%)</p>
-                </div>
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                  <p className="text-base font-bold text-rose-400">{evolucionesData.currentErrors}</p>
-                  <p className="text-[10px] text-zinc-500">Errores</p>
-                </div>
-                <div className="p-2 rounded-xl bg-zinc-800/60 border border-zinc-700/50">
-                  <p className="text-base font-bold text-zinc-300">{evolucionesData.currentTotal - evolucionesData.currentOk - evolucionesData.currentErrors}</p>
-                  <p className="text-[10px] text-zinc-500">Sin datos</p>
-                </div>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => openMetricModal(evolucionesData.targetTitle, "total", evolucionesData.targetRecordsMap)}
+                  className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-indigo-300 group-hover:scale-105 transition-transform">{evolucionesData.targetTotal}</p>
+                  <p className="text-[10px] text-indigo-400">Total</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.targetTitle, "ok", evolucionesData.targetRecordsMap)}
+                  className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-emerald-400 group-hover:scale-105 transition-transform">{evolucionesData.targetOk}</p>
+                  <p className="text-[10px] text-emerald-300">OK ({evolucionesData.targetSuccessRate}%)</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.targetTitle, "errors", evolucionesData.targetRecordsMap)}
+                  className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-rose-400 group-hover:scale-105 transition-transform">{evolucionesData.targetErrors}</p>
+                  <p className="text-[10px] text-rose-300">Errores</p>
+                </button>
+                <button
+                  onClick={() => openMetricModal(evolucionesData.targetTitle, "nodata", evolucionesData.targetRecordsMap)}
+                  className="p-2 rounded-xl bg-zinc-800/40 border border-zinc-700/40 hover:bg-zinc-800/80 transition-all text-center group"
+                >
+                  <p className="text-base font-bold text-zinc-400 group-hover:scale-105 transition-transform">{evolucionesData.targetNoData}</p>
+                  <p className="text-[10px] text-zinc-400">Sin datos</p>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Detailed Differences Breakdown */}
+          {/* Diffs List - Grouped by Bank for Multi-Select */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Errores Solucionados */}
-            <div className="glass rounded-2xl p-5 border border-emerald-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <h3 className="text-xs font-bold text-emerald-400 uppercase">Errores Solucionados ({evolucionesData.solucionados.length})</h3>
-                </div>
+            <div className="glass rounded-2xl p-5 border border-emerald-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Errores Solucionados ({evolucionesData.solucionados.length})
+                </h3>
               </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {evolucionesData.solucionados.length === 0 ? (
                   <p className="text-xs text-zinc-500 py-4 text-center">Sin errores resueltos en este período.</p>
                 ) : (
-                  evolucionesData.solucionados.map((item) => (
-                    <div key={item.serverName} className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/15 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-zinc-200">{item.serverName} <span className="text-[10px] text-emerald-400 font-normal">({item.bank})</span></p>
-                        <p className="text-[10px] text-zinc-500 truncate max-w-xs">{item.pastError}</p>
+                  Object.entries(groupByBank(evolucionesData.solucionados)).map(([bankName, items]) => {
+                    const color = TYPE_COLORS[bankName] ?? "#10b981";
+                    return (
+                      <div key={bankName} className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <span style={{ color }}>{bankName}</span>
+                          <span className="text-[10px] text-zinc-500">({items.length})</span>
+                        </div>
+                        {items.map((item) => (
+                          <div key={item.serverName} className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-zinc-100">{item.serverName}</p>
+                              <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.pastError}</p>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                              [Solucionado]
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-bold">Solucionado</span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
 
-            {/* Nuevos / Reincidentes Errores */}
-            <div className="glass rounded-2xl p-5 border border-rose-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400" />
-                  <h3 className="text-xs font-bold text-rose-400 uppercase">Errores Actuales ({evolucionesData.nuevosErrores.length})</h3>
-                </div>
+            {/* Errores Actuales / Reincidentes */}
+            <div className="glass rounded-2xl p-5 border border-rose-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-rose-400" />
+                <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+                  Errores Actuales ({evolucionesData.nuevosErrores.length})
+                </h3>
               </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {evolucionesData.nuevosErrores.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">¡Sin errores reportados actualmente!</p>
+                  <p className="text-xs text-zinc-500 py-4 text-center">¡Sin errores en este período!</p>
                 ) : (
-                  evolucionesData.nuevosErrores.map((item) => (
-                    <div key={item.serverName} className="p-2 rounded-lg bg-rose-500/5 border border-rose-500/15 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-zinc-200">{item.serverName} <span className="text-[10px] text-rose-400 font-normal">({item.bank})</span></p>
-                        <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
+                  Object.entries(groupByBank(evolucionesData.nuevosErrores)).map(([bankName, items]) => {
+                    const color = TYPE_COLORS[bankName] ?? "#ef4444";
+                    return (
+                      <div key={bankName} className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <span style={{ color }}>{bankName}</span>
+                          <span className="text-[10px] text-zinc-500">({items.length})</span>
+                        </div>
+                        {items.map((item) => (
+                          <div key={item.serverName} className="p-2 rounded-lg bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-zinc-100">{item.serverName}</p>
+                              <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.currentError}</p>
+                            </div>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm border ${
+                              item.isRecurring
+                                ? "bg-rose-500/25 text-rose-300 border-rose-500/50"
+                                : "bg-amber-500/25 text-amber-300 border-amber-500/50"
+                            }`}>
+                              {item.isRecurring ? "[Reincidente]" : "[Nuevo Error]"}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${item.isRecurring ? "bg-rose-500/20 text-rose-300" : "bg-amber-500/20 text-amber-300"}`}>
-                        {item.isRecurring ? "Reincidente" : "Nuevo error"}
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
 
-            {/* Nuevos Servidores */}
-            <div className="glass rounded-2xl p-5 border border-indigo-500/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <PlusCircle className="w-4 h-4 text-indigo-400" />
-                  <h3 className="text-xs font-bold text-indigo-400 uppercase">Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})</h3>
-                </div>
+            {/* Nuevos Servidores Ingresados */}
+            <div className="glass rounded-2xl p-5 border border-indigo-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <PlusCircle className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                  Nuevos Servidores Ingresados ({evolucionesData.nuevosServidores.length})
+                </h3>
               </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {evolucionesData.nuevosServidores.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">Sin nuevos servidores agregados.</p>
+                  <p className="text-xs text-zinc-500 py-4 text-center">Sin nuevos servidores en el período.</p>
                 ) : (
-                  evolucionesData.nuevosServidores.map((item) => (
-                    <div key={item.serverName} className="p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/15 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-zinc-200">{item.serverName} <span className="text-[10px] text-indigo-400 font-normal">({item.bank})</span></p>
-                        <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
+                  Object.entries(groupByBank(evolucionesData.nuevosServidores)).map(([bankName, items]) => {
+                    const color = TYPE_COLORS[bankName] ?? "#6366f1";
+                    return (
+                      <div key={bankName} className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <span style={{ color }}>{bankName}</span>
+                          <span className="text-[10px] text-zinc-500">({items.length})</span>
+                        </div>
+                        {items.map((item) => (
+                          <div key={item.serverName} className="p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-zinc-100">{item.serverName}</p>
+                              <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm">
+                              [Nuevo ({item.status})]
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-bold">Nuevo ({item.status})</span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
 
-            {/* Servidores Inactivos / Removidos */}
+            {/* Servidores Removidos / Inactivos */}
             <div className="glass rounded-2xl p-5 border border-zinc-700/50">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <MinusCircle className="w-4 h-4 text-zinc-500" />
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase">Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})</h3>
-                </div>
+              <div className="flex items-center gap-2 mb-3">
+                <MinusCircle className="w-4 h-4 text-zinc-400" />
+                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                  Servidores Removidos / Inactivos ({evolucionesData.servidoresInactivos.length})
+                </h3>
               </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {evolucionesData.servidoresInactivos.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-4 text-center">Sin servidores removidos en este período.</p>
+                  <p className="text-xs text-zinc-500 py-4 text-center">Sin servidores inactivos en el período.</p>
                 ) : (
-                  evolucionesData.servidoresInactivos.map((item) => (
-                    <div key={item.serverName} className="p-2 rounded-lg bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-zinc-400">{item.serverName} <span className="text-[10px] text-zinc-500">({item.bank})</span></p>
+                  Object.entries(groupByBank(evolucionesData.servidoresInactivos)).map(([bankName, items]) => {
+                    const color = TYPE_COLORS[bankName] ?? "#71717a";
+                    return (
+                      <div key={bankName} className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-300 pb-1 border-b border-zinc-800/60">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <span style={{ color }}>{bankName}</span>
+                          <span className="text-[10px] text-zinc-500">({items.length})</span>
+                        </div>
+                        {items.map((item) => (
+                          <div key={item.serverName} className="p-2 rounded-lg bg-zinc-800/40 border border-zinc-700/40 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-zinc-300">{item.serverName}</p>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-700/40 text-zinc-400 border border-zinc-600/40">
+                              [Inactivo]
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[9px] bg-zinc-700/40 text-zinc-400 font-bold">Inactivo</span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Metric Detail Justification Modal */}
+      <MetricDetailModal
+        isOpen={metricModalOpen}
+        onClose={() => setMetricModalOpen(false)}
+        modalData={metricModalData}
+      />
 
       <EmailModal 
         isOpen={!!emailPayload} 
