@@ -9,9 +9,9 @@ import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
-  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText
+  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send
 } from "lucide-react";
-import { downloadCSV, downloadPDF, ExportRow } from "@/lib/exportUtils";
+import { downloadCSV, downloadPDF, downloadFullReportPDF, FullReportPDFPayload, ExportRow } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
 
 interface SyncRunData {
@@ -590,11 +590,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
       .filter((g) => g.serverCount > 0);
   }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks, timeFilter, trendFrom, trendTo]);
 
-  // ── EVOLUCIONES COMPUTE (BASELINE VS TARGET DRIVEN BY UNIFIED TOP TIME FILTER) ────────────────
+  // ── EVOLUCIONES COMPUTE ──────────────────────────────────────────────────
   const evolucionesData = useMemo(() => {
     const now = new Date();
     
-    // 1. Determine Baseline Date from unified timeFilter
     let baselineDate = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
     if (timeFilter === "semana") {
       baselineDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -607,7 +606,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       baselineDate = new Date(trendFrom);
     }
 
-    // 2. Determine Target Date from trendTo
     let isTargetToday = true;
     let targetDate = now;
     if (timeFilter === "custom" && trendTo) {
@@ -619,7 +617,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Resolve baseline run closest to baselineDate
     let baselineRun: SyncRunData | null = null;
     if (data.syncRuns.length > 0) {
       let minDiff = Infinity;
@@ -632,7 +629,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Resolve target run (if target is not today)
     let targetRun: SyncRunData | null = null;
     if (!isTargetToday && data.syncRuns.length > 0) {
       let minDiff = Infinity;
@@ -645,7 +641,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       }
     }
 
-    // Map Target state records
     const targetRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
 
     if (isTargetToday || !targetRun) {
@@ -680,7 +675,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       });
     }
 
-    // Map Baseline state records
     const baselineRecordsMap = new Map<string, { serverName: string; ip: string | null; os: string | null; installedKBs: string | null; errorDescription: string | null; status: string; bank: string }>();
     if (baselineRun) {
       baselineRun.records.forEach((r) => {
@@ -700,7 +694,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
       });
     }
 
-    // Compute diffs
     const solucionados: Array<{ serverName: string; ip: string | null; pastError: string; bank: string }> = [];
     const nuevosErrores: Array<{ serverName: string; ip: string | null; currentError: string; isRecurring: boolean; bank: string }> = [];
     const nuevosServidores: Array<{ serverName: string; ip: string | null; status: string; bank: string }> = [];
@@ -774,6 +767,78 @@ export default function ReportesView({ data }: ReportesViewProps) {
     };
   }, [data.syncRuns, filteredEnrichedServers, timeFilter, trendFrom, trendTo, selectedBanks]);
 
+  // COMPILED FULL REPORT PAYLOAD ACROSS ALL 5 SUBMODULES
+  const fullReportPayload = useMemo((): FullReportPDFPayload => {
+    const selectedBanksText = selectedBanks.includes("all")
+      ? "Todos los bancos"
+      : selectedBanks.join(", ");
+
+    let timeFilterText = "Todo el historial";
+    if (timeFilter === "hoy") timeFilterText = "Hoy";
+    else if (timeFilter === "semana") timeFilterText = "Última Semana (7 días)";
+    else if (timeFilter === "mes") timeFilterText = "Último Mes (30 días)";
+    else if (timeFilter === "custom") {
+      timeFilterText = `Personalizado (${trendFrom || "Inicio"} a ${trendTo || "Hoy"})`;
+    }
+
+    return {
+      selectedBanksText,
+      timeFilterText,
+      generatedAt: new Date().toLocaleString("es-AR"),
+      byType: byTypeData,
+      errorTrend: errorTrendData,
+      syncList: syncListDayGroups.map((g) => ({
+        day: g.day,
+        serverCount: g.serverCount,
+        totalSuccess: g.totalSuccess,
+        totalErrors: g.totalErrors,
+        successRate: g.successRate,
+      })),
+      topErrors: errorGroups.map((g, idx) => ({
+        rank: idx + 1,
+        message: g.message,
+        count: g.count,
+        serversText: g.servers.join(", "),
+      })),
+      evoluciones: {
+        baselineTitle: evolucionesData.baselineTitle,
+        baselineTotal: evolucionesData.baselineTotal,
+        baselineOk: evolucionesData.baselineOk,
+        baselineErrors: evolucionesData.baselineErrors,
+        baselineNoData: evolucionesData.baselineNoData,
+        targetTitle: evolucionesData.targetTitle,
+        targetTotal: evolucionesData.targetTotal,
+        targetOk: evolucionesData.targetOk,
+        targetErrors: evolucionesData.targetErrors,
+        targetNoData: evolucionesData.targetNoData,
+        solucionados: evolucionesData.solucionados.map((s) => ({
+          serverName: s.serverName,
+          bank: s.bank,
+          ip: s.ip ?? "—",
+          pastError: s.pastError,
+        })),
+        nuevosErrores: evolucionesData.nuevosErrores.map((s) => ({
+          serverName: s.serverName,
+          bank: s.bank,
+          ip: s.ip ?? "—",
+          currentError: s.currentError,
+          badge: s.isRecurring ? "[Reincidente]" : "[Nuevo Error]",
+        })),
+        nuevosServidores: evolucionesData.nuevosServidores.map((s) => ({
+          serverName: s.serverName,
+          bank: s.bank,
+          ip: s.ip ?? "—",
+          status: s.status,
+        })),
+        servidoresInactivos: evolucionesData.servidoresInactivos.map((s) => ({
+          serverName: s.serverName,
+          bank: s.bank,
+          ip: s.ip ?? "—",
+        })),
+      },
+    };
+  }, [selectedBanks, timeFilter, trendFrom, trendTo, byTypeData, errorTrendData, syncListDayGroups, errorGroups, evolucionesData]);
+
   // Open Metric Detail Modal with justification
   const openMetricModal = (
     panelName: string,
@@ -831,7 +896,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
     setMetricModalOpen(true);
   };
 
-  // Helper to group array items by Bank for multi-bank horizontal button row below card titles
   const getBankCounts = <T extends { bank: string }>(items: T[]): Array<{ name: string; count: number }> => {
     const counts: Record<string, number> = {};
     items.forEach((item) => {
@@ -843,6 +907,49 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
   return (
     <div className="space-y-4">
+      {/* ── FULL INTEGRATED REPORT ACTION BAR ── */}
+      <div className="glass rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 border border-indigo-500/30 bg-indigo-500/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              Obtener o enviar Reporte Completo
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
+                5 Submódulos Integrados
+              </span>
+            </h2>
+            <p className="text-xs text-zinc-400">
+              Genera un informe completo consolidado (Por Tipo, Errores, Syncs, Top Errores, Evoluciones) filtrado por <strong className="text-zinc-200">{fullReportPayload.selectedBanksText}</strong> y <strong className="text-zinc-200">{fullReportPayload.timeFilterText}</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadFullReportPDF(fullReportPayload, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`)}
+            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Descargar PDF Completo
+          </button>
+          <button
+            onClick={() => {
+              setEmailPayload({
+                attachmentType: "report",
+                summaryText: `Reporte Completo Integrado - Banco(s): ${fullReportPayload.selectedBanksText} | Tiempo: ${fullReportPayload.timeFilterText}`,
+                data: [fullReportPayload],
+              });
+            }}
+            className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all shadow-md flex items-center gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            Enviar por Correo
+          </button>
+        </div>
+      </div>
+
       {/* ── Multi-Bank Selection & Color Legend Bar ── */}
       <div className="glass rounded-xl px-4 py-3 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -1096,7 +1203,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         </div>
       )}
 
-      {/* ── EVOLUCIONES (PESTAÑAS DE BANCO DIRECTAMENTE DEBAJO DEL TÍTULO DE LA TARJETA + COLORES DE BADGES CORREGIDOS) ── */}
+      {/* ── EVOLUCIONES ── */}
       {activeTab === "Evoluciones" && (
         <div key={`evoluciones-${tabKey}`} className="space-y-5">
           {/* Interactive Metric Cards (Clickable for Detail Justification Modal) */}
