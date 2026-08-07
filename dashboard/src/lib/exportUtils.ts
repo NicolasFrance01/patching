@@ -37,11 +37,6 @@ export interface FullReportPDFPayload {
   generatedAt: string;
   inactivityThresholdText?: string;
   inactiveServersByBank?: InactiveBankGroup[];
-  chartImages?: {
-    byTypeBar?: string;
-    byTypePie?: string;
-    trendLine?: string;
-  };
   byType: Array<{ name: string; total: number; ok: number; error: number; nodata: number; successRate: number }>;
   errorTrend: Array<{ label: string; ok: number; errores: number; total: number }>;
   syncList: Array<{ day: string; serverCount: number; totalSuccess: number; totalErrors: number; successRate: number }>;
@@ -81,42 +76,20 @@ function toRow(r: ExportRow): string[] {
   ];
 }
 
-export async function svgToPngDataUrl(svgElement: SVGElement): Promise<string> {
-  return new Promise((resolve) => {
-    try {
-      const clone = svgElement.cloneNode(true) as SVGElement;
-      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      const svgString = new XMLSerializer().serializeToString(clone);
-      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const URL = window.URL || window.webkitURL || window;
-      const blobURL = URL.createObjectURL(svgBlob);
-      
-      const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement("canvas");
-        const scale = 2;
-        const w = (svgElement.clientWidth || 600) * scale;
-        const h = (svgElement.clientHeight || 300) * scale;
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.fillStyle = "#18181b"; // Dark background theme
-          ctx.fillRect(0, 0, w, h);
-          ctx.drawImage(image, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL("image/png");
-          URL.revokeObjectURL(blobURL);
-          resolve(dataUrl);
-        } else {
-          resolve("");
-        }
-      };
-      image.onerror = () => resolve("");
-      image.src = blobURL;
-    } catch (e) {
-      resolve("");
-    }
-  });
+async function getBase64ImageFromUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return "";
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return "";
+  }
 }
 
 export function downloadCSV(rows: ExportRow[], filename: string) {
@@ -169,69 +142,80 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
   doc.save(filename);
 }
 
-export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
+export async function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  let y = 14;
 
-  // Title Banner matching template 02_plantilla_SEC 1.dotx
-  doc.setFillColor(30, 27, 75); // Dark Indigo
-  doc.rect(0, 0, 210, 28, "F");
+  // Fetch exact header and footer template images from public directory
+  const headerImg = await getBase64ImageFromUrl("/encabezado.png");
+  const footerImg = await getBase64ImageFromUrl("/pie de pag.png");
 
-  // Gold accent bar from template
-  doc.setFillColor(245, 158, 11);
-  doc.rect(0, 27, 210, 1, "F");
-  
-  doc.setFontSize(13);
+  const drawPageHeaderAndFooter = () => {
+    if (headerImg) {
+      doc.addImage(headerImg, "PNG", 0, 0, 210, 32);
+    } else {
+      doc.setFillColor(30, 27, 75);
+      doc.rect(0, 0, 210, 28, "F");
+      doc.setFillColor(245, 158, 11);
+      doc.rect(0, 27, 210, 1, "F");
+    }
+
+    if (footerImg) {
+      doc.addImage(footerImg, "PNG", 0, 297 - 28, 210, 28);
+    } else {
+      doc.setFillColor(30, 27, 75);
+      doc.rect(0, 287, 210, 10, "F");
+    }
+  };
+
+  // Draw Page 1 Header and Footer
+  drawPageHeaderAndFooter();
+
+  let y = 36;
+
+  // Title Banner Card below header
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(14, y, 182, 22, 2, 2, "FD");
+  doc.setFillColor(79, 70, 229);
+  doc.rect(14, y, 3, 22, "F");
+
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  doc.text("REPORTE COMPLETO INTEGRADO DE PARCHEO Y SERVIDORES", 14, 11);
+  doc.setTextColor(30, 27, 75);
+  doc.text("REPORTE COMPLETO INTEGRADO DE PARCHEO Y SERVIDORES", 20, y + 6);
 
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(199, 210, 254);
-  doc.text(`Filtros: Banco(s): ${payload.selectedBanksText}  |  Filtro Tiempo: ${payload.timeFilterText}`, 14, 18);
-  doc.text(`Emisión: ${payload.generatedAt}  |  Umbral Inactividad: ${payload.inactivityThresholdText || "15 días"}`, 14, 23);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Filtros: Banco(s): ${payload.selectedBanksText}  |  Filtro Tiempo: ${payload.timeFilterText}`, 20, y + 12);
+  doc.text(`Emisión: ${payload.generatedAt}  |  Umbral Inactividad: ${payload.inactivityThresholdText || "15 días"}`, 20, y + 17);
 
-  y = 34;
+  y += 28;
+
+  const checkPageBreak = (neededHeight: number) => {
+    if (y + neededHeight > 265) {
+      doc.addPage();
+      drawPageHeaderAndFooter();
+      y = 36;
+    }
+  };
 
   const addSectionHeader = (title: string, colorRGB: [number, number, number] = [79, 70, 229]) => {
-    if (y > 240) { doc.addPage(); y = 15; }
+    checkPageBreak(12);
     doc.setFillColor(...colorRGB);
-    doc.rect(14, y, 182, 7, "F");
-    doc.setFontSize(9.5);
+    doc.roundedRect(14, y, 182, 7, 1, 1, "F");
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     doc.text(title.toUpperCase(), 18, y + 5);
-    y += 10;
+    y += 11;
   };
 
   // ── SECTION 1: Por Tipo ──
   addSectionHeader("1. Resumen por Tipo de Banco", [79, 70, 229]);
 
-  // Embed captured DOM PNG images if present
-  if (payload.chartImages?.byTypeBar) {
-    if (y > 200) { doc.addPage(); y = 15; }
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 41, 59);
-    doc.text("Gráfico Capturado: Servidores por Tipo (Barras)", 14, y);
-    y += 3;
-    doc.addImage(payload.chartImages.byTypeBar, "PNG", 14, y, 182, 55);
-    y += 58;
-  }
-
-  if (payload.chartImages?.byTypePie) {
-    if (y > 200) { doc.addPage(); y = 15; }
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 41, 59);
-    doc.text("Gráfico Capturado: Distribución por Tipo (Dona)", 14, y);
-    y += 3;
-    doc.addImage(payload.chartImages.byTypePie, "PNG", 14, y, 182, 55);
-    y += 58;
-  }
-
-  // Chart 1.1: Visual Progress Bars
+  // Chart 1.1: Visual Progress Bars (Tasa de éxito por tipo)
+  checkPageBreak(25);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
@@ -239,7 +223,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   y += 4;
 
   payload.byType.forEach((item) => {
-    if (y > 260) { doc.addPage(); y = 15; }
+    checkPageBreak(8);
     const color = BANK_RGB[item.name] ?? [99, 102, 241];
     
     doc.setFontSize(7.5);
@@ -268,63 +252,73 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y += 4;
 
-  // Chart 1.2: Vector Stacked Bar Chart
-  if (y > 220) { doc.addPage(); y = 15; }
+  // Chart 1.2: Crisp Vector Stacked Bar Chart (Servidores por tipo)
+  checkPageBreak(45);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
-  doc.text("Gráfico Vectorial: Distribución de OK, Errores y Sin datos", 14, y);
+  doc.text("Gráfico Vectorial: Distribución de OK (Verde), Errores (Rojo) y Sin datos (Gris)", 14, y);
   y += 4;
 
   const chartX = 14;
   const chartY = y;
   const chartW = 182;
-  const chartH = 36;
+  const chartH = 38;
 
-  doc.setFillColor(248, 250, 252);
+  // Crisp White Background Container
+  doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 232, 240);
-  doc.rect(chartX, chartY, chartW, chartH, "FD");
+  doc.roundedRect(chartX, chartY, chartW, chartH, 2, 2, "FD");
+
+  // Subtle Slate Gridlines
+  doc.setDrawColor(241, 245, 249);
+  doc.setLineWidth(0.2);
+  for (let gl = 1; gl <= 3; gl++) {
+    const gridY = chartY + (chartH / 4) * gl;
+    doc.line(chartX + 8, gridY, chartX + chartW - 8, gridY);
+  }
 
   const maxTotal = Math.max(...payload.byType.map((d) => d.total), 1);
   const colWidth = Math.min(22, (chartW - 20) / Math.max(1, payload.byType.length));
 
   payload.byType.forEach((item, idx) => {
     const barX = chartX + 12 + idx * colWidth;
-    const okH = (chartH - 8) * (item.ok / maxTotal);
-    const errH = (chartH - 8) * (item.error / maxTotal);
-    const nodataH = (chartH - 8) * (item.nodata / maxTotal);
+    const okH = (chartH - 10) * (item.ok / maxTotal);
+    const errH = (chartH - 10) * (item.error / maxTotal);
+    const nodataH = (chartH - 10) * (item.nodata / maxTotal);
 
-    let currY = chartY + chartH - 4;
+    let currY = chartY + chartH - 5;
 
     if (okH > 0) {
       currY -= okH;
-      doc.setFillColor(16, 185, 129);
+      doc.setFillColor(16, 185, 129); // Emerald Green
       doc.rect(barX, currY, colWidth - 4, okH, "F");
     }
     if (errH > 0) {
       currY -= errH;
-      doc.setFillColor(239, 68, 68);
+      doc.setFillColor(239, 68, 68); // Rose Red
       doc.rect(barX, currY, colWidth - 4, errH, "F");
     }
     if (nodataH > 0) {
       currY -= nodataH;
-      doc.setFillColor(100, 116, 139);
+      doc.setFillColor(100, 116, 139); // Slate Gray
       doc.rect(barX, currY, colWidth - 4, nodataH, "F");
     }
 
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(71, 85, 105);
-    doc.text(item.name.slice(0, 7), barX + (colWidth - 4) / 2, chartY + chartH - 1, { align: "center" });
+    doc.text(item.name.slice(0, 8), barX + (colWidth - 4) / 2, chartY + chartH - 1, { align: "center" });
 
     doc.setFontSize(6);
     doc.setTextColor(30, 41, 59);
-    doc.text(String(item.total), barX + (colWidth - 4) / 2, currY - 1, { align: "center" });
+    doc.text(String(item.total), barX + (colWidth - 4) / 2, Math.max(chartY + 3, currY - 1), { align: "center" });
   });
 
   y = chartY + chartH + 6;
 
   // Table 1: Summary Table
+  checkPageBreak(30);
   autoTable(doc, {
     startY: y,
     head: [["Tipo / Banco", "Total Servidores", "OK", "Errores", "Sin Datos", "Tasa de Éxito %"]],
@@ -333,28 +327,19 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     headStyles: { fillColor: [49, 46, 129], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // ── SECTION 2: Errores por Sync ──
   addSectionHeader("2. Tendencia de Errores por Sincronización", [3, 105, 161]);
 
-  if (payload.chartImages?.trendLine) {
-    if (y > 200) { doc.addPage(); y = 15; }
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 41, 59);
-    doc.text("Gráfico Capturado: Tendencia de Errores por Sincronización", 14, y);
-    y += 3;
-    doc.addImage(payload.chartImages.trendLine, "PNG", 14, y, 182, 55);
-    y += 58;
-  }
-
   if (payload.errorTrend.length > 0) {
+    checkPageBreak(50);
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 41, 59);
-    doc.text("Gráfico Vectorial: Tendencia de Errores (Rojo) y OK (Verde) en el Tiempo", 14, y);
+    doc.text("Gráfico Vectorial: Tendencia de Errores (Línea Roja) y Éxitos (Línea Verde)", 14, y);
     y += 4;
 
     const lineChartX = 14;
@@ -362,9 +347,9 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     const lineChartW = 182;
     const lineChartH = 40;
 
-    doc.setFillColor(248, 250, 252);
+    doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
-    doc.rect(lineChartX, lineChartY, lineChartW, lineChartH, "FD");
+    doc.roundedRect(lineChartX, lineChartY, lineChartW, lineChartH, 2, 2, "FD");
 
     const maxVal = Math.max(...payload.errorTrend.map((d) => Math.max(d.errores, d.ok, d.total)), 1);
     const pointsCount = payload.errorTrend.length;
@@ -415,6 +400,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   }
 
   // Table 2: Trend Table
+  checkPageBreak(30);
   autoTable(doc, {
     startY: y,
     head: [["Fecha Sync", "Total Servidores", "Servidores OK", "Servidores con Error"]],
@@ -423,11 +409,13 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     headStyles: { fillColor: [3, 105, 161], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 249, 255] },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // ── SECTION 3: Listado de Syncs ──
   addSectionHeader("3. Listado de Sincronizaciones por Día", [4, 120, 87]);
+  checkPageBreak(30);
   autoTable(doc, {
     startY: y,
     head: [["Fecha / Día", "Total Servidores", "OK", "Errores", "Tasa Éxito %"]],
@@ -436,11 +424,13 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 253, 244] },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // ── SECTION 4: Top Errores ──
   addSectionHeader("4. Top Errores Más Frecuentes", [159, 18, 57]);
+  checkPageBreak(30);
   autoTable(doc, {
     startY: y,
     head: [["#", "Mensaje de Error", "Afectados", "Servidores Afectados"]],
@@ -450,13 +440,14 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     alternateRowStyles: { fillColor: [255, 241, 242] },
     columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 70 }, 2: { cellWidth: 20 }, 3: { cellWidth: "auto" } },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // ── SECTION 5: Evoluciones ──
   addSectionHeader("5. Evolución Histórica y Comparativa", [124, 58, 237]);
   
-  if (y > 220) { doc.addPage(); y = 15; }
+  checkPageBreak(30);
 
   // KPI Card 1: Baseline
   doc.setFillColor(248, 250, 252);
@@ -497,6 +488,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   y += 28;
 
   // Subtable 5.1 Errores Solucionados
+  checkPageBreak(25);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(4, 120, 87);
@@ -511,11 +503,12 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.2 Errores Actuales
-  if (y > 240) { doc.addPage(); y = 15; }
+  checkPageBreak(25);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(159, 18, 57);
@@ -530,11 +523,12 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [159, 18, 57], textColor: 255, fontStyle: "bold" },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.3 Nuevos Servidores Ingresados
-  if (y > 240) { doc.addPage(); y = 15; }
+  checkPageBreak(25);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(67, 56, 202);
@@ -549,11 +543,12 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [67, 56, 202], textColor: 255, fontStyle: "bold" },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.4 Servidores Removidos / Inactivos
-  if (y > 240) { doc.addPage(); y = 15; }
+  checkPageBreak(25);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(71, 85, 105);
@@ -568,6 +563,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: "bold" },
     margin: { left: 14, right: 14 },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
 
@@ -576,7 +572,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     addSectionHeader(`6. Servidores Inactivos por Umbral (${payload.inactivityThresholdText || "15 días"})`, [225, 29, 72]);
 
     payload.inactiveServersByBank.forEach((group) => {
-      if (y > 240) { doc.addPage(); y = 15; }
+      checkPageBreak(25);
 
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
@@ -600,20 +596,19 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
         headStyles: { fillColor: rgb, textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [254, 242, 242] },
         margin: { left: 14, right: 14 },
+        didDrawPage: () => drawPageHeaderAndFooter(),
       });
       y = (doc as any).lastAutoTable.finalY + 8;
     });
   }
 
-  // Footer page numbering & template footer accent
+  // Ensure Page numbers on footers of every page
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFillColor(30, 27, 75);
-    doc.rect(0, 287, 210, 10, "F");
     doc.setFontSize(7);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Página ${i} de ${pageCount}  |  Dashboard de Parcheo de Servidores (Template SEC 1)`, 105, 293, { align: "center" });
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Página ${i} de ${pageCount}`, 196, 292, { align: "right" });
   }
 
   doc.save(filename);

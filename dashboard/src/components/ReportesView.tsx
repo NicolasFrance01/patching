@@ -12,7 +12,7 @@ import {
   TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server
 } from "lucide-react";
 import {
-  downloadCSV, downloadPDF, downloadFullReportPDF, svgToPngDataUrl,
+  downloadCSV, downloadPDF, downloadFullReportPDF,
   FullReportPDFPayload, ExportRow, InactiveServerItem, InactiveBankGroup
 } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
@@ -913,26 +913,13 @@ export default function ReportesView({ data }: ReportesViewProps) {
     };
   }, [selectedBanks, timeFilter, trendFrom, trendTo, inactivityThreshold, inactivityCustomFrom, inactiveServersData, byTypeData, errorTrendData, syncListDayGroups, errorGroups, evolucionesData]);
 
-  // Capture DOM rendered SVG charts to PNG Data URLs
+  // Clean Vector PDF Export with Encabezado.png and Pie de Pag.png
   const handleExportPDFWithCharts = async () => {
     setIsExportingPDF(true);
     try {
-      const chartImages: FullReportPDFPayload["chartImages"] = {};
-      const svgElements = Array.from(document.querySelectorAll<SVGElement>("svg.recharts-surface"));
-
-      if (svgElements[0]) chartImages.byTypeBar = await svgToPngDataUrl(svgElements[0]);
-      if (svgElements[1]) chartImages.byTypePie = await svgToPngDataUrl(svgElements[1]);
-      if (svgElements[2]) chartImages.trendLine = await svgToPngDataUrl(svgElements[2]);
-
-      const payloadWithCharts = {
-        ...fullReportPayload,
-        chartImages,
-      };
-
-      downloadFullReportPDF(payloadWithCharts, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`);
+      await downloadFullReportPDF(fullReportPayload, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (e) {
       console.error("PDF export error:", e);
-      downloadFullReportPDF(fullReportPayload, `Reporte_Completo_Parcheo_${new Date().toISOString().slice(0, 10)}.pdf`);
     } finally {
       setIsExportingPDF(false);
     }
@@ -1016,7 +1003,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
               Obtener o enviar Reporte Completo
               <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
-                6 Submódulos + Plantilla SEC 1
+                Encabezado & Pie de Página Oficial
               </span>
             </h2>
             <p className="text-xs text-zinc-400">
@@ -1032,23 +1019,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
             className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {isExportingPDF ? "Generando PDF con Gráficos..." : "Descargar PDF Completo"}
+            {isExportingPDF ? "Generando PDF Oficial..." : "Descargar PDF Completo"}
           </button>
           <button
-            onClick={async () => {
-              const chartImages = await (async () => {
-                const imgs: FullReportPDFPayload["chartImages"] = {};
-                const svgs = Array.from(document.querySelectorAll<SVGElement>("svg.recharts-surface"));
-                if (svgs[0]) imgs.byTypeBar = await svgToPngDataUrl(svgs[0]);
-                if (svgs[1]) imgs.byTypePie = await svgToPngDataUrl(svgs[1]);
-                if (svgs[2]) imgs.trendLine = await svgToPngDataUrl(svgs[2]);
-                return imgs;
-              })();
-
+            onClick={() => {
               setEmailPayload({
                 attachmentType: "report",
                 summaryText: `Reporte Completo Integrado - Banco(s): ${fullReportPayload.selectedBanksText} | Tiempo: ${fullReportPayload.timeFilterText}`,
-                data: [{ ...fullReportPayload, chartImages }],
+                data: [fullReportPayload],
               });
             }}
             className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all shadow-md flex items-center gap-2"
