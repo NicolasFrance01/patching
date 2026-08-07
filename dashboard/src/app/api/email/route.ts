@@ -45,6 +45,7 @@ export async function POST(req: Request) {
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; font-size: 12px; margin-bottom: 20px;">
           <strong>Bancos Seleccionados:</strong> ${rep.selectedBanksText || "Todos"}<br/>
           <strong>Filtro de Tiempo:</strong> ${rep.timeFilterText || "Todo"}<br/>
+          <strong>Umbral Inactividad:</strong> ${rep.inactivityThresholdText || "15 días"}<br/>
           <strong>Emisión:</strong> ${rep.generatedAt || new Date().toLocaleString("es-AR")}
         </div>
       `;
@@ -114,13 +115,39 @@ export async function POST(req: Request) {
             <strong>Baseline (${rep.evoluciones.baselineTitle}):</strong> Total ${rep.evoluciones.baselineTotal} | OK: ${rep.evoluciones.baselineOk} | Errores: ${rep.evoluciones.baselineErrors} | Sin datos: ${rep.evoluciones.baselineNoData}<br/>
             <strong>Target (${rep.evoluciones.targetTitle}):</strong> Total ${rep.evoluciones.targetTotal} | OK: ${rep.evoluciones.targetOk} | Errores: ${rep.evoluciones.targetErrors} | Sin datos: ${rep.evoluciones.targetNoData}
           </p>
-          <div style="font-size: 11px; margin-top: 10px;">
-            <p style="color: #059669; font-weight: bold; margin: 4px 0;">🟢 Errores Solucionados (${rep.evoluciones.solucionados?.length || 0})</p>
-            <p style="color: #dc2626; font-weight: bold; margin: 4px 0;">🔴 Errores Actuales (${rep.evoluciones.nuevosErrores?.length || 0})</p>
-            <p style="color: #4f46e5; font-weight: bold; margin: 4px 0;">🔵 Nuevos Servidores Ingresados (${rep.evoluciones.nuevosServidores?.length || 0})</p>
-            <p style="color: #475569; font-weight: bold; margin: 4px 0;">⚪ Servidores Removidos / Inactivos (${rep.evoluciones.servidoresInactivos?.length || 0})</p>
-          </div>
         `;
+      }
+
+      if (rep.inactiveServersByBank && rep.inactiveServersByBank.length > 0) {
+        htmlBody += `
+          <h3 style="margin-top: 25px; color: #e11d48; border-bottom: 2px solid #e11d48; padding-bottom: 4px; font-size: 14px;">4. Servidores Inactivos (Umbral: ${rep.inactivityThresholdText || "15 días"})</h3>
+        `;
+        rep.inactiveServersByBank.forEach((g: any) => {
+          htmlBody += `
+            <h4 style="margin-top: 12px; margin-bottom: 6px; font-size: 12px; color: #334155;">Banco ${g.bank} (${g.count} servidores inactivos)</h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+              <thead>
+                <tr style="background-color: #f1f5f9; text-align: left;">
+                  <th style="padding: 6px; border: 1px solid #e2e8f0;">Servidor</th>
+                  <th style="padding: 6px; border: 1px solid #e2e8f0;">IP</th>
+                  <th style="padding: 6px; border: 1px solid #e2e8f0;">Último Reporte</th>
+                  <th style="padding: 6px; border: 1px solid #e2e8f0;">Inactividad</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          g.servers.forEach((s: any) => {
+            htmlBody += `
+              <tr>
+                <td style="padding: 6px; border: 1px solid #e2e8f0; font-weight: bold;">${s.serverName}</td>
+                <td style="padding: 6px; border: 1px solid #e2e8f0;">${s.ip}</td>
+                <td style="padding: 6px; border: 1px solid #e2e8f0;">${s.lastSeenDate}</td>
+                <td style="padding: 6px; border: 1px solid #e2e8f0; color: #e11d48; font-weight: bold;">${s.elapsedDaysText}</td>
+              </tr>
+            `;
+          });
+          htmlBody += `</tbody></table>`;
+        });
       }
     } else if (payload && Array.isArray(payload) && payload.length > 0) {
       // Standard history table

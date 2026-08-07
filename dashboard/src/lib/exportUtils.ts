@@ -15,10 +15,28 @@ export interface ExportRow {
   error: string;
 }
 
+export interface InactiveServerItem {
+  serverName: string;
+  bank: string;
+  ip: string;
+  lastSeenDate: string;
+  elapsedDaysText: string;
+  lastOS: string;
+  lastStatus: string;
+}
+
+export interface InactiveBankGroup {
+  bank: string;
+  count: number;
+  servers: InactiveServerItem[];
+}
+
 export interface FullReportPDFPayload {
   selectedBanksText: string;
   timeFilterText: string;
   generatedAt: string;
+  inactivityThresholdText?: string;
+  inactiveServersByBank?: InactiveBankGroup[];
   chartImages?: {
     byTypeBar?: string;
     byTypePie?: string;
@@ -155,9 +173,13 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let y = 14;
 
-  // Title Banner
+  // Title Banner matching template 02_plantilla_SEC 1.dotx
   doc.setFillColor(30, 27, 75); // Dark Indigo
   doc.rect(0, 0, 210, 28, "F");
+
+  // Gold accent bar from template
+  doc.setFillColor(245, 158, 11);
+  doc.rect(0, 27, 210, 1, "F");
   
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
@@ -168,7 +190,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   doc.setFont("helvetica", "normal");
   doc.setTextColor(199, 210, 254);
   doc.text(`Filtros: Banco(s): ${payload.selectedBanksText}  |  Filtro Tiempo: ${payload.timeFilterText}`, 14, 18);
-  doc.text(`Emisión: ${payload.generatedAt}`, 14, 23);
+  doc.text(`Emisión: ${payload.generatedAt}  |  Umbral Inactividad: ${payload.inactivityThresholdText || "15 días"}`, 14, 23);
 
   y = 34;
 
@@ -547,14 +569,51 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: "bold" },
     margin: { left: 14, right: 14 },
   });
+  y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Footer page numbering
+  // ── SECTION 6: Servidores Inactivos por Tiempo Configurado ──
+  if (payload.inactiveServersByBank && payload.inactiveServersByBank.length > 0) {
+    addSectionHeader(`6. Servidores Inactivos por Umbral (${payload.inactivityThresholdText || "15 días"})`, [225, 29, 72]);
+
+    payload.inactiveServersByBank.forEach((group) => {
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      const rgb = BANK_RGB[group.bank] ?? [225, 29, 72];
+      doc.setTextColor(...rgb);
+      doc.text(`Banco ${group.bank} (${group.count} servidores inactivos)`, 14, y);
+      y += 3;
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Servidor", "IP", "Último Reporte", "Inactividad", "Sistema Operativo", "Último Estado"]],
+        body: group.servers.map((s) => [
+          s.serverName,
+          s.ip || "—",
+          s.lastSeenDate,
+          s.elapsedDaysText,
+          s.lastOS || "—",
+          s.lastStatus === "ok" ? "OK" : s.lastStatus === "error" ? "Error" : "Sin Datos",
+        ]),
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: rgb, textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [254, 242, 242] },
+        margin: { left: 14, right: 14 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    });
+  }
+
+  // Footer page numbering & template footer accent
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    doc.setFillColor(30, 27, 75);
+    doc.rect(0, 287, 210, 10, "F");
     doc.setFontSize(7);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`Página ${i} de ${pageCount}  |  Dashboard de Parcheo de Servidores`, 105, 290, { align: "center" });
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Página ${i} de ${pageCount}  |  Dashboard de Parcheo de Servidores (Template SEC 1)`, 105, 293, { align: "center" });
   }
 
   doc.save(filename);

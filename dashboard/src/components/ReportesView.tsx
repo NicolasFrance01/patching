@@ -9,9 +9,12 @@ import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
-  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send
+  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server
 } from "lucide-react";
-import { downloadCSV, downloadPDF, downloadFullReportPDF, svgToPngDataUrl, FullReportPDFPayload, ExportRow } from "@/lib/exportUtils";
+import {
+  downloadCSV, downloadPDF, downloadFullReportPDF, svgToPngDataUrl,
+  FullReportPDFPayload, ExportRow, InactiveServerItem, InactiveBankGroup
+} from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
 
 interface SyncRunData {
@@ -45,8 +48,9 @@ type ByTypeItem = {
 
 type TimeFilter = "all" | "hoy" | "semana" | "mes" | "custom";
 type BankFilter = "all" | ServerType | "unclassified";
+type InactivityThreshold = "7d" | "15d" | "30d" | "custom";
 
-const TABS = ["Por Tipo", "Errores por Sync", "Listado de Syncs", "Top Errores", "Evoluciones"] as const;
+const TABS = ["Por Tipo", "Errores por Sync", "Listado de Syncs", "Top Errores", "Evoluciones", "Inactividad"] as const;
 type Tab = (typeof TABS)[number];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -367,6 +371,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
 
+  // Inactivity Submodule Threshold State
+  const [inactivityThreshold, setInactivityThreshold] = useState<InactivityThreshold>("15d");
+  const [inactivityCustomFrom, setInactivityCustomFrom] = useState("");
+
   // Card Bank Sub-tab Filter States inside Evoluciones cards
   const [solucionadosBank, setSolucionadosBank] = useState<string | null>(null);
   const [erroresBank, setErroresBank] = useState<string | null>(null);
@@ -419,6 +427,67 @@ export default function ReportesView({ data }: ReportesViewProps) {
     if (selectedBanks.includes("all")) return ["all"];
     return selectedBanks;
   }, [selectedBanks]);
+
+  // ── INACTIVITY COMPUTE ──────────────────────────────────────────────────
+  const inactiveServersData = useMemo(() => {
+    const now = new Date();
+    let cutOffDate = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
+
+    if (inactivityThreshold === "7d") {
+      cutOffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (inactivityThreshold === "30d") {
+      cutOffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (inactivityThreshold === "custom" && inactivityCustomFrom) {
+      cutOffDate = new Date(inactivityCustomFrom);
+    }
+
+    const inactiveList: InactiveServerItem[] = [];
+
+    for (const s of data.currentServers) {
+      if (!matchesBankFilter(s.serverName, selectedBanks)) continue;
+      const info = getServerInfo(s.serverName, s.ip);
+      const bank = info ? info.type : "Sin clasificar";
+      const updatedDate = new Date(s.updatedAt);
+
+      if (updatedDate < cutOffDate) {
+        const diffTime = Math.abs(now.getTime() - updatedDate.getTime());
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        let lastStatus = "nodata";
+        if (s.errorDescription && s.errorDescription !== "N/A") lastStatus = "error";
+        else if (s.os && s.os !== "N/A") lastStatus = "ok";
+
+        inactiveList.push({
+          serverName: s.serverName,
+          bank,
+          ip: s.ip ?? "—",
+          lastSeenDate: updatedDate.toLocaleDateString("es-AR") + " " + updatedDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+          elapsedDaysText: `hace ${diffDays} días`,
+          lastOS: s.os ?? "Sin datos",
+          lastStatus,
+        });
+      }
+    }
+
+    const bankGroupsMap: Record<string, InactiveServerItem[]> = {};
+    inactiveList.forEach((s) => {
+      if (!bankGroupsMap[s.bank]) bankGroupsMap[s.bank] = [];
+      bankGroupsMap[s.bank].push(s);
+    });
+
+    const grouped: InactiveBankGroup[] = Object.entries(bankGroupsMap)
+      .map(([bank, servers]) => ({
+        bank,
+        count: servers.length,
+        servers: servers.sort((a, b) => a.serverName.localeCompare(b.serverName)),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      totalInactive: inactiveList.length,
+      grouped,
+    };
+  }, [data.currentServers, selectedBanks, inactivityThreshold, inactivityCustomFrom]);
 
   // ── Por Tipo ──────────────────────────────────────────────────────────────
   const byTypeData = useMemo((): ByTypeItem[] => {
@@ -768,7 +837,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
     };
   }, [data.syncRuns, filteredEnrichedServers, timeFilter, trendFrom, trendTo, selectedBanks]);
 
-  // COMPILED FULL REPORT PAYLOAD ACROSS ALL 5 SUBMODULES
+  // COMPILED FULL REPORT PAYLOAD ACROSS ALL 6 SUBMODULES
   const fullReportPayload = useMemo((): FullReportPDFPayload => {
     const selectedBanksText = selectedBanks.includes("all")
       ? "Todos los bancos"
@@ -782,10 +851,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
       timeFilterText = `Personalizado (${trendFrom || "Inicio"} a ${trendTo || "Hoy"})`;
     }
 
+    const thresholdText = inactivityThreshold === "7d" ? "7 días" : inactivityThreshold === "15d" ? "15 días" : inactivityThreshold === "30d" ? "1 mes (30d)" : `Personalizado (${inactivityCustomFrom || "Fecha corte"})`;
+
     return {
       selectedBanksText,
       timeFilterText,
       generatedAt: new Date().toLocaleString("es-AR"),
+      inactivityThresholdText: thresholdText,
+      inactiveServersByBank: inactiveServersData.grouped,
       byType: byTypeData,
       errorTrend: errorTrendData,
       syncList: syncListDayGroups.map((g) => ({
@@ -838,7 +911,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
         })),
       },
     };
-  }, [selectedBanks, timeFilter, trendFrom, trendTo, byTypeData, errorTrendData, syncListDayGroups, errorGroups, evolucionesData]);
+  }, [selectedBanks, timeFilter, trendFrom, trendTo, inactivityThreshold, inactivityCustomFrom, inactiveServersData, byTypeData, errorTrendData, syncListDayGroups, errorGroups, evolucionesData]);
 
   // Capture DOM rendered SVG charts to PNG Data URLs
   const handleExportPDFWithCharts = async () => {
@@ -943,11 +1016,11 @@ export default function ReportesView({ data }: ReportesViewProps) {
             <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
               Obtener o enviar Reporte Completo
               <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
-                5 Submódulos + Gráficos
+                6 Submódulos + Plantilla SEC 1
               </span>
             </h2>
             <p className="text-xs text-zinc-400">
-              Genera un informe completo consolidado (Por Tipo, Errores, Syncs, Top Errores, Evoluciones) filtrado por <strong className="text-zinc-200">{fullReportPayload.selectedBanksText}</strong> y <strong className="text-zinc-200">{fullReportPayload.timeFilterText}</strong>.
+              Genera un informe completo consolidado (Por Tipo, Errores, Syncs, Top Errores, Evoluciones, Inactividad) filtrado por <strong className="text-zinc-200">{fullReportPayload.selectedBanksText}</strong> y <strong className="text-zinc-200">{fullReportPayload.timeFilterText}</strong>.
             </p>
           </div>
         </div>
@@ -1518,7 +1591,6 @@ export default function ReportesView({ data }: ReportesViewProps) {
                             <p className="font-bold text-zinc-100">{item.serverName} <span className="text-[10px] text-zinc-500 font-normal">({item.bank})</span></p>
                             <p className="text-[10px] text-zinc-500">IP: {item.ip ?? "N/A"}</p>
                           </div>
-                          {/* BADGE: ROJO 🔴 si Error, VERDE 🟢 si OK */}
                           {isErr ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm shrink-0">
                               [Nuevo (Error)]
@@ -1605,6 +1677,112 @@ export default function ReportesView({ data }: ReportesViewProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── INACTIVIDAD ── */}
+      {activeTab === "Inactividad" && (
+        <div key={`inactividad-${tabKey}`} className="space-y-5">
+          {/* Threshold Selector Control Bar */}
+          <div className="glass rounded-2xl p-5 border border-rose-500/30 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                  Detección Automática de Servidores Inactivos
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                    {inactiveServersData.totalInactive} Servidores sin datos
+                  </span>
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Filtra los servidores que no han enviado datos durante un período determinado.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-300 mr-1">Tiempo de Inactividad:</span>
+              {(["7d", "15d", "30d", "custom"] as InactivityThreshold[]).map((thresh) => (
+                <button
+                  key={thresh}
+                  onClick={() => setInactivityThreshold(thresh)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    inactivityThreshold === thresh
+                      ? "bg-rose-600 text-white border-transparent shadow-lg scale-105"
+                      : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  }`}
+                >
+                  {thresh === "7d" ? "7 días" : thresh === "15d" ? "15 días" : thresh === "30d" ? "1 mes (30d)" : "Personalizado"}
+                </button>
+              ))}
+
+              {inactivityThreshold === "custom" && (
+                <div className="flex items-center gap-2 bg-zinc-900/90 px-3 py-1 rounded-xl border border-zinc-800">
+                  <span className="text-[11px] text-zinc-400 font-medium">Corte Inactivo:</span>
+                  <input
+                    type="date"
+                    value={inactivityCustomFrom}
+                    onChange={(e) => setInactivityCustomFrom(e.target.value)}
+                    className="px-2 py-0.5 text-xs bg-black/40 border border-zinc-700 rounded text-zinc-200 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Grouped Visibly by Bank Cards */}
+          {inactiveServersData.grouped.length === 0 ? (
+            <div className="glass rounded-2xl p-12 text-center text-zinc-400">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3 opacity-80" />
+              <p className="text-sm font-semibold text-zinc-200">¡Todos los servidores han reportado datos dentro del tiempo configurado!</p>
+              <p className="text-xs text-zinc-500 mt-1">No se detectaron servidores inactivos mayores a {inactivityThreshold === "7d" ? "7 días" : inactivityThreshold === "15d" ? "15 días" : inactivityThreshold === "30d" ? "30 días" : "la fecha corte"}.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {inactiveServersData.grouped.map((group) => {
+                const color = TYPE_COLORS[group.bank] ?? "#71717a";
+                return (
+                  <div key={group.bank} className="glass rounded-2xl p-5 border border-zinc-800 space-y-3 flex flex-col justify-between" style={{ borderLeftWidth: "4px", borderLeftColor: color }}>
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                          <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">{group.bank}</h3>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-zinc-900 border text-zinc-300" style={{ borderColor: color + "66", color }}>
+                          {group.count} inactivos
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 mt-3 max-h-80 overflow-y-auto pr-1">
+                        {group.servers.map((s) => (
+                          <div key={s.serverName} className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between text-xs hover:border-zinc-700 transition-colors">
+                            <div>
+                              <p className="font-bold text-zinc-100 flex items-center gap-1.5">
+                                <Server className="w-3.5 h-3.5 text-zinc-500" />
+                                {s.serverName}
+                              </p>
+                              <p className="text-[10px] text-zinc-500 mt-0.5">
+                                IP: <span className="text-zinc-400">{s.ip}</span> · OS: <span className="text-zinc-400">{s.lastOS}</span>
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                {s.elapsedDaysText}
+                              </span>
+                              <p className="text-[9px] text-zinc-500 mt-0.5">{s.lastSeenDate}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
