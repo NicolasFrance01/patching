@@ -96,14 +96,22 @@ export function downloadCSV(rows: ExportRow[], filename: string) {
 export function downloadPDF(rows: ExportRow[], filename: string, title: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
+  // Page Dimensions: 297mm W x 210mm H
   const drawPageHeaderAndFooter = () => {
-    // Header image centered at top (297mm width x 30mm height)
+    // Header image centered: aspect ratio 461/125 = 3.688. W=110mm, H=29.8mm
     if (HEADER_IMAGE_BASE64) {
-      doc.addImage(HEADER_IMAGE_BASE64, "PNG", 0, 0, 297, 30);
+      const hW = 110;
+      const hH = hW / 3.688;
+      const hX = (297 - hW) / 2;
+      doc.addImage(HEADER_IMAGE_BASE64, "PNG", hX, 4, hW, hH);
     }
-    // Footer image centered at bottom (297mm width x 24mm height)
+
+    // Footer image centered: aspect ratio 916/206 = 4.4466. W=160mm, H=36mm
     if (FOOTER_IMAGE_BASE64) {
-      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", 0, 210 - 24, 297, 24);
+      const fW = 160;
+      const fH = fW / 4.4466;
+      const fX = (297 - fW) / 2;
+      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", fX, 210 - fH - 3, fW, fH);
     }
   };
 
@@ -112,21 +120,21 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 27, 75);
-  doc.text(title.toUpperCase(), 14, 34);
+  doc.text(title.toUpperCase(), 14, 38);
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
-  doc.text(`Generado: ${new Date().toLocaleString("es-AR")}  |  Total: ${rows.length} servidores`, 14, 39);
+  doc.text(`Generado: ${new Date().toLocaleString("es-AR")}  |  Total: ${rows.length} servidores`, 14, 43);
 
   autoTable(doc, {
-    startY: 42,
+    startY: 46,
     head: [HEADERS],
     body: rows.map(toRow),
     styles: { fontSize: 6.5, cellPadding: 1.5, overflow: "linebreak" },
     headStyles: { fillColor: [30, 27, 75], textColor: 255, fontSize: 7, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 245, 250] },
-    margin: { top: 42, bottom: 26, left: 14, right: 14 },
+    margin: { top: 46, bottom: 42, left: 14, right: 14 },
     columnStyles: {
       0: { cellWidth: 30 },  // Servidor
       1: { cellWidth: 20 },  // Dominio
@@ -150,7 +158,7 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Página ${i} de ${pageCount}`, 283, 205, { align: "right" });
+    doc.text(`Página ${i} de ${pageCount}`, 283, 203, { align: "right" });
   }
 
   doc.save(filename);
@@ -160,59 +168,67 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
 export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
+  // Page Dimensions: 210mm W x 297mm H
   const drawPageHeaderAndFooter = () => {
-    // Top Header Image (encabezado.png) - 210mm width x 32mm height
+    // Top Header Image (encabezado.png) - aspect ratio 461/125 = 3.688. W=95mm, H=25.75mm, Centered
     if (HEADER_IMAGE_BASE64) {
-      doc.addImage(HEADER_IMAGE_BASE64, "PNG", 0, 0, 210, 32);
+      const hW = 95;
+      const hH = hW / 3.688;
+      const hX = (210 - hW) / 2;
+      doc.addImage(HEADER_IMAGE_BASE64, "PNG", hX, 5, hW, hH);
     }
-    // Bottom Footer Image (pie de pag.png) - 210mm width x 26mm height
+
+    // Bottom Footer Image (pie de pag.png) - aspect ratio 916/206 = 4.4466. W=150mm, H=33.7mm, Centered
     if (FOOTER_IMAGE_BASE64) {
-      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", 0, 297 - 26, 210, 26);
+      const fW = 150;
+      const fH = fW / 4.4466;
+      const fX = (210 - fW) / 2;
+      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", fX, 297 - fH - 4, fW, fH);
     }
   };
 
   // Draw Page 1 Header and Footer
   drawPageHeaderAndFooter();
 
-  let y = 36;
+  let y = 35;
 
   // Title Banner Card below header
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(14, y, 182, 22, 2, 2, "FD");
+  doc.roundedRect(14, y, 182, 20, 2, 2, "FD");
   doc.setFillColor(79, 70, 229);
-  doc.rect(14, y, 3, 22, "F");
+  doc.rect(14, y, 3, 20, "F");
 
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 27, 75);
-  doc.text("REPORTE COMPLETO INTEGRADO DE PARCHEO Y SERVIDORES", 20, y + 6);
+  doc.text("REPORTE COMPLETO INTEGRADO DE PARCHEO Y SERVIDORES", 20, y + 5.5);
 
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(71, 85, 105);
-  doc.text(`Filtros: Banco(s): ${payload.selectedBanksText}  |  Filtro Tiempo: ${payload.timeFilterText}`, 20, y + 12);
-  doc.text(`Emisión: ${payload.generatedAt}  |  Umbral Inactividad: ${payload.inactivityThresholdText || "15 días"}`, 20, y + 17);
+  doc.text(`Filtros: Banco(s): ${payload.selectedBanksText}  |  Filtro Tiempo: ${payload.timeFilterText}`, 20, y + 11);
+  doc.text(`Emisión: ${payload.generatedAt}  |  Umbral Inactividad: ${payload.inactivityThresholdText || "15 días"}`, 20, y + 15.5);
 
-  y += 28;
+  y += 25;
 
   const checkPageBreak = (neededHeight: number) => {
-    if (y + neededHeight > 265) {
+    if (y + neededHeight > 255) {
       doc.addPage();
       drawPageHeaderAndFooter();
-      y = 36;
+      y = 35;
     }
   };
 
   const addSectionHeader = (title: string, colorRGB: [number, number, number] = [79, 70, 229]) => {
     checkPageBreak(12);
     doc.setFillColor(...colorRGB);
-    doc.roundedRect(14, y, 182, 7, 1, 1, "F");
-    doc.setFontSize(9);
+    doc.roundedRect(14, y, 182, 6.5, 1, 1, "F");
+    doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text(title.toUpperCase(), 18, y + 5);
-    y += 11;
+    doc.text(title.toUpperCase(), 18, y + 4.5);
+    y += 10;
   };
 
   // ── SECTION 1: Por Tipo ──
@@ -220,7 +236,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   // Chart 1.1: Visual Progress Bars (Tasa de éxito por tipo)
   checkPageBreak(25);
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
   doc.text("Tasa de Éxito y Volumen por Banco", 14, y);
@@ -258,7 +274,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   // Chart 1.2: Vector Stacked Bar Chart (Servidores por tipo)
   checkPageBreak(45);
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
   doc.text("Gráfico Vectorial: Distribución de OK (Verde), Errores (Rojo) y Sin datos (Gris)", 14, y);
@@ -267,7 +283,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   const chartX = 14;
   const chartY = y;
   const chartW = 182;
-  const chartH = 38;
+  const chartH = 36;
 
   // Background Container
   doc.setFillColor(255, 255, 255);
@@ -327,20 +343,20 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     startY: y,
     head: [["Tipo / Banco", "Total Servidores", "OK", "Errores", "Sin Datos", "Tasa de Éxito %"]],
     body: payload.byType.map((d) => [d.name, String(d.total), String(d.ok), String(d.error), String(d.nodata), `${d.successRate}%`]),
-    styles: { fontSize: 8, cellPadding: 2 },
+    styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [49, 46, 129], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
   // ── SECTION 2: Errores por Sync ──
   addSectionHeader("2. Tendencia de Errores por Sincronización", [3, 105, 161]);
 
   if (payload.errorTrend.length > 0) {
-    checkPageBreak(50);
-    doc.setFontSize(8.5);
+    checkPageBreak(45);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 41, 59);
     doc.text("Gráfico Vectorial: Tendencia de Errores (Línea Roja) y Éxitos (Línea Verde)", 14, y);
@@ -349,7 +365,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     const lineChartX = 14;
     const lineChartY = y;
     const lineChartW = 182;
-    const lineChartH = 40;
+    const lineChartH = 36;
 
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
@@ -409,13 +425,13 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     startY: y,
     head: [["Fecha Sync", "Total Servidores", "Servidores OK", "Servidores con Error"]],
     body: payload.errorTrend.map((d) => [d.label, String(d.total), String(d.ok), String(d.errores)]),
-    styles: { fontSize: 8, cellPadding: 2 },
+    styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [3, 105, 161], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 249, 255] },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
   // ── SECTION 3: Listado de Syncs ──
   addSectionHeader("3. Listado de Sincronizaciones por Día", [4, 120, 87]);
@@ -424,13 +440,13 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     startY: y,
     head: [["Fecha / Día", "Total Servidores", "OK", "Errores", "Tasa Éxito %"]],
     body: payload.syncList.map((d) => [d.day, String(d.serverCount), String(d.totalSuccess), String(d.totalErrors), `${d.successRate}%`]),
-    styles: { fontSize: 8, cellPadding: 2 },
+    styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 253, 244] },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
   // ── SECTION 4: Top Errores ──
   addSectionHeader("4. Top Errores Más Frecuentes", [159, 18, 57]);
@@ -439,14 +455,14 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     startY: y,
     head: [["#", "Mensaje de Error", "Afectados", "Servidores Afectados"]],
     body: payload.topErrors.map((d) => [String(d.rank), d.message, String(d.count), d.serversText]),
-    styles: { fontSize: 7.5, cellPadding: 2 },
+    styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [159, 18, 57], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [255, 241, 242] },
     columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 70 }, 2: { cellWidth: 20 }, 3: { cellWidth: "auto" } },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
   // ── SECTION 5: Evoluciones ──
   addSectionHeader("5. Evolución Histórica y Comparativa", [124, 58, 237]);
@@ -456,44 +472,44 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   // KPI Card 1: Baseline
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(14, y, 88, 22, 2, 2, "FD");
+  doc.roundedRect(14, y, 88, 20, 2, 2, "FD");
   doc.setFillColor(100, 116, 139);
-  doc.rect(14, y, 3, 22, "F");
+  doc.rect(14, y, 3, 20, "F");
 
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(71, 85, 105);
-  doc.text(payload.evoluciones.baselineTitle.toUpperCase(), 20, y + 5);
+  doc.text(payload.evoluciones.baselineTitle.toUpperCase(), 20, y + 4.5);
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(30, 41, 59);
-  doc.text(`Total Servidores: ${payload.evoluciones.baselineTotal}`, 20, y + 10);
-  doc.text(`OK: ${payload.evoluciones.baselineOk}  |  Errores: ${payload.evoluciones.baselineErrors}  |  Sin datos: ${payload.evoluciones.baselineNoData}`, 20, y + 15);
+  doc.text(`Total Servidores: ${payload.evoluciones.baselineTotal}`, 20, y + 9.5);
+  doc.text(`OK: ${payload.evoluciones.baselineOk}  |  Errores: ${payload.evoluciones.baselineErrors}  |  Sin datos: ${payload.evoluciones.baselineNoData}`, 20, y + 14.5);
 
   // KPI Card 2: Target
   doc.setFillColor(240, 242, 254);
   doc.setDrawColor(199, 210, 254);
-  doc.roundedRect(108, y, 88, 22, 2, 2, "FD");
+  doc.roundedRect(108, y, 88, 20, 2, 2, "FD");
   doc.setFillColor(79, 70, 229);
-  doc.rect(108, y, 3, 22, "F");
+  doc.rect(108, y, 3, 20, "F");
 
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(67, 56, 202);
-  doc.text(payload.evoluciones.targetTitle.toUpperCase(), 114, y + 5);
+  doc.text(payload.evoluciones.targetTitle.toUpperCase(), 114, y + 4.5);
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(30, 41, 59);
-  doc.text(`Total Servidores: ${payload.evoluciones.targetTotal}`, 114, y + 10);
-  doc.text(`OK: ${payload.evoluciones.targetOk}  |  Errores: ${payload.evoluciones.targetErrors}  |  Sin datos: ${payload.evoluciones.targetNoData}`, 114, y + 15);
+  doc.text(`Total Servidores: ${payload.evoluciones.targetTotal}`, 114, y + 9.5);
+  doc.text(`OK: ${payload.evoluciones.targetOk}  |  Errores: ${payload.evoluciones.targetErrors}  |  Sin datos: ${payload.evoluciones.targetNoData}`, 114, y + 14.5);
 
-  y += 28;
+  y += 25;
 
   // Subtable 5.1 Errores Solucionados
   checkPageBreak(25);
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(4, 120, 87);
   doc.text(`5.1 Errores Solucionados (${payload.evoluciones.solucionados.length})`, 14, y);
@@ -504,16 +520,16 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     body: payload.evoluciones.solucionados.length > 0
       ? payload.evoluciones.solucionados.map((d) => [d.serverName, d.bank, d.ip || "—", d.pastError, "SOLUCIONADO"])
       : [["Sin errores solucionados en este período", "-", "-", "-", "-"]],
-    styles: { fontSize: 7.5, cellPadding: 1.5 },
+    styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.2 Errores Actuales
   checkPageBreak(25);
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(159, 18, 57);
   doc.text(`5.2 Errores Actuales (${payload.evoluciones.nuevosErrores.length})`, 14, y);
@@ -524,16 +540,16 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     body: payload.evoluciones.nuevosErrores.length > 0
       ? payload.evoluciones.nuevosErrores.map((d) => [d.serverName, d.bank, d.ip || "—", d.currentError, d.badge])
       : [["Sin errores reportados en este período", "-", "-", "-", "-"]],
-    styles: { fontSize: 7.5, cellPadding: 1.5 },
+    styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [159, 18, 57], textColor: 255, fontStyle: "bold" },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.3 Nuevos Servidores Ingresados
   checkPageBreak(25);
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(67, 56, 202);
   doc.text(`5.3 Nuevos Servidores Ingresados (${payload.evoluciones.nuevosServidores.length})`, 14, y);
@@ -544,16 +560,16 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     body: payload.evoluciones.nuevosServidores.length > 0
       ? payload.evoluciones.nuevosServidores.map((d) => [d.serverName, d.bank, d.ip || "—", d.status])
       : [["Sin nuevos servidores en este período", "-", "-", "-"]],
-    styles: { fontSize: 7.5, cellPadding: 1.5 },
+    styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [67, 56, 202], textColor: 255, fontStyle: "bold" },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
   // Subtable 5.4 Servidores Removidos / Inactivos
   checkPageBreak(25);
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(71, 85, 105);
   doc.text(`5.4 Servidores Removidos / Inactivos (${payload.evoluciones.servidoresInactivos.length})`, 14, y);
@@ -564,12 +580,12 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     body: payload.evoluciones.servidoresInactivos.length > 0
       ? payload.evoluciones.servidoresInactivos.map((d) => [d.serverName, d.bank, d.ip || "—", "INACTIVO"])
       : [["Sin servidores inactivos en este período", "-", "-", "-"]],
-    styles: { fontSize: 7.5, cellPadding: 1.5 },
+    styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: "bold" },
-    margin: { top: 36, bottom: 28, left: 14, right: 14 },
+    margin: { top: 35, bottom: 42, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
   // ── SECTION 6: Servidores Inactivos por Tiempo Configurado ──
   if (payload.inactiveServersByBank && payload.inactiveServersByBank.length > 0) {
@@ -578,7 +594,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     payload.inactiveServersByBank.forEach((group) => {
       checkPageBreak(25);
 
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
       const rgb = BANK_RGB[group.bank] ?? [225, 29, 72];
       doc.setTextColor(...rgb);
@@ -596,10 +612,10 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
           s.lastOS || "—",
           s.lastStatus === "ok" ? "OK" : s.lastStatus === "error" ? "Error" : "Sin Datos",
         ]),
-        styles: { fontSize: 7, cellPadding: 1.5 },
+        styles: { fontSize: 6.5, cellPadding: 1.5 },
         headStyles: { fillColor: rgb, textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [254, 242, 242] },
-        margin: { top: 36, bottom: 28, left: 14, right: 14 },
+        margin: { top: 35, bottom: 42, left: 14, right: 14 },
         didDrawPage: () => drawPageHeaderAndFooter(),
       });
       y = (doc as any).lastAutoTable.finalY + 8;
@@ -612,7 +628,7 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Página ${i} de ${pageCount}`, 196, 292, { align: "right" });
+    doc.text(`Página ${i} de ${pageCount}`, 196, 290, { align: "right" });
   }
 
   doc.save(filename);
