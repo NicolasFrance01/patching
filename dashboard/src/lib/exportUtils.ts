@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { HEADER_IMAGE_BASE64, FOOTER_IMAGE_BASE64 } from "./pdfAssets";
 
 export interface ExportRow {
   servidor: string;
@@ -76,22 +77,6 @@ function toRow(r: ExportRow): string[] {
   ];
 }
 
-async function getBase64ImageFromUrl(url: string): Promise<string> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return "";
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve("");
-      reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    return "";
-  }
-}
-
 export function downloadCSV(rows: ExportRow[], filename: string) {
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = [
@@ -107,23 +92,41 @@ export function downloadCSV(rows: ExportRow[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// ── STANDARD LIST PDF GENERATION (LANDSCAPE) ──
 export function downloadPDF(rows: ExportRow[], filename: string, title: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  doc.setFontSize(12);
-  doc.setTextColor(40);
-  doc.text(title, 14, 14);
+  const drawPageHeaderAndFooter = () => {
+    // Header image centered at top (297mm width x 30mm height)
+    if (HEADER_IMAGE_BASE64) {
+      doc.addImage(HEADER_IMAGE_BASE64, "PNG", 0, 0, 297, 30);
+    }
+    // Footer image centered at bottom (297mm width x 24mm height)
+    if (FOOTER_IMAGE_BASE64) {
+      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", 0, 210 - 24, 297, 24);
+    }
+  };
+
+  drawPageHeaderAndFooter();
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 27, 75);
+  doc.text(title.toUpperCase(), 14, 34);
+
   doc.setFontSize(8);
-  doc.setTextColor(120);
-  doc.text(`Generado: ${new Date().toLocaleString("es-AR")}  |  Total: ${rows.length} servidores`, 14, 20);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Generado: ${new Date().toLocaleString("es-AR")}  |  Total: ${rows.length} servidores`, 14, 39);
 
   autoTable(doc, {
-    startY: 25,
+    startY: 42,
     head: [HEADERS],
     body: rows.map(toRow),
     styles: { fontSize: 6.5, cellPadding: 1.5, overflow: "linebreak" },
-    headStyles: { fillColor: [63, 63, 70], textColor: 255, fontSize: 7, fontStyle: "bold" },
+    headStyles: { fillColor: [30, 27, 75], textColor: 255, fontSize: 7, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 245, 250] },
+    margin: { top: 42, bottom: 26, left: 14, right: 14 },
     columnStyles: {
       0: { cellWidth: 30 },  // Servidor
       1: { cellWidth: 20 },  // Dominio
@@ -137,33 +140,34 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
       9: { cellWidth: 14 },  // Estado
       10: { cellWidth: "auto" }, // Error
     },
+    didDrawPage: () => {
+      drawPageHeaderAndFooter();
+    },
   });
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Página ${i} de ${pageCount}`, 283, 205, { align: "right" });
+  }
 
   doc.save(filename);
 }
 
-export async function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
+// ── FULL REPORT PDF GENERATION (PORTRAIT) ──
+export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // Fetch exact header and footer template images from public directory
-  const headerImg = await getBase64ImageFromUrl("/encabezado.png");
-  const footerImg = await getBase64ImageFromUrl("/pie de pag.png");
-
   const drawPageHeaderAndFooter = () => {
-    if (headerImg) {
-      doc.addImage(headerImg, "PNG", 0, 0, 210, 32);
-    } else {
-      doc.setFillColor(30, 27, 75);
-      doc.rect(0, 0, 210, 28, "F");
-      doc.setFillColor(245, 158, 11);
-      doc.rect(0, 27, 210, 1, "F");
+    // Top Header Image (encabezado.png) - 210mm width x 32mm height
+    if (HEADER_IMAGE_BASE64) {
+      doc.addImage(HEADER_IMAGE_BASE64, "PNG", 0, 0, 210, 32);
     }
-
-    if (footerImg) {
-      doc.addImage(footerImg, "PNG", 0, 297 - 28, 210, 28);
-    } else {
-      doc.setFillColor(30, 27, 75);
-      doc.rect(0, 287, 210, 10, "F");
+    // Bottom Footer Image (pie de pag.png) - 210mm width x 26mm height
+    if (FOOTER_IMAGE_BASE64) {
+      doc.addImage(FOOTER_IMAGE_BASE64, "PNG", 0, 297 - 26, 210, 26);
     }
   };
 
@@ -252,7 +256,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
 
   y += 4;
 
-  // Chart 1.2: Crisp Vector Stacked Bar Chart (Servidores por tipo)
+  // Chart 1.2: Vector Stacked Bar Chart (Servidores por tipo)
   checkPageBreak(45);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "bold");
@@ -265,12 +269,12 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
   const chartW = 182;
   const chartH = 38;
 
-  // Crisp White Background Container
+  // Background Container
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 232, 240);
   doc.roundedRect(chartX, chartY, chartW, chartH, 2, 2, "FD");
 
-  // Subtle Slate Gridlines
+  // Gridlines
   doc.setDrawColor(241, 245, 249);
   doc.setLineWidth(0.2);
   for (let gl = 1; gl <= 3; gl++) {
@@ -326,7 +330,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [49, 46, 129], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -408,7 +412,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [3, 105, 161], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 249, 255] },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -423,7 +427,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [240, 253, 244] },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -439,7 +443,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
     headStyles: { fillColor: [159, 18, 57], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [255, 241, 242] },
     columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 70 }, 2: { cellWidth: 20 }, 3: { cellWidth: "auto" } },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -502,7 +506,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
       : [["Sin errores solucionados en este período", "-", "-", "-", "-"]],
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: "bold" },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
@@ -522,7 +526,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
       : [["Sin errores reportados en este período", "-", "-", "-", "-"]],
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [159, 18, 57], textColor: 255, fontStyle: "bold" },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
@@ -542,7 +546,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
       : [["Sin nuevos servidores en este período", "-", "-", "-"]],
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [67, 56, 202], textColor: 255, fontStyle: "bold" },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 8;
@@ -562,7 +566,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
       : [["Sin servidores inactivos en este período", "-", "-", "-"]],
     styles: { fontSize: 7.5, cellPadding: 1.5 },
     headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: "bold" },
-    margin: { left: 14, right: 14 },
+    margin: { top: 36, bottom: 28, left: 14, right: 14 },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });
   y = (doc as any).lastAutoTable.finalY + 10;
@@ -595,7 +599,7 @@ export async function downloadFullReportPDF(payload: FullReportPDFPayload, filen
         styles: { fontSize: 7, cellPadding: 1.5 },
         headStyles: { fillColor: rgb, textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [254, 242, 242] },
-        margin: { left: 14, right: 14 },
+        margin: { top: 36, bottom: 28, left: 14, right: 14 },
         didDrawPage: () => drawPageHeaderAndFooter(),
       });
       y = (doc as any).lastAutoTable.finalY + 8;
