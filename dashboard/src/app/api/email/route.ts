@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 
 export async function POST(req: Request) {
   try {
@@ -9,24 +8,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Faltan campos requeridos (to, subject)" }, { status: 400 });
     }
 
-    const { SMTP_USER, SMTP_PASS } = process.env;
+    const { SMTP_USER, AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET } = process.env;
 
-    if (!SMTP_USER || !SMTP_PASS) {
-      return NextResponse.json({ error: "Las credenciales SMTP no están configuradas en el servidor" }, { status: 500 });
+    if (!SMTP_USER || !AZURE_CLIENT_ID || !AZURE_TENANT_ID || !AZURE_CLIENT_SECRET) {
+      return NextResponse.json({ error: "Faltan variables de entorno de Azure o SMTP_USER" }, { status: 500 });
     }
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.office365.com",
-      port: 587,
-      secure: false, // TLS
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-      tls: {
-        ciphers: "SSLv3",
-      },
-    });
 
     let htmlBody = `
       <div style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.5; max-width: 850px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background-color: #ffffff;">
@@ -189,14 +175,57 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    const info = await transporter.sendMail({
-      from: `"Dashboard Parcheo" <${SMTP_USER}>`,
-      to,
-      subject,
-      html: htmlBody,
+    // 1. Obtener Token OAuth2 de Microsoft Entra ID
+    const tokenResponse = await fetch(`https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: AZURE_CLIENT_ID,
+        scope: 'https://graph.microsoft.com/.default',
+        client_secret: AZURE_CLIENT_SECRET,
+        grant_type: 'client_credentials',
+      })
     });
 
-    return NextResponse.json({ success: true, messageId: info.messageId });
+    if (!tokenResponse.ok) {
+      const err = await tokenResponse.text();
+      throw new Error("Error al obtener token de Azure: " + err);
+    }
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    // 2. Preparar destinatarios (Graph API espera array de objetos)
+    const recipientList = to.split(',').map((email: string) => ({
+      emailAddress: { address: email.trim() }
+    }));
+
+    // 3. Enviar email vía Microsoft Graph API
+    const sendMailResponse = await fetch(`https://graph.microsoft.com/v1.0/users/${SMTP_USER}/sendMail`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: {
+          subject: subject,
+          body: {
+            contentType: 'HTML',
+            content: htmlBody
+          },
+          toRecipients: recipientList
+        },
+        saveToSentItems: 'true'
+      })
+    });
+
+    if (!sendMailResponse.ok) {
+      const err = await sendMailResponse.text();
+      throw new Error("Error al enviar email vía Graph API: " + err);
+    }
+
+    return NextResponse.json({ success: true, message: "Email enviado correctamente vía Graph API" });
   } catch (error: any) {
     console.error("Email API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
