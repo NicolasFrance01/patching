@@ -207,8 +207,9 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
       const ok     = recs.filter((r) => r.status === "ok").length;
       const errors = recs.filter((r) => r.status === "error").length;
       const nodata = recs.filter((r) => r.status === "nodata").length;
+      const dateObj = new Date(run.syncedAt);
       return {
-        label: new Date(run.syncedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }),
+        label: `${dateObj.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} ${dateObj.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
         ok, errors, nodata, total,
         pct: total > 0 ? Math.round((ok / total) * 100) : 0,
       };
