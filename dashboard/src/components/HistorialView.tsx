@@ -315,9 +315,15 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  const syncDateTime = new Date(run.syncedAt).toLocaleString("es-AR", {
+                                    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+                                  });
+                                  const historyDefaultMessage = `Estimados, un placer saludarlos,.\n\nInformamos que hemos finalizado con la ventana de actualizaciones sobre los Servidores Windows, programada para el ${syncDateTime}.\nAsí mismo, enviamos adjunto el Informe Técnico de Finalización de Actualizaciones correspondiente a los servidores involucrados.\nQuedamos a disposición para cualquier consulta adicional o información que puedan requerir.\n\n\nSaludos cordiales,`;
+
                                   setEmailPayload({
                                     attachmentType: "history",
                                     summaryText: `Sincronización ${syncTime} (${filteredTotal} servidores)`,
+                                    defaultMessage: historyDefaultMessage,
                                     data: run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter)),
                                   });
                                 }}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 
 export interface EmailPayload {
   attachmentType: "history" | "report" | "dashboard";
   summaryText: string;
+  defaultMessage?: string;
   data: any[];
 }
 
@@ -22,6 +23,12 @@ export default function EmailModal({ isOpen, onClose, payload }: EmailModalProps
   const [isSending, setIsSending] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (isOpen && payload) {
+      setMessage(payload.defaultMessage || "");
+    }
+  }, [isOpen, payload]);
 
   if (!isOpen || !payload) return null;
 

@@ -273,6 +273,17 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
     ? new Date(initialData[0].updatedAt).toLocaleString("es-AR")
     : "—";
 
+  const getPeriodoString = () => {
+    if (timeFilter === "all") return "todo el historial";
+    if (timeFilter === "hoy") return "el día de hoy";
+    if (timeFilter === "semana") return "la última semana";
+    if (timeFilter === "mes") return "el último mes";
+    if (timeFilter === "custom") return `desde el ${customFrom || "inicio"} hasta el ${customTo || "hoy"}`;
+    return "el período seleccionado";
+  };
+
+  const dashboardDefaultMessage = `Estimados, espero que se encuentren muy bien.\n\nPor medio del presente, remito adjunto el Informe Mensual correspondiente, en el cual se detallan las actualizaciones implementadas en los servidores durante el período de ${getPeriodoString()}.\nQuedo a disposición para cualquier consulta o aclaración adicional que consideren pertinente.\n\nSaludos cordiales`;
+
   return (
     <div className="space-y-5">
       {/* ── Header: fecha + filtros ─────────────────────────────────────────── */}
@@ -298,6 +309,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
             onClick={() => setEmailPayload({
               attachmentType: "dashboard",
               summaryText: `Dashboard — ${filtered.length} servidores`,
+              defaultMessage: dashboardDefaultMessage,
               data: filtered,
             })}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border text-zinc-400 border-zinc-700/50 hover:border-indigo-500/50 hover:text-indigo-300 transition-all"
