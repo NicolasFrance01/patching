@@ -10,6 +10,7 @@ interface SyncRecord {
   serverName: string;
   grupo: string | null;
   ambiente: string | null;
+  domain: string | null;
   ip: string | null;
   os: string | null;
   osVersion: string | null;
@@ -363,39 +364,41 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                 <table className="w-full text-xs text-left">
                                   <thead className="text-zinc-400 uppercase">
                                     <tr>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">Servidor</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden sm:table-cell">Grupo</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Ambiente</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">IP</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">Estado</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">OS</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Versión SO</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">KBs</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Instalación</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Running Time</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Disco</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Error</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Servidor</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Grupo</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Ambiente</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
                                     {records.map((r) => (
                                       <tr key={r.id} className="hover:bg-white/[0.02]">
                                         <td className="px-3 py-2 font-medium text-zinc-200 whitespace-nowrap">{r.serverName}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden sm:table-cell whitespace-nowrap">
+                                        <td className="px-3 py-2">
                                           {r.grupo ? (
                                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                                               {r.grupo}
                                             </span>
                                           ) : "—"}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell whitespace-nowrap">
+                                        <td className="px-3 py-2">
                                           {r.ambiente ? (
                                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">
                                               {r.ambiente}
                                             </span>
                                           ) : "—"}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.domain ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.ip ?? "—"}</td>
                                         <td className="px-3 py-2">
                                           {r.status === "ok" ? (
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
@@ -405,13 +408,14 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
                                           )}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell max-w-[180px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell whitespace-nowrap">{r.osVersion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell max-w-[180px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell whitespace-nowrap">{r.installDate ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{r.runningTime ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{r.diskSpace ?? "—"}</td>
-                                        <td className="px-3 py-2 text-rose-400/80 hidden xl:table-cell text-[10px] max-w-[200px] truncate" title={r.errorDescription ?? ""}>{r.errorDescription ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.osVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.installDate ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.runningTime ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.diskSpace ?? ""}>{r.diskSpace ?? "—"}</td>
+                                        <td className="px-3 py-2 text-rose-400/80 text-[10px] min-w-[180px] truncate" title={r.errorDescription ?? ""}>{r.errorDescription ?? "—"}</td>
+
                                       </tr>
                                     ))}
                                     {records.length === 0 && (

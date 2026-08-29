@@ -585,19 +585,19 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
           <table className="w-full text-xs text-left">
             <thead className="text-zinc-400 uppercase">
               <tr>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">Servidor</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden sm:table-cell">Grupo</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Ambiente</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Dominio</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">IP</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">Estado</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Sistema Operativo</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Versión SO</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Running Time</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Espacio en Disco</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">KBs Instaladas</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Últ. Instalación</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Error</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Servidor</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Grupo</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Ambiente</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -616,32 +616,32 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 hidden sm:table-cell">
+                    <td className="px-3 py-2.5">
                       {server.grupo ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{server.grupo}</span>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 hidden md:table-cell">
+                    <td className="px-3 py-2.5">
                       {server.ambiente ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{server.ambiente}</span>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden md:table-cell whitespace-nowrap">{server.domain ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.domain ?? "—"}</td>
                     <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.ip ?? "N/A"}</td>
                     <td className="px-3 py-2.5"><StatusBadge status={server.status} /></td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[160px]">
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px]">
                       <span className="block truncate" title={server.os ?? ""}>{server.os ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{server.osVersion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell whitespace-nowrap">{server.runningTime ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden lg:table-cell min-w-[140px]">
-                      <span className="block truncate" title={server.diskSpace ?? ""}>{server.diskSpace ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden xl:table-cell min-w-[140px]">
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.osVersion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
                       <span className="block truncate" title={server.installedKBs ?? ""}>{server.installedKBs ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{server.installDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-rose-400/80 hidden xl:table-cell min-w-[180px]">
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.installDate ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.runningTime ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
+                      <span className="block truncate" title={server.diskSpace ?? ""}>{server.diskSpace ?? "—"}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-rose-400/80 min-w-[180px]">
                       {server.isError ? (
                         <span className="block text-[10px] whitespace-normal truncate" title={server.errorDescription ?? ""}>{server.errorDescription}</span>
                       ) : <span className="text-zinc-700">—</span>}
