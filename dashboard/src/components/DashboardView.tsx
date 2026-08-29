@@ -398,9 +398,9 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
         <div className="lg:col-span-2">
           <ChartCard title="Cumplimiento por Banco">
             {byBankData.length > 0 ? (
-              <div className="overflow-auto max-h-60">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-zinc-950 text-zinc-500 uppercase">
+              <div className="overflow-auto">
+                <table className="w-full text-xs table-fixed">
+                  <thead className="text-zinc-500 uppercase">
                     <tr>
                       <th className="px-2 py-2 text-left font-medium">Banco</th>
                       <th className="px-2 py-2 text-right font-medium">Total</th>
@@ -583,21 +583,21 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
 
         <div className="overflow-auto flex-1 max-h-[500px]">
           <table className="w-full text-xs text-left">
-            <thead className="sticky top-0 z-10 text-zinc-400 uppercase bg-zinc-950 border-b border-zinc-800">
+            <thead className="text-zinc-400 uppercase">
               <tr>
-                <th className="px-3 py-2 font-medium">Servidor</th>
-                <th className="px-3 py-2 font-medium hidden sm:table-cell">Grupo</th>
-                <th className="px-3 py-2 font-medium hidden md:table-cell">Ambiente</th>
-                <th className="px-3 py-2 font-medium hidden md:table-cell">Dominio</th>
-                <th className="px-3 py-2 font-medium">IP</th>
-                <th className="px-3 py-2 font-medium">Estado</th>
-                <th className="px-3 py-2 font-medium hidden lg:table-cell">Sistema Operativo</th>
-                <th className="px-3 py-2 font-medium hidden xl:table-cell">Versión SO</th>
-                <th className="px-3 py-2 font-medium hidden lg:table-cell">Running Time</th>
-                <th className="px-3 py-2 font-medium hidden lg:table-cell">Espacio en Disco</th>
-                <th className="px-3 py-2 font-medium hidden xl:table-cell">KBs Instaladas</th>
-                <th className="px-3 py-2 font-medium hidden xl:table-cell">Últ. Instalación</th>
-                <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">Servidor</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden sm:table-cell">Grupo</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Ambiente</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Dominio</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">IP</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800">Estado</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Sistema Operativo</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Versión SO</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Running Time</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Espacio en Disco</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">KBs Instaladas</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Últ. Instalación</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Error</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">

@@ -361,20 +361,20 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
 
                               <div className="overflow-auto max-h-96">
                                 <table className="w-full text-xs text-left">
-                                  <thead className="sticky top-0 bg-zinc-900 text-zinc-400 uppercase">
+                                  <thead className="text-zinc-400 uppercase">
                                     <tr>
-                                      <th className="px-3 py-2 font-medium">Servidor</th>
-                                      <th className="px-3 py-2 font-medium hidden sm:table-cell">Grupo</th>
-                                      <th className="px-3 py-2 font-medium hidden md:table-cell">Ambiente</th>
-                                      <th className="px-3 py-2 font-medium">IP</th>
-                                      <th className="px-3 py-2 font-medium">Estado</th>
-                                      <th className="px-3 py-2 font-medium hidden md:table-cell">OS</th>
-                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">Versión SO</th>
-                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">KBs</th>
-                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">Instalación</th>
-                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Running Time</th>
-                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Disco</th>
-                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">Servidor</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden sm:table-cell">Grupo</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">Ambiente</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">IP</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800">Estado</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden md:table-cell">OS</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Versión SO</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">KBs</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden lg:table-cell">Instalación</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Running Time</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Disco</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 hidden xl:table-cell">Error</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
