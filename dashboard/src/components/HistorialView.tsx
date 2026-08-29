@@ -8,12 +8,17 @@ import EmailModal, { EmailPayload } from "./EmailModal";
 interface SyncRecord {
   id: string;
   serverName: string;
+  grupo: string | null;
+  ambiente: string | null;
   ip: string | null;
   os: string | null;
+  osVersion: string | null;
   status: string;
   errorDescription: string | null;
   installDate: string | null;
   installedKBs: string | null;
+  runningTime: string | null;
+  diskSpace: string | null;
   createdAt: string;
 }
 
@@ -74,17 +79,19 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
 
   const filteredRuns = useMemo(() => {
     return syncRuns.filter((run) => {
-      // Filter records by bank first
       const bankMatchedRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
-      // If no records match the bank, skip this run entirely
       if (bankFilter !== "all" && bankMatchedRecords.length === 0) return false;
-
       if (!search) return true;
       const q = search.toLowerCase();
       const dateStr = new Date(run.syncedAt).toLocaleString("es-AR").toLowerCase();
       if (dateStr.includes(q)) return true;
       return bankMatchedRecords.some(
-        (r) => r.serverName.toLowerCase().includes(q) || (r.ip ?? "").includes(q) || r.status.includes(q)
+        (r) =>
+          r.serverName.toLowerCase().includes(q) ||
+          (r.ip ?? "").includes(q) ||
+          r.status.includes(q) ||
+          (r.grupo ?? "").toLowerCase().includes(q) ||
+          (r.ambiente ?? "").toLowerCase().includes(q)
       );
     });
   }, [syncRuns, search, bankFilter]);
@@ -104,7 +111,6 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         );
         const latest = sorted[0];
 
-        // Recalculate counters using only records that match the bank filter
         const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
         const latestTotal = latestFiltered.length;
         const latestSuccess = latestFiltered.filter((r) => r.status === "ok").length;
@@ -138,7 +144,9 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
       return (
         r.serverName.toLowerCase().includes(q) ||
         (r.ip ?? "").includes(q) ||
-        (r.os ?? "").toLowerCase().includes(q)
+        (r.os ?? "").toLowerCase().includes(q) ||
+        (r.grupo ?? "").toLowerCase().includes(q) ||
+        (r.ambiente ?? "").toLowerCase().includes(q)
       );
     });
   }
@@ -193,7 +201,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         <Search className="w-4 h-4 text-zinc-500 shrink-0" />
         <input
           type="text"
-          placeholder="Buscar por fecha, servidor, IP, estado..."
+          placeholder="Buscar por fecha, servidor, IP, grupo, ambiente, estado..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
@@ -328,7 +336,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
                                   <input
                                     type="text"
-                                    placeholder="Filtrar servidor, IP, OS..."
+                                    placeholder="Filtrar servidor, IP, OS, grupo, ambiente..."
                                     value={recordSearch[run.id] ?? ""}
                                     onChange={(e) => setRecordSearch((prev) => ({ ...prev, [run.id]: e.target.value }))}
                                     className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500"
@@ -351,22 +359,42 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                 </div>
                               </div>
 
-                              <div className="overflow-auto max-h-80">
+                              <div className="overflow-auto max-h-96">
                                 <table className="w-full text-xs text-left">
                                   <thead className="sticky top-0 bg-zinc-900 text-zinc-400 uppercase">
                                     <tr>
                                       <th className="px-3 py-2 font-medium">Servidor</th>
+                                      <th className="px-3 py-2 font-medium hidden sm:table-cell">Grupo</th>
+                                      <th className="px-3 py-2 font-medium hidden md:table-cell">Ambiente</th>
                                       <th className="px-3 py-2 font-medium">IP</th>
                                       <th className="px-3 py-2 font-medium">Estado</th>
                                       <th className="px-3 py-2 font-medium hidden md:table-cell">OS</th>
+                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">Versión SO</th>
                                       <th className="px-3 py-2 font-medium hidden lg:table-cell">KBs</th>
+                                      <th className="px-3 py-2 font-medium hidden lg:table-cell">Instalación</th>
+                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Running Time</th>
+                                      <th className="px-3 py-2 font-medium hidden xl:table-cell">Disco</th>
                                       <th className="px-3 py-2 font-medium hidden xl:table-cell">Error</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
                                     {records.map((r) => (
                                       <tr key={r.id} className="hover:bg-white/[0.02]">
-                                        <td className="px-3 py-2 font-medium text-zinc-200">{r.serverName}</td>
+                                        <td className="px-3 py-2 font-medium text-zinc-200 whitespace-nowrap">{r.serverName}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden sm:table-cell whitespace-nowrap">
+                                          {r.grupo ? (
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                              {r.grupo}
+                                            </span>
+                                          ) : "—"}
+                                        </td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell whitespace-nowrap">
+                                          {r.ambiente ? (
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                                              {r.ambiente}
+                                            </span>
+                                          ) : "—"}
+                                        </td>
                                         <td className="px-3 py-2 text-zinc-400">{r.ip ?? "—"}</td>
                                         <td className="px-3 py-2">
                                           {r.status === "ok" ? (
@@ -377,14 +405,18 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
                                           )}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell">{r.os ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell">{r.installedKBs ?? "—"}</td>
-                                        <td className="px-3 py-2 text-rose-400/80 hidden xl:table-cell text-[10px]">{r.errorDescription ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden md:table-cell max-w-[180px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell whitespace-nowrap">{r.osVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell max-w-[180px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden lg:table-cell whitespace-nowrap">{r.installDate ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{r.runningTime ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 hidden xl:table-cell whitespace-nowrap">{r.diskSpace ?? "—"}</td>
+                                        <td className="px-3 py-2 text-rose-400/80 hidden xl:table-cell text-[10px] max-w-[200px] truncate" title={r.errorDescription ?? ""}>{r.errorDescription ?? "—"}</td>
                                       </tr>
                                     ))}
                                     {records.length === 0 && (
                                       <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
+                                        <td colSpan={12} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
                                       </tr>
                                     )}
                                   </tbody>
@@ -404,10 +436,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         </div>
       )}
 
-      <EmailModal 
-        isOpen={!!emailPayload} 
-        onClose={() => setEmailPayload(null)} 
-        payload={emailPayload} 
+      <EmailModal
+        isOpen={!!emailPayload}
+        onClose={() => setEmailPayload(null)}
+        payload={emailPayload}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 
 export interface EmailPayload {
-  attachmentType: "history" | "report";
+  attachmentType: "history" | "report" | "dashboard";
   summaryText: string;
   data: any[];
 }

@@ -35,6 +35,8 @@ export async function POST(req: Request) {
       else noData++;
       return {
         serverName: String(item.Servidor).trim(),
+        grupo: item.Grupo ? String(item.Grupo) : null,
+        ambiente: item.Ambiente ? String(item.Ambiente) : null,
         domain: item.Dominio ? String(item.Dominio) : null,
         ip: item.IP ? String(item.IP) : null,
         os: item.Sistema_Operativo ? String(item.Sistema_Operativo) : null,
@@ -55,6 +57,8 @@ export async function POST(req: Request) {
 
     for (const item of items) {
       const payload = {
+        grupo: item.grupo,
+        ambiente: item.ambiente,
         domain: item.domain,
         ip: item.ip,
         os: item.os,
@@ -79,6 +83,8 @@ export async function POST(req: Request) {
         data: items.map((item: any) => ({
           syncRunId: syncRun.id,
           serverName: item.serverName,
+          grupo: item.grupo,
+          ambiente: item.ambiente,
           domain: item.domain,
           ip: item.ip,
           os: item.os,

@@ -1,6 +1,8 @@
 export interface ServerStatus {
   id: string;
   serverName: string;
+  grupo?: string | null;
+  ambiente?: string | null;
   domain: string | null;
   ip: string | null;
   os: string | null;

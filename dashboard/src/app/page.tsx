@@ -13,12 +13,38 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const raw = await prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } });
+  const [raw, rawSyncRuns] = await Promise.all([
+    prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
+    prisma.syncRun.findMany({
+      orderBy: { syncedAt: "desc" },
+      take: 30,
+      include: {
+        records: {
+          select: {
+            serverName: true,
+            ip:         true,
+            grupo:      true,
+            ambiente:   true,
+            os:         true,
+            installedKBs: true,
+            status:     true,
+            errorDescription: true,
+          },
+        },
+      },
+    }),
+  ]);
 
   const servers: ServerStatus[] = raw.map((s) => ({
     ...s,
     updatedAt: new Date(s.updatedAt),
     createdAt: new Date(s.createdAt),
+  }));
+
+  const syncRuns = rawSyncRuns.map((run) => ({
+    id: run.id,
+    syncedAt: run.syncedAt.toISOString(),
+    records: run.records,
   }));
 
   return (
@@ -31,7 +57,7 @@ export default async function Home() {
           Monitoreo en tiempo real del estado de actualizaciones de servidores.
         </p>
       </div>
-      <DashboardView initialData={servers} />
+      <DashboardView initialData={servers} syncRuns={syncRuns} />
     </div>
   );
 }

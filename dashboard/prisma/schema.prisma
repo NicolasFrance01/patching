@@ -10,6 +10,8 @@ datasource db {
 model ServerStatus {
   id               String   @id @default(uuid())
   serverName       String   @unique
+  grupo            String?
+  ambiente         String?
   domain           String?
   ip               String?
   os               String?
@@ -39,6 +41,8 @@ model SyncHistory {
   syncRunId        String
   syncRun          SyncRun  @relation(fields: [syncRunId], references: [id])
   serverName       String
+  grupo            String?
+  ambiente         String?
   domain           String?
   ip               String?
   os               String?

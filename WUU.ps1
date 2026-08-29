@@ -6,13 +6,15 @@
   --------------------------------------------------------------------------
   Modos de ejecucion:
     Normal   : abrir directamente (interfaz grafica)
-    Headless : WUU.ps1 -Scheduled  (tarea programada, sin interfaz)
+    Headless : WUU.ps1 -Scheduled       (reporte programado)
+               WUU.ps1 -ScheduledPatch  (ventana de actualizacion one-shot)
 
   Configuracion externa: config.json junto a WUU.ps1
 ================================================================================
 #>
 param(
-  [switch]$Scheduled    # modo headless: genera reporte y sincroniza con Dashboard Web
+  [switch]$Scheduled,      # modo headless: genera reporte y sincroniza con Dashboard Web
+  [switch]$ScheduledPatch  # modo headless: ventana de parcheo programada (one-shot)
 )
 
 #--- Auto-elevacion a administrador -------------------------------------------
@@ -24,7 +26,10 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
   try {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName  = (Get-Process -Id $PID).Path
-    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" + $(if ($Scheduled) { ' -Scheduled' } else { '' })
+    $extra = ''
+    if ($ScheduledPatch) { $extra = ' -ScheduledPatch' }
+    elseif ($Scheduled)  { $extra = ' -Scheduled' }
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"$extra"
     $psi.Verb      = "runas"
     [System.Diagnostics.Process]::Start($psi) | Out-Null
   } catch {
@@ -57,6 +62,33 @@ public class ServerRow : INotifyPropertyChanged
     private string _status=""; public string Status { get{return _status;} set{_status=value; N("Status");}}
     private string _runningTime=""; public string RunningTime { get{return _runningTime;} set{_runningTime=value; N("RunningTime");}}
 
+    // Confirmaciones de ventana (manuales; no disparan parcheo)
+    private bool _snap;
+    public bool Snap {
+        get { return _snap; }
+        set {
+            if (_snap == value) return;
+            _snap = value;
+            N("Snap");
+            SnapMsg = _snap ? "SI" : "NO";
+        }
+    }
+    private string _snapMsg = "NO";
+    public string SnapMsg { get { return _snapMsg; } set { _snapMsg = value ?? ""; N("SnapMsg"); } }
+
+    private bool _confirmado;
+    public bool Confirmado {
+        get { return _confirmado; }
+        set {
+            if (_confirmado == value) return;
+            _confirmado = value;
+            N("Confirmado");
+            ConfirmadoMsg = _confirmado ? "SI" : "NO";
+        }
+    }
+    private string _confirmadoMsg = "NO";
+    public string ConfirmadoMsg { get { return _confirmadoMsg; } set { _confirmadoMsg = value ?? ""; N("ConfirmadoMsg"); } }
+
     // Estado que controla el color de la fila:
     // Unselected | CheckWSUS | Remediation | DownloadInstall | RebootRequired | Updated
     private string _state="Unselected"; public string State { get{return _state;} set{_state=value; N("State");}}
@@ -79,6 +111,8 @@ public class GroupItem : INotifyPropertyChanged
 // Fila del reporte (se rellena completa por servidor; columnas exactas pedidas)
 public class ReportRow
 {
+    public string Grupo {get;set;}
+    public string Ambiente {get;set;}
     public string Dominio {get;set;}
     public string Servidor {get;set;}
     public string IP {get;set;}
@@ -90,6 +124,9 @@ public class ReportRow
     public string Running_Time {get;set;}
     public string Descripcion_Error {get;set;}
     public string Disk_Space {get;set;}
+    public string Snap {get;set;}
+    public string Confirmado {get;set;}
+    public string Analista_Asignado {get;set;}
 }
 
 // Fila del historial de updates (menu contextual)
@@ -285,6 +322,10 @@ public class FixPickItem : INotifyPropertyChanged
           </Border>
         </Popup>
       </Grid>
+      <Rectangle Width="1" Height="20" Fill="#FFE2E8F0" Margin="16,0,12,0" VerticalAlignment="Center"/>
+      <TextBlock Text="Analista asignado:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+      <TextBlock x:Name="lblAnalyst" Text="-" VerticalAlignment="Center" FontWeight="SemiBold"
+                 Foreground="#FF1D4ED8" Margin="0,0,0,0"/>
     </DockPanel>
 
     <!-- ===== Fila 1: Leyenda de colores ===== -->
@@ -333,6 +374,28 @@ public class FixPickItem : INotifyPropertyChanged
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Snap" Width="72" CanUserSort="False">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <DockPanel Margin="2,0">
+                <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0"
+                          IsChecked="{Binding Snap, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="{Binding SnapMsg}" VerticalAlignment="Center" Foreground="#FF334155"/>
+              </DockPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Confirmado" Width="90" CanUserSort="False">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <DockPanel Margin="2,0">
+                <CheckBox DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,6,0"
+                          IsChecked="{Binding Confirmado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="{Binding ConfirmadoMsg}" VerticalAlignment="Center" Foreground="#FF334155"/>
+              </DockPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
         <DataGridTextColumn Header="Servidor"      Binding="{Binding Servidor}"    Width="150"/>
         <DataGridTextColumn Header="IP"            Binding="{Binding IP}"          Width="120"/>
         <DataGridTextColumn Header="Servidor WSUS" Binding="{Binding Wsus}"        Width="150"/>
@@ -373,6 +436,7 @@ $script:txtSearch      = $Window.FindName('txtSearch')
 $script:lblSearchHint  = $Window.FindName('lblSearchHint')
 $script:popSearch      = $Window.FindName('popSearch')
 $script:lbSearch       = $Window.FindName('lbSearch')
+$script:lblAnalyst     = $Window.FindName('lblAnalyst')
 $btnSelectAll     = $Window.FindName('btnSelectAll')
 $btnClear         = $Window.FindName('btnClear')
 $btnReport        = $Window.FindName('btnReport')
@@ -389,6 +453,7 @@ $script:Servers     = New-Object System.Collections.ObjectModel.ObservableCollec
 $script:Suspend     = $false
 $script:ManualCheck = @{}
 $script:JobRebootAfter = @{}
+$script:PatchAfterCacheClear = @{}   # tras limpieza+reinicio, iniciar Install al volver
 
 #--- Configuracion externa (config.json) --------------------------------------
 # Valores por defecto (se sobreescriben con lo que haya en config.json)
@@ -418,6 +483,15 @@ $script:Cfg = [ordered]@{
     Year       = 0
     Month      = 0
   }
+  ScheduledPatch = [ordered]@{
+    Enabled   = $false
+    Hour      = 2
+    Minute    = 0
+    StartDate = ''
+    TaskName  = 'WUU_VentanaActualizacion'
+    Groups    = @()   # nombres de grupo del CSV
+    Servers   = @()   # servidores especificos (ademas o en lugar de grupos)
+  }
   History = [ordered]@{
     Enabled       = $true
     RetentionDays = 90
@@ -426,6 +500,53 @@ $script:Cfg = [ordered]@{
     Enabled      = $true    # reinicia automaticamente si el parcheo lo requiere
     DelaySeconds = 60       # margen antes de ejecutar el reinicio
   }
+}
+
+function Ensure-ConfigSection([string]$Section) {
+  # Garantiza que $script:Cfg[$Section] sea un diccionario con todas las claves default.
+  # Evita el error "The property 'X' cannot be found" al asignar sobre PSCustomObject u OrderedDictionary incompleto.
+  if (-not $script:Cfg.Contains($Section)) {
+    $script:Cfg[$Section] = [ordered]@{}
+  }
+  $defaults = $null
+  # Reconstruir defaults desde una copia conocida
+  $template = switch ($Section) {
+    'Dashboard' {
+      [ordered]@{ Enabled = $true; Url = 'https://patching-dashboard-hae3f7fxc6fnhhbt.canadacentral-01.azurewebsites.net/api/upload' }
+    }
+    'Teams' {
+      [ordered]@{ Enabled = $false; WebhookUrl = ''; NotifyOnStart = $true; NotifyOnFinish = $true }
+    }
+    'ScheduledReport' {
+      [ordered]@{
+        Enabled = $false; Hour = 8; Minute = 0; StartDate = ''
+        TaskName = 'WUU_ReporteAutomatico'; PeriodMode = 'current'; Year = 0; Month = 0
+      }
+    }
+    'ScheduledPatch' {
+      [ordered]@{
+        Enabled = $false; Hour = 2; Minute = 0; StartDate = ''
+        TaskName = 'WUU_VentanaActualizacion'; Groups = @(); Servers = @()
+      }
+    }
+    'History' { [ordered]@{ Enabled = $true; RetentionDays = 90 } }
+    'AutoReboot' { [ordered]@{ Enabled = $true; DelaySeconds = 60 } }
+    default { $null }
+  }
+  if (-not $template) { return }
+
+  $cur = $script:Cfg[$Section]
+  $merged = [ordered]@{}
+  foreach ($k in @($template.Keys)) { $merged[$k] = $template[$k] }
+
+  if ($cur -is [System.Collections.IDictionary]) {
+    foreach ($k in @($cur.Keys)) { $merged[$k] = $cur[$k] }
+  } elseif ($null -ne $cur) {
+    foreach ($p in $cur.PSObject.Properties) {
+      if ($null -ne $p.Value) { $merged[$p.Name] = $p.Value }
+    }
+  }
+  $script:Cfg[$Section] = $merged
 }
 
 function Load-Config {
@@ -439,12 +560,18 @@ function Load-Config {
     foreach ($key in @('PsExecPath','RemoteRel','PatchTimeoutMinutes','ConnectivityTimeoutSec','CleanupRemoteOnSuccess')) {
       if ($null -ne $raw.$key) { $script:Cfg[$key] = $raw.$key }
     }
-    foreach ($sec in @('Dashboard','Teams','ScheduledReport','History','AutoReboot')) {
+    foreach ($sec in @('Dashboard','Teams','ScheduledReport','ScheduledPatch','History','AutoReboot')) {
       if ($raw.$sec) {
         foreach ($k in @($script:Cfg[$sec].Keys)) {
-          if ($null -ne $raw.$sec.$k) { $script:Cfg[$sec][$k] = $raw.$sec.$k }
+          if ($null -eq $raw.$sec.$k) { continue }
+          if ($k -eq 'Groups') {
+            $script:Cfg[$sec][$k] = @($raw.$sec.$k | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+          } else {
+            $script:Cfg[$sec][$k] = $raw.$sec.$k
+          }
         }
       }
+      Ensure-ConfigSection $sec
     }
     Write-Log 'INFO' "config.json cargado desde $cfgPath"
   } catch { Write-Log 'WARN' "No se pudo leer config.json: $($_.Exception.Message)" }
@@ -452,6 +579,7 @@ function Load-Config {
 
 #--- Control de corrida (historial al finalizar parcheo) ----------------------
 $script:Run = @{ Started=$null; TotalServers=0; Notified=$false; ServerNames=@{} }
+$script:AnalistaAsignado = ''   # nombre del operador (dialogo al abrir la consola)
 
 #--- Debounce de seleccion de grupos (log de inicio de sesion) ----------------
 $script:GroupSelTimer   = $null   # DispatcherTimer de 1.5s
@@ -584,7 +712,7 @@ function Invoke-RebootIfRequested([bool]$shouldReboot) {
 function Get-WuWsusErrors([string]$SearchError) {
   $msgs = @()
   if ($SearchError) { $msgs += $SearchError.Trim() }
-  foreach ($svc in @('wuauserv','bits')) {
+  foreach ($svc in @('wuauserv','bits','cryptSvc','msiserver')) {
     try {
       $st = Get-Service $svc -ErrorAction Stop
       if ($st.Status -ne 'Running') { $msgs += "Servicio $svc : $($st.Status)" }
@@ -610,9 +738,69 @@ function Get-WuWsusErrors([string]$SearchError) {
 
 function Merge-WuError([string]$Msg) {
   if (-not $Msg) { return }
-  if ($state.error) {
-    if ($state.error -notmatch [regex]::Escape($Msg)) { $state.error = "$($state.error) | $Msg" }
-  } else { $state.error = $Msg }
+  # Une partes "a | b | c" sin repetir: Get-WuWsusErrors a menudo reincluye el mensaje ya mergeado.
+  $parts = @($Msg -split '\s*\|\s*' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  $existing = @()
+  if ("$($state.error)".Trim()) {
+    $existing = @("$($state.error)" -split '\s*\|\s*' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  }
+  foreach ($p in $parts) {
+    $dup = $false
+    foreach ($e in $existing) { if ($e -eq $p) { $dup = $true; break } }
+    if (-not $dup) { $existing += $p }
+  }
+  $state.error = ($existing -join ' | ')
+}
+
+function Ensure-WuServices {
+  # Primera validacion: si wuauserv/bits/cryptSvc/msiserver estan detenidos, forzar Running.
+  $names = @('wuauserv','bits','cryptSvc','msiserver')
+  $started = @()
+  $failed  = @()
+  $state.status = "Validando servicios WU..."
+  Save-State
+  foreach ($name in $names) {
+    try {
+      $svc = Get-Service -Name $name -ErrorAction Stop
+      if ($svc.Status -eq 'Running') { continue }
+      $prev = "$($svc.Status)"
+      $state.status = "Iniciando servicio $name (estaba $prev)..."
+      Save-State
+      if ($svc.StartType -eq 'Disabled') {
+        try { Set-Service -Name $name -StartupType Manual -ErrorAction SilentlyContinue } catch {}
+      }
+      try {
+        Start-Service -Name $name -ErrorAction Stop
+      } catch {
+        net.exe start $name 2>$null | Out-Null
+      }
+      $deadline = (Get-Date).AddSeconds(45)
+      do {
+        Start-Sleep -Milliseconds 500
+        $svc.Refresh()
+        if ($svc.Status -eq 'Running') { break }
+      } while ((Get-Date) -lt $deadline)
+      $svc.Refresh()
+      if ($svc.Status -eq 'Running') { $started += $name }
+      else { $failed += "$name($($svc.Status))" }
+    } catch {
+      try {
+        net.exe start $name 2>$null | Out-Null
+        $svc2 = Get-Service -Name $name -ErrorAction Stop
+        if ($svc2.Status -eq 'Running') { $started += $name }
+        else { $failed += $name }
+      } catch { $failed += $name }
+    }
+  }
+  if ($failed.Count -gt 0) {
+    Merge-WuError ("Servicios no Running: $($failed -join ', ')")
+  }
+  if ($started.Count -gt 0) {
+    $state.status = "Servicios forzados a Running: $($started -join ', ')"
+  } else {
+    $state.status = "Servicios WU OK (Running)"
+  }
+  Save-State
 }
 
 try {
@@ -623,9 +811,15 @@ try {
   $wuKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
   $wsus  = (Get-ItemProperty -Path $wuKey -Name WUServer -ErrorAction SilentlyContinue).WUServer
   $state.wsus = if ($wsus) { $wsus } else { "No configurado (WU directo)" }
-  $state.status = "Chequeando WSUS/WU..."
   Save-State
   if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+
+  # --- Primera validacion: servicios WU en Running -------------------------
+  Ensure-WuServices
+  if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+
+  $state.status = "Chequeando WSUS/WU..."
+  Save-State
 
   if ($ClearCacheFirst) {
     Clear-WuCache "Limpiando cache de actualizacion..." -RebootWhenDone
@@ -742,6 +936,86 @@ try {
   $state.status = "Instalacion finalizada (codigo $($instResult.ResultCode))"
   Save-State
 
+  # --- Reintento: error de instalacion -> limpieza cache + revalidar (1 vez) -
+  if ($errs.Count -gt 0) {
+    $state.status = "Error de instalacion. Limpiando cache y revalidando..."
+    Save-State
+    Clear-WuCache "Remediando tras error de instalacion..."
+    if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+
+    $state.stage="check"; $state.status="Re-chequeando tras error de instalacion..."; $state.error=""; Save-State
+    $session  = New-Object -ComObject Microsoft.Update.Session
+    $searcher = $session.CreateUpdateSearcher()
+    try {
+      $result = $searcher.Search("IsInstalled=0 and IsHidden=0")
+    } catch {
+      $state.stage="error"; $state.status="Error"
+      $state.error = "Error de instalacion persistente tras limpieza de cache (re-chequeo): $($_.Exception.Message)"
+      Save-State; return
+    }
+    $available = $result.Updates.Count
+    $state.available = $available
+    if ($available -eq 0) {
+      $reboot = $false
+      try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {}
+      if ($reboot) { $state.stage="reboot"; $state.rebootRequired=$true; $state.status="Actualizado tras remediacion. Requiere reinicio" }
+      else         { $state.stage="done";   $state.status="Actualizado tras remediacion (sin updates pendientes)" }
+      Save-State
+      Invoke-RebootIfRequested $reboot
+      return
+    }
+
+    $freeGB = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+    if ($freeGB -lt 2) {
+      $state.stage="error"; $state.status="Error"
+      $state.error = "Error de instalacion persistente tras limpieza de cache. Espacio insuficiente en C: ($freeGB GB)"
+      Save-State; return
+    }
+
+    $state.stage="download"; $state.status="Re-descargando tras remediacion..."; Save-State
+    $toInstall = New-Object -ComObject Microsoft.Update.UpdateColl
+    $i = 0
+    foreach ($u in $result.Updates) {
+      if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+      try {
+        if (-not $u.EulaAccepted) { $u.AcceptEula() }
+        if (-not $u.IsDownloaded) {
+          $coll = New-Object -ComObject Microsoft.Update.UpdateColl
+          $coll.Add($u) | Out-Null
+          $dl = $session.CreateUpdateDownloader()
+          $dl.Updates = $coll
+          $dl.Download() | Out-Null
+        }
+        $toInstall.Add($u) | Out-Null
+      } catch {
+        $state.error = "Descarga (reintento): " + $_.Exception.Message
+      }
+      $i++
+      $state.downloaded  = $i
+      $state.downloadPct = [int][math]::Round(($i / $available) * 100)
+      $state.status      = "Re-descargando $i de $available..."
+      Save-State
+    }
+
+    $state.stage="install"; $state.status="Re-instalando tras remediacion..."; Save-State
+    $installer = $session.CreateUpdateInstaller()
+    $installer.Updates = $toInstall
+    $instResult = $installer.Install()
+    $errs = @()
+    for ($k = 0; $k -lt $toInstall.Count; $k++) {
+      $r = $instResult.GetUpdateResult($k)
+      if ($r.ResultCode -ne 2) { $errs += ("0x{0:X8}" -f $r.HResult) }
+    }
+    if ($errs.Count -gt 0) {
+      $state.stage="error"; $state.status="Error"
+      $state.error = "Error de instalacion persistente tras limpieza de cache: " + ($errs -join ", ")
+      Save-State; return
+    }
+    $state.error = ""
+    $state.status = "Instalacion OK tras remediacion (codigo $($instResult.ResultCode))"
+    Save-State
+  }
+
   # --- Reinicio requerido? -------------------------------------------------
   $reboot = $instResult.RebootRequired
   if (-not $reboot) { try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {} }
@@ -813,22 +1087,26 @@ function Send-TeamsNotification($title, $facts, [string]$color = 'Default') {
 }
 
 function Get-TeamsContextFacts {
-  return @(
+  $facts = @(
     @{ title = 'Equipo';  value = "$env:COMPUTERNAME" },
     @{ title = 'Usuario'; value = "$env:USERNAME" }
   )
+  if ("$script:AnalistaAsignado".Trim()) {
+    $facts += @{ title = 'Analista asignado'; value = "$script:AnalistaAsignado".Trim() }
+  }
+  return $facts
 }
 
-function Send-TeamsPatchStarted($servers, [string]$groups = '') {
+function Send-TeamsPatchStarted($servers, [string]$groups = '', [string]$Title = 'Parcheo iniciado') {
   if (-not $script:WUUTeamsNotifyOnStart) { return }
   $facts = @(Get-TeamsContextFacts)
   $facts += @{ title = 'Servidores'; value = "$servers" }
   if ($groups) { $facts += @{ title = 'Grupos'; value = "$groups" } }
   $facts += @{ title = 'Inicio'; value = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') }
-  Send-TeamsNotification 'Parcheo iniciado' $facts 'Accent'
+  Send-TeamsNotification $Title $facts 'Accent'
 }
 
-function Send-TeamsPatchFinished($rows, [string]$elapsed = '') {
+function Send-TeamsPatchFinished($rows, [string]$elapsed = '', [string]$Title = 'Parcheo finalizado') {
   if (-not $script:WUUTeamsNotifyOnFinish) { return }
   $rows    = @($rows)
   $total   = $rows.Count
@@ -843,7 +1121,39 @@ function Send-TeamsPatchFinished($rows, [string]$elapsed = '') {
   if ($elapsed) { $facts += @{ title = 'Duracion'; value = "$elapsed" } }
   $facts += @{ title = 'Fin'; value = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') }
   $color = if ($errors -gt 0) { 'Attention' } elseif ($reboot -gt 0) { 'Warning' } else { 'Good' }
-  Send-TeamsNotification 'Parcheo finalizado' $facts $color
+  Send-TeamsNotification $Title $facts $color
+}
+
+function Send-TeamsReportStarted($servers, [string]$period = '') {
+  if (-not $script:WUUTeamsNotifyOnStart) { return }
+  $facts = @(Get-TeamsContextFacts)
+  $facts += @{ title = 'Tipo'; value = 'Reporte programado' }
+  $facts += @{ title = 'Servidores'; value = "$servers" }
+  $facts += @{ title = 'Periodo'; value = $(if ($period) { $period } else { 'Mes en curso' }) }
+  $facts += @{ title = 'Inicio'; value = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') }
+  Send-TeamsNotification 'Reporte programado iniciado' $facts 'Accent'
+}
+
+function Send-TeamsReportFinished($rows, [string]$elapsed = '', [string]$period = '', [string]$csvPath = '') {
+  if (-not $script:WUUTeamsNotifyOnFinish) { return }
+  $rows = @($rows)
+  $total = $rows.Count
+  $withErr = @($rows | Where-Object {
+    $e = if ($null -ne $_.Descripcion_Error) { "$($_.Descripcion_Error)" } else { "$($_.Error)" }
+    "$e".Trim()
+  }).Count
+  $ok = [Math]::Max(0, $total - $withErr)
+  $facts = @(Get-TeamsContextFacts)
+  $facts += @{ title = 'Tipo'; value = 'Reporte programado' }
+  $facts += @{ title = 'Servidores'; value = "$total" }
+  $facts += @{ title = 'Con datos'; value = "$ok" }
+  $facts += @{ title = 'Con error / sin datos'; value = "$withErr" }
+  $facts += @{ title = 'Periodo'; value = $(if ($period) { $period } else { 'Mes en curso' }) }
+  if ($elapsed) { $facts += @{ title = 'Duracion'; value = "$elapsed" } }
+  if ($csvPath) { $facts += @{ title = 'CSV'; value = "$csvPath" } }
+  $facts += @{ title = 'Fin'; value = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') }
+  $color = if ($withErr -gt 0) { 'Warning' } else { 'Good' }
+  Send-TeamsNotification 'Reporte programado finalizado' $facts $color
 }
 
 $script:LocalReportWorker = Join-Path $env:TEMP 'WUU_report.ps1'
@@ -891,9 +1201,17 @@ function Get-WuWsusErrors([string]$SearchError) {
 }
 function Merge-ReportError([string]$Msg) {
   if (-not $Msg) { return }
-  if ($o.Descripcion_Error) {
-    if ($o.Descripcion_Error -notmatch [regex]::Escape($Msg)) { $o.Descripcion_Error = "$($o.Descripcion_Error) | $Msg" }
-  } else { $o.Descripcion_Error = $Msg }
+  $parts = @($Msg -split '\s*\|\s*' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  $existing = @()
+  if ("$($o.Descripcion_Error)".Trim()) {
+    $existing = @("$($o.Descripcion_Error)" -split '\s*\|\s*' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  }
+  foreach ($p in $parts) {
+    $dup = $false
+    foreach ($e in $existing) { if ($e -eq $p) { $dup = $true; break } }
+    if (-not $dup) { $existing += $p }
+  }
+  $o.Descripcion_Error = ($existing -join ' | ')
 }
 try { $o.Dominio = (Get-CimInstance Win32_ComputerSystem).Domain } catch {}
 try { $o.Servidor = [System.Net.Dns]::GetHostName() } catch {}
@@ -1083,12 +1401,14 @@ $script:LocalFixWorker = Join-Path $env:TEMP 'WUU_fix.ps1'
 $script:FixWorker = @'
 param([string]$PackageName)
 $ErrorActionPreference = "Stop"
+# Paquete en C:\Temp; resultado JSON en carpeta WUU
+$pkg = Join-Path "C:\Temp" $PackageName
 $base = "C:\Windows\Temp\WUU"
+New-Item -ItemType Directory -Path $base -Force | Out-Null
 $outPath = Join-Path $base "fix.json"
-$pkg = Join-Path $base $PackageName
 $o = [ordered]@{ exitCode=-1; message=""; rebootRequired=$false }
 try {
-  if (-not (Test-Path $pkg)) { throw "Paquete no encontrado: $PackageName" }
+  if (-not (Test-Path $pkg)) { throw "Paquete no encontrado: C:\Temp\$PackageName" }
   $ext = [System.IO.Path]::GetExtension($PackageName).ToLower()
   if ($ext -eq ".msu") {
     $p = Start-Process -FilePath "wusa.exe" -ArgumentList "`"$pkg`" /quiet /norestart" -Wait -PassThru -WindowStyle Hidden
@@ -1209,6 +1529,7 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
     $script:Run.ServerNames[$server] = $true
   }
   if ($RebootAfter) { $script:JobRebootAfter[$server] = $true }
+  if ($ClearCacheFirst) { $script:PatchAfterCacheClear[$server] = $true }
 
   $job = {
     param($server, $psexec, $worker, $rel, $sync, $mode, $doClearCache, $doRebootAfter)
@@ -1264,6 +1585,9 @@ function Stop-ServerJob($server, [switch]$Reset) {
     try { $job.rs.Close(); $job.rs.Dispose() } catch {}
     try { $job.sw.Stop() }    catch {}
     $script:Jobs.Remove($server)
+  }
+  if ($script:PatchAfterCacheClear.ContainsKey($server)) {
+    $script:PatchAfterCacheClear.Remove($server)
   }
   if ($Reset) {
     $row = Get-Row $server
@@ -1383,19 +1707,24 @@ function On-TimerTick {
 
       if ($job.clearCache -and $finalStage -eq 'reboot') {
         Start-RebootMonitor $server
-      } elseif ($script:JobRebootAfter.ContainsKey($server)) {
-        $script:JobRebootAfter.Remove($server)
-        if ($finalStage -in @('reboot','done')) {
-          $row.Status = 'Reinicio remoto iniciado (10s)'
-          Start-RebootMonitor $server
+      } else {
+        if ($script:PatchAfterCacheClear.ContainsKey($server)) {
+          $script:PatchAfterCacheClear.Remove($server)
         }
-      } elseif ($finalStage -eq 'reboot' -and [bool]$script:Cfg.AutoReboot.Enabled `
-          -and -not $script:AutoRebootPending.ContainsKey($server)) {
-        $delay = [int]$script:Cfg.AutoReboot.DelaySeconds
-        $script:AutoRebootPending[$server] = (Get-Date).AddSeconds($delay)
-        $row.Status = "Reinicio automatico en ${delay}s..."
-        Write-Log 'INFO' "Auto-reinicio programado: $server en ${delay}s"
-        Start-AutoRebootTimer
+        if ($script:JobRebootAfter.ContainsKey($server)) {
+          $script:JobRebootAfter.Remove($server)
+          if ($finalStage -in @('reboot','done')) {
+            $row.Status = 'Reinicio remoto iniciado (10s)'
+            Start-RebootMonitor $server
+          }
+        } elseif ($finalStage -eq 'reboot' -and [bool]$script:Cfg.AutoReboot.Enabled `
+            -and -not $script:AutoRebootPending.ContainsKey($server)) {
+          $delay = [int]$script:Cfg.AutoReboot.DelaySeconds
+          $script:AutoRebootPending[$server] = (Get-Date).AddSeconds($delay)
+          $row.Status = "Reinicio automatico en ${delay}s..."
+          Write-Log 'INFO' "Auto-reinicio programado: $server en ${delay}s"
+          Start-AutoRebootTimer
+        }
       }
 
       # Limpieza de archivos temporales en el servidor (solo si exitoso)
@@ -1497,7 +1826,7 @@ function Load-Csv {
 #------------------------------------------------------------------------------
 
 # Envia el reporte al endpoint del Dashboard Web y actualiza el label de estado
-function Sync-ToVercel($rows, $lbl) {
+function Sync-ToDashboard($rows, $lbl) {
   if (-not $script:WUUDashboardUploadEnabled) {
     $lbl.Text = 'Sincronizacion con Dashboard Web suspendida (solo reporte local).'
     $lbl.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
@@ -1508,8 +1837,11 @@ function Sync-ToVercel($rows, $lbl) {
   $lbl.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
   try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Apply-ReportInventoryFields $rows
     $servers = @($rows | ForEach-Object {
       [ordered]@{
+        Grupo                     = $_.Grupo
+        Ambiente                  = $_.Ambiente
         Dominio                   = $_.Dominio
         Servidor                  = $_.Servidor
         IP                        = $_.IP
@@ -1521,6 +1853,9 @@ function Sync-ToVercel($rows, $lbl) {
         Running_Time              = $_.Running_Time
         Descripcion_Error         = $_.Descripcion_Error
         Disk_Space                = $_.Disk_Space
+        Snap                      = $_.Snap
+        Confirmado                = $_.Confirmado
+        'Analista asignado'       = $_.Analista_Asignado
       }
     })
     # Un servidor solo puede aparecer una vez (duplicados en CSV/grilla rompen el upsert del API)
@@ -1559,8 +1894,71 @@ function Sync-ToVercel($rows, $lbl) {
 }
 
 # Guarda una copia CSV del reporte en la carpeta .\Reportes (un archivo por corrida)
+function Get-SnapReportText([bool]$Ok) {
+  if ($Ok) { return 'Se confirmo la ejecucion del snapshot de este servidor' }
+  return 'No se recibio la confirmacion de la ejecucion del snapshot de este servidor'
+}
+function Get-ConfirmadoReportText([bool]$Ok) {
+  if ($Ok) { return 'Se recibio la confirmacion de la ventana' }
+  return 'El cliente no confirmo la ejecucion de las actualizaciones de este servidor'
+}
+function Apply-ReportInventoryFields($rows) {
+  # Completa Grupo/Ambiente desde el inventario CSV (o grilla) por nombre de servidor.
+  $byCsv = @{}
+  if ($script:Csv) {
+    foreach ($r in @($script:Csv)) {
+      $n = "$($r.Servidor)".Trim()
+      if ($n -and -not $byCsv.ContainsKey($n)) { $byCsv[$n] = $r }
+    }
+  }
+  foreach ($rr in @($rows)) {
+    $name = "$($rr.Servidor)".Trim()
+    if (-not $name) { continue }
+    $csvRow = $byCsv[$name]
+    $sr = $null
+    if ($script:Servers) {
+      $sr = @($script:Servers | Where-Object { "$($_.Servidor)".Trim() -eq $name } | Select-Object -First 1)[0]
+    }
+    $grupo = ''
+    $ambiente = ''
+    if ($csvRow) {
+      $grupo = "$($csvRow.Grupo)".Trim()
+      $ambiente = "$($csvRow.Ambiente)".Trim()
+    }
+    if (-not $grupo -and $sr) { $grupo = "$($sr.Grupo)".Trim() }
+    if (-not $ambiente -and $sr) { $ambiente = "$($sr.Ambiente)".Trim() }
+    $rr.Grupo = $grupo
+    $rr.Ambiente = $ambiente
+    if (-not "$($rr.Analista_Asignado)".Trim()) {
+      $rr.Analista_Asignado = "$script:AnalistaAsignado".Trim()
+    }
+  }
+  return $rows
+}
+
+function Apply-ReportConfirmations($rows) {
+  # Completa Snap/Confirmado del reporte segun checkboxes de la grilla (si el servidor esta cargado).
+  Apply-ReportInventoryFields $rows
+  foreach ($rr in @($rows)) {
+    $name = "$($rr.Servidor)".Trim()
+    $sr = $null
+    if ($name -and $script:Servers) {
+      $sr = @($script:Servers | Where-Object { "$($_.Servidor)".Trim() -eq $name } | Select-Object -First 1)[0]
+    }
+    if ($sr) {
+      $rr.Snap       = Get-SnapReportText ([bool]$sr.Snap)
+      $rr.Confirmado = Get-ConfirmadoReportText ([bool]$sr.Confirmado)
+    } else {
+      $rr.Snap       = Get-SnapReportText $false
+      $rr.Confirmado = Get-ConfirmadoReportText $false
+    }
+  }
+  return $rows
+}
+
 function Save-ReportCsv($rows, [string]$periodLabel = '') {
   try {
+    Apply-ReportInventoryFields $rows
     $dir = Join-Path $script:ScriptDir 'Reportes'
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $suffix = if ($periodLabel) { "_$periodLabel" } else { '' }
@@ -1568,6 +1966,8 @@ function Save-ReportCsv($rows, [string]$periodLabel = '') {
     # Proyectamos a objetos ordenados para fijar el orden y los nombres de columna
     $export = $rows | ForEach-Object {
       [pscustomobject][ordered]@{
+        Grupo                     = $_.Grupo
+        Ambiente                  = $_.Ambiente
         Dominio                   = $_.Dominio
         Servidor                  = $_.Servidor
         IP                        = $_.IP
@@ -1579,6 +1979,9 @@ function Save-ReportCsv($rows, [string]$periodLabel = '') {
         Running_Time              = $_.Running_Time
         Descripcion_Error         = $_.Descripcion_Error
         Disk_Space                = $_.Disk_Space
+        Snap                      = $_.Snap
+        Confirmado                = $_.Confirmado
+        'Analista asignado'       = $_.Analista_Asignado
       }
     }
     # Delimitador ';' para que Excel (locale es-AR) lo abra en columnas con doble clic
@@ -1608,6 +2011,8 @@ function Show-ReportWindow($rows, $savedPath, $autoSync = $true, [string]$period
               RowHeaderWidth="0" Background="White" BorderBrush="#FFE2E8F0"
               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
       <DataGrid.Columns>
+        <DataGridTextColumn Header="Grupo"             Binding="{Binding Grupo}"                     Width="100"/>
+        <DataGridTextColumn Header="Ambiente"          Binding="{Binding Ambiente}"                  Width="100"/>
         <DataGridTextColumn Header="Dominio"           Binding="{Binding Dominio}"                   Width="120"/>
         <DataGridTextColumn Header="Servidor"          Binding="{Binding Servidor}"                  Width="130"/>
         <DataGridTextColumn Header="IP"                Binding="{Binding IP}"                        Width="110"/>
@@ -1617,8 +2022,11 @@ function Show-ReportWindow($rows, $savedPath, $autoSync = $true, [string]$period
         <DataGridTextColumn Header="KBs Instaladas"    Binding="{Binding KBs_Instaladas}"            Width="200"/>
         <DataGridTextColumn Header="Fecha Reinicio"    Binding="{Binding Fecha_Reinicio}"            Width="150"/>
         <DataGridTextColumn Header="Running Time"      Binding="{Binding Running_Time}"              Width="110"/>
-        <DataGridTextColumn Header="Disk Space"        Binding="{Binding Disk_Space}"                Width="180"/>
         <DataGridTextColumn Header="Descripcion Error" Binding="{Binding Descripcion_Error}"         Width="220"/>
+        <DataGridTextColumn Header="Disk Space"        Binding="{Binding Disk_Space}"                Width="180"/>
+        <DataGridTextColumn Header="Snap"              Binding="{Binding Snap}"                      Width="260"/>
+        <DataGridTextColumn Header="Confirmado"        Binding="{Binding Confirmado}"                Width="280"/>
+        <DataGridTextColumn Header="Analista asignado" Binding="{Binding Analista_Asignado}"          Width="160"/>
       </DataGrid.Columns>
     </DataGrid>
     <DockPanel Grid.Row="2" Margin="0,12,0,0" LastChildFill="False">
@@ -1649,12 +2057,12 @@ function Show-ReportWindow($rows, $savedPath, $autoSync = $true, [string]$period
   $bClose.Add_Click({ $win.Close() })
 
   if ($autoSync) {
-    $bResy.Add_Click({ Sync-ToVercel $rows $lbl }.GetNewClosure())
+    $bResy.Add_Click({ Sync-ToDashboard $rows $lbl }.GetNewClosure())
     # Al abrir, sincroniza con Dashboard Web sin congelar la ventana (se pinta primero)
     $win.Add_Loaded({
       $lbl.Text = 'Preparando sincronizacion...'
       $win.Dispatcher.BeginInvoke(
-        [action]{ Sync-ToVercel $rows $lbl },
+        [action]{ Sync-ToDashboard $rows $lbl },
         [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
     }.GetNewClosure())
   } else {
@@ -1718,21 +2126,22 @@ function Show-ReportPeriodPicker {
   $rbMonth.Add_Checked({ $cbMonth.IsEnabled = $true; $cbYear.IsEnabled = $true })
   $rbMonth.Add_Unchecked({ $cbMonth.IsEnabled = $false; $cbYear.IsEnabled = $false })
 
-  $script:__periodResult = $null
+  # Caja mutable: GetNewClosure NO escribe bien en $script: del .ps1 (queda siempre $null).
+  $periodBox = @{ Result = $null }
   $btnOk.Add_Click({
     if ($rbMonth.IsChecked) {
-      $script:__periodResult = @{ Year = [int]$cbYear.SelectedItem; Month = ($cbMonth.SelectedIndex + 1) }
+      $periodBox.Result = @{ Year = [int]$cbYear.SelectedItem; Month = ($cbMonth.SelectedIndex + 1) }
     } else {
-      $script:__periodResult = @{ Year = 0; Month = 0 }
+      $periodBox.Result = @{ Year = 0; Month = 0 }
     }
     $win.DialogResult = $true; $win.Close()
   }.GetNewClosure())
-  $btnCancel.Add_Click({ $win.DialogResult = $false; $win.Close() })
+  $btnCancel.Add_Click({ $win.DialogResult = $false; $win.Close() }.GetNewClosure())
 
   $win.Owner = $Window
   $ok = $win.ShowDialog()
   if (-not $ok) { return $null }
-  return $script:__periodResult
+  return $periodBox.Result
 }
 
 # Recolecta el reporte de TODOS los servidores de la grilla (en paralelo)
@@ -1822,41 +2231,49 @@ function On-ReportTick {
     $btnReport.Content   = $script:RepOrig
     $btnReport.IsEnabled = $true
 
-    # Construye las filas tipadas y ordenadas por servidor (sin duplicados)
-    $rows = New-Object System.Collections.ObjectModel.ObservableCollection[object]
-    $byServer = [ordered]@{}
-    foreach ($o in @($script:RepBag)) {
-      $name = "$($o.Servidor)".Trim()
-      if ($name) { $byServer[$name] = $o }
+    try {
+      # Construye las filas tipadas y ordenadas por servidor (sin duplicados)
+      $rows = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+      $byServer = [ordered]@{}
+      foreach ($o in @($script:RepBag)) {
+        $name = "$($o.Servidor)".Trim()
+        if ($name) { $byServer[$name] = $o }
+      }
+      foreach ($o in @($byServer.Values | Sort-Object { "$($_.Servidor)" })) {
+        $rr = New-Object ReportRow
+        $rr.Dominio                   = "$($o.Dominio)"
+        $rr.Servidor                  = "$($o.Servidor)"
+        $rr.IP                        = "$($o.IP)"
+        $rr.Sistema_Operativo         = "$($o.Sistema_Operativo)"
+        $rr.Version_Sistema_Operativo = "$($o.Version_Sistema_Operativo)"
+        $rr.Fecha_Instalacion         = "$($o.Fecha_Instalacion)"
+        $rr.KBs_Instaladas            = "$($o.KBs_Instaladas)"
+        $rr.Fecha_Reinicio            = "$($o.Fecha_Reinicio)"
+        $rr.Running_Time              = "$($o.Running_Time)"
+        $rr.Descripcion_Error         = "$($o.Descripcion_Error)"
+        $rr.Disk_Space                = "$($o.Disk_Space)"
+        $rows.Add($rr)
+      }
+      Apply-ReportConfirmations $rows
+      $periodLabel = if ($script:RepExplicit) { '{0:D4}-{1:D2}' -f $script:RepYear, $script:RepMonth } else { '' }
+
+      $savedPath = Save-ReportCsv $rows $periodLabel
+      Write-Log 'INFO' "Reporte generado para $($rows.Count) servidor(es) (periodo: $(if($periodLabel){$periodLabel}else{'actual'})). CSV: $savedPath"
+
+      try {
+        Save-History -Rows @($rows | ForEach-Object {
+          [pscustomobject]@{ Servidor=$_.Servidor; IP=$_.IP; State='Report'
+            Status='Reporte manual'; Error=$_.Descripcion_Error; RunningTime=$_.Running_Time }
+        }) -Type 'ReporteManual'
+      } catch { Write-Log 'WARN' "Historial (reporte): $($_.Exception.Message)" }
+
+      Show-ReportWindow $rows $savedPath $true $periodLabel
+    } catch {
+      Write-Log 'ERROR' "Reporte: $($_.Exception.Message)"
+      try {
+        [System.Windows.MessageBox]::Show("Error al generar el reporte:`n$($_.Exception.Message)", 'WUU', 'OK', 'Error') | Out-Null
+      } catch {}
     }
-    foreach ($o in @($byServer.Values | Sort-Object { "$($_.Servidor)" })) {
-      $rr = New-Object ReportRow
-      $rr.Dominio                   = "$($o.Dominio)"
-      $rr.Servidor                  = "$($o.Servidor)"
-      $rr.IP                        = "$($o.IP)"
-      $rr.Sistema_Operativo         = "$($o.Sistema_Operativo)"
-      $rr.Version_Sistema_Operativo = "$($o.Version_Sistema_Operativo)"
-      $rr.Fecha_Instalacion         = "$($o.Fecha_Instalacion)"
-      $rr.KBs_Instaladas            = "$($o.KBs_Instaladas)"
-      $rr.Fecha_Reinicio            = "$($o.Fecha_Reinicio)"
-      $rr.Running_Time              = "$($o.Running_Time)"
-      $rr.Descripcion_Error         = "$($o.Descripcion_Error)"
-      $rr.Disk_Space                = "$($o.Disk_Space)"
-      $rows.Add($rr)
-    }
-    # Etiqueta del periodo consultado (para nombre de CSV y titulo)
-    $periodLabel = if ($script:RepExplicit) { '{0:D4}-{1:D2}' -f $script:RepYear, $script:RepMonth } else { '' }
-
-    # Guarda la copia local (CSV) y abre la ventana; el Dashboard Web se sincroniza al abrir (todos los casos)
-    $savedPath = Save-ReportCsv $rows $periodLabel
-    Write-Log 'INFO' "Reporte generado para $($rows.Count) servidor(es) (periodo: $(if($periodLabel){$periodLabel}else{'actual'})). CSV: $savedPath"
-
-    Save-History -Rows @($rows | ForEach-Object {
-      [pscustomobject]@{ Servidor=$_.Servidor; IP=$_.IP; State='Report'
-        Status='Reporte manual'; Error=$_.Descripcion_Error; RunningTime=$_.Running_Time }
-    }) -Type 'ReporteManual'
-
-    Show-ReportWindow $rows $savedPath $true $periodLabel
   }
 }
 
@@ -1868,116 +2285,197 @@ function Get-FixPackages {
   $dir = Join-Path $script:ScriptDir 'Fix'
   if (-not (Test-Path $dir)) { return @() }
   return @(Get-ChildItem -Path $dir -File -ErrorAction SilentlyContinue |
-           Where-Object { $_.Extension -in @('.msu','.cab') } | Sort-Object Name)
+           Where-Object { $_.Extension -match '^\.(msu|cab)$' } | Sort-Object Name)
 }
 
 function Show-FixPackagePicker($packages) {
-  if ($packages.Count -eq 1) { return $packages[0] }
-  [xml]$px = @'
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WUU - Elegir paquete Fix" Height="360" Width="520"
-        WindowStartupLocation="CenterScreen" Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
-  <Grid Margin="16">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
-    <TextBlock Text="Selecciona el paquete a instalar (.msu / .cab)" FontWeight="SemiBold" Margin="0,0,0,10"/>
-    <ListBox x:Name="lbPkg" Grid.Row="1" DisplayMemberPath="Name"/>
-    <DockPanel Grid.Row="2" Margin="0,12,0,0" LastChildFill="False">
-      <Button x:Name="btnOk" Content="Continuar" Padding="14,7" Margin="0,0,8,0"/>
-      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" DockPanel.Dock="Right"/>
-    </DockPanel>
-  </Grid>
-</Window>
-'@
-  $rdr = New-Object System.Xml.XmlNodeReader $px
-  $win = [Windows.Markup.XamlReader]::Load($rdr)
-  $win.Owner = $Window
-  $lb = $win.FindName('lbPkg')
-  $lb.ItemsSource = $packages
-  if ($packages.Count -gt 0) { $lb.SelectedIndex = 0 }
-  $picked = $null
-  $win.FindName('btnOk').Add_Click({
-    if ($lb.SelectedItem) { $script:__fixPkg = $lb.SelectedItem; $win.DialogResult = $true }
-  }.GetNewClosure())
-  $win.FindName('btnCancel').Add_Click({ $win.DialogResult = $false }.GetNewClosure())
+  # Resultado en $script:__fixPkg (FileInfo). Devuelve $true/$false (no el objeto).
+  Add-Type -AssemblyName System.Windows.Forms | Out-Null
+  Add-Type -AssemblyName System.Drawing | Out-Null
+
+  $pkgArr = @($packages)
   $script:__fixPkg = $null
-  if ($win.ShowDialog()) { return $script:__fixPkg }
-  return $null
+
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = 'WUU - Elegir paquete Fix'
+  $form.Size = New-Object System.Drawing.Size(560, 380)
+  $form.StartPosition = 'CenterScreen'
+  $form.MinimizeBox = $false
+  $form.MaximizeBox = $false
+  $form.FormBorderStyle = 'FixedDialog'
+  $form.TopMost = $true
+  $form.ShowInTaskbar = $false
+  # Guardar rutas en Tag (no depende de variables del closure).
+  $form.Tag = [string[]]@($pkgArr | ForEach-Object { $_.FullName })
+
+  $lbl = New-Object System.Windows.Forms.Label
+  $lbl.Text = 'Selecciona el paquete a instalar (.msu / .cab)'
+  $lbl.Location = New-Object System.Drawing.Point(16, 14)
+  $lbl.AutoSize = $true
+  $form.Controls.Add($lbl)
+
+  $lb = New-Object System.Windows.Forms.ListBox
+  $lb.Name = 'lbPkg'
+  $lb.Location = New-Object System.Drawing.Point(16, 40)
+  $lb.Size = New-Object System.Drawing.Size(512, 250)
+  foreach ($p in $pkgArr) { [void]$lb.Items.Add([string]$p.Name) }
+  if ($lb.Items.Count -gt 0) { $lb.SelectedIndex = 0 }
+  $form.Controls.Add($lb)
+
+  $btnOk = New-Object System.Windows.Forms.Button
+  $btnOk.Text = 'Continuar'
+  $btnOk.Location = New-Object System.Drawing.Point(320, 300)
+  $btnOk.Size = New-Object System.Drawing.Size(100, 30)
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = 'Cancelar'
+  $btnCancel.Location = New-Object System.Drawing.Point(428, 300)
+  $btnCancel.Size = New-Object System.Drawing.Size(100, 30)
+  $form.Controls.Add($btnOk)
+  $form.Controls.Add($btnCancel)
+
+  $script:__fixPkgForm = $form
+  $script:__fixPkgListBox = $lb
+  $script:__fixPkgPaths = [string[]]$form.Tag
+
+  $btnOk.Add_Click({
+    try {
+      $paths = [string[]]$script:__fixPkgPaths
+      if (-not $paths -or $paths.Length -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show('No hay paquetes en Fix\.','WUU') | Out-Null
+        return
+      }
+      $idx = 0
+      if ($script:__fixPkgListBox -and $script:__fixPkgListBox.SelectedIndex -ge 0) {
+        $idx = [int]$script:__fixPkgListBox.SelectedIndex
+      }
+      if ($idx -ge $paths.Length) { $idx = 0 }
+      $path = $paths[$idx]
+      if (-not (Test-Path -LiteralPath $path)) {
+        [System.Windows.Forms.MessageBox]::Show("No se encuentra el paquete:`n$path",'WUU') | Out-Null
+        return
+      }
+      $script:__fixPkg = Get-Item -LiteralPath $path
+      Write-Log 'INFO' ("Fix: paquete elegido = {0}" -f $script:__fixPkg.Name)
+      $script:__fixPkgForm.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    } catch {
+      Write-Log 'ERROR' "Fix: error eligiendo paquete: $($_.Exception.Message)"
+      [System.Windows.Forms.MessageBox]::Show("Error al elegir paquete:`n$($_.Exception.Message)",'WUU') | Out-Null
+    }
+  })
+  $btnCancel.Add_Click({
+    $script:__fixPkg = $null
+    if ($script:__fixPkgForm) {
+      $script:__fixPkgForm.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    }
+  })
+
+  $result = $form.ShowDialog()
+  try { $form.Dispose() } catch { }
+  $script:__fixPkgForm = $null
+  $script:__fixPkgListBox = $null
+  return ($result -eq [System.Windows.Forms.DialogResult]::OK -and $null -ne $script:__fixPkg)
 }
 
 function Show-FixServerPicker {
-  [xml]$sx = @'
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WUU - Servidores Fix" Height="440" Width="420"
-        WindowStartupLocation="CenterScreen" Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
-  <Grid Margin="16">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
-    <TextBlock Text="Selecciona servidores destino" FontWeight="SemiBold" Margin="0,0,0,8"/>
-    <CheckBox x:Name="chkAll" Content="Seleccionar todos" Grid.Row="1" Margin="0,0,0,8"/>
-    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-      <ItemsControl x:Name="icFix">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <CheckBox Content="{Binding Servidor}" Margin="4,2"
-                      IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </ScrollViewer>
-    <DockPanel Grid.Row="3" Margin="0,12,0,0" LastChildFill="False">
-      <Button x:Name="btnOk" Content="Continuar" Padding="14,7" Margin="0,0,8,0"/>
-      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" DockPanel.Dock="Right"/>
-    </DockPanel>
-  </Grid>
-</Window>
-'@
-  $rdr = New-Object System.Xml.XmlNodeReader $sx
-  $win = [Windows.Markup.XamlReader]::Load($rdr)
-  $win.Owner = $Window
-  $items = New-Object System.Collections.ObjectModel.ObservableCollection[object]
-  foreach ($s in $script:Servers) {
-    $it = New-Object FixPickItem
-    $it.Servidor = $s.Servidor
-    $items.Add($it)
+  # Resultado en $script:__fixServers ([string[]]). Devuelve $true/$false.
+  # Asi evitamos el bug de PowerShell donde @(array) deja Count=1.
+  Add-Type -AssemblyName System.Windows.Forms | Out-Null
+  Add-Type -AssemblyName System.Drawing | Out-Null
+
+  $script:__fixServers = [string[]]@()
+
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = 'WUU - Servidores Fix'
+  $form.Size = New-Object System.Drawing.Size(440, 520)
+  $form.StartPosition = 'CenterScreen'
+  $form.MinimizeBox = $false
+  $form.MaximizeBox = $false
+  $form.FormBorderStyle = 'FixedDialog'
+  $form.TopMost = $true
+  $form.ShowInTaskbar = $false
+
+  $lbl = New-Object System.Windows.Forms.Label
+  $lbl.Text = 'Selecciona servidores destino'
+  $lbl.Location = New-Object System.Drawing.Point(16, 14)
+  $lbl.AutoSize = $true
+  $form.Controls.Add($lbl)
+
+  $chkAll = New-Object System.Windows.Forms.CheckBox
+  $chkAll.Name = 'chkAll'
+  $chkAll.Text = 'Seleccionar todos'
+  $chkAll.Location = New-Object System.Drawing.Point(16, 40)
+  $chkAll.AutoSize = $true
+  $form.Controls.Add($chkAll)
+
+  $clb = New-Object System.Windows.Forms.CheckedListBox
+  $clb.Name = 'clbServers'
+  $clb.Location = New-Object System.Drawing.Point(16, 68)
+  $clb.Size = New-Object System.Drawing.Size(392, 360)
+  $clb.CheckOnClick = $true
+  $form.Controls.Add($clb)
+
+  $selNames = @($script:Servers | Where-Object { $_.Sel } | ForEach-Object { $_.Servidor })
+  $precheckAll = ($selNames.Count -eq 0)
+  foreach ($s in @($script:Servers)) {
+    $name = [string]$s.Servidor
+    $mark = $precheckAll -or ($selNames -contains $name)
+    [void]$clb.Items.Add($name, $mark)
   }
-  $ic = $win.FindName('icFix')
-  $ic.ItemsSource = $items
-  $chkAll = $win.FindName('chkAll')
-  $script:__fixSuspendAll = $false
-  $chkAll.Add_Checked({
-    if ($script:__fixSuspendAll) { return }
-    $script:__fixSuspendAll = $true
-    foreach ($it in $items) { $it.IsChecked = $true }
-    $script:__fixSuspendAll = $false
-  }.GetNewClosure())
-  $chkAll.Add_Unchecked({
-    if ($script:__fixSuspendAll) { return }
-    $script:__fixSuspendAll = $true
-    foreach ($it in $items) { $it.IsChecked = $false }
-    $script:__fixSuspendAll = $false
-  }.GetNewClosure())
-  $win.FindName('btnOk').Add_Click({
-    $script:__fixServers = @($items | Where-Object { $_.IsChecked } | ForEach-Object { $_.Servidor })
-    if ($script:__fixServers.Count -eq 0) {
-      [System.Windows.MessageBox]::Show('Selecciona al menos un servidor.','WUU','OK','Information') | Out-Null
-      return
+  $chkAll.Checked = ($clb.Items.Count -gt 0) -and (@($clb.CheckedItems).Count -eq $clb.Items.Count)
+
+  $script:__fixSrvForm = $form
+  $script:__fixSrvList = $clb
+  $script:__fixSrvChkAll = $chkAll
+
+  $chkAll.Add_CheckedChanged({
+    $box = $script:__fixSrvList
+    $all = $script:__fixSrvChkAll
+    if (-not $box -or -not $all) { return }
+    for ($i = 0; $i -lt $box.Items.Count; $i++) { $box.SetItemChecked($i, [bool]$all.Checked) }
+  })
+
+  $btnOk = New-Object System.Windows.Forms.Button
+  $btnOk.Text = 'Continuar'
+  $btnOk.Location = New-Object System.Drawing.Point(200, 440)
+  $btnOk.Size = New-Object System.Drawing.Size(100, 30)
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = 'Cancelar'
+  $btnCancel.Location = New-Object System.Drawing.Point(308, 440)
+  $btnCancel.Size = New-Object System.Drawing.Size(100, 30)
+  $form.Controls.Add($btnOk)
+  $form.Controls.Add($btnCancel)
+
+  $btnOk.Add_Click({
+    try {
+      $box = $script:__fixSrvList
+      $picked = New-Object System.Collections.Generic.List[string]
+      for ($i = 0; $i -lt $box.Items.Count; $i++) {
+        if ($box.GetItemChecked($i)) { [void]$picked.Add([string]$box.Items[$i]) }
+      }
+      if ($picked.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show('Selecciona al menos un servidor.','WUU') | Out-Null
+        return
+      }
+      $script:__fixServers = [string[]]$picked.ToArray()
+      Write-Log 'INFO' ("Fix: servidores elegidos = {0}" -f $script:__fixServers.Length)
+      $script:__fixSrvForm.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    } catch {
+      [System.Windows.Forms.MessageBox]::Show("Error al continuar:`n$($_.Exception.Message)",'WUU') | Out-Null
     }
-    $win.DialogResult = $true
-  }.GetNewClosure())
-  $win.FindName('btnCancel').Add_Click({ $win.DialogResult = $false }.GetNewClosure())
-  $script:__fixServers = @()
-  if ($win.ShowDialog()) { return @($script:__fixServers) }
-  return $null
+  })
+  $btnCancel.Add_Click({
+    $script:__fixServers = [string[]]@()
+    if ($script:__fixSrvForm) {
+      $script:__fixSrvForm.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    }
+  })
+
+  $result = $form.ShowDialog()
+  try { $form.Dispose() } catch { }
+  $script:__fixSrvForm = $null
+  $script:__fixSrvList = $null
+  $script:__fixSrvChkAll = $null
+  return ($result -eq [System.Windows.Forms.DialogResult]::OK -and $script:__fixServers.Length -gt 0)
 }
 
 function Start-FixTimer {
@@ -2004,25 +2502,116 @@ function Stop-AllFixJobs {
   if ($script:FixTimer) { $script:FixTimer.Stop() }
 }
 
-function Start-FixJob($row, [string]$packagePath, [string]$packageName) {
+function Show-FixModePicker {
+  # Devuelve 'copy' | 'install' | $null (cancelado).
+  Add-Type -AssemblyName System.Windows.Forms | Out-Null
+  Add-Type -AssemblyName System.Drawing | Out-Null
+
+  $script:__fixMode = $null
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = 'WUU - Modo Fix'
+  $form.Size = New-Object System.Drawing.Size(460, 220)
+  $form.StartPosition = 'CenterScreen'
+  $form.MinimizeBox = $false
+  $form.MaximizeBox = $false
+  $form.FormBorderStyle = 'FixedDialog'
+  $form.TopMost = $true
+  $form.ShowInTaskbar = $false
+
+  $lbl = New-Object System.Windows.Forms.Label
+  $lbl.Text = "Que desea hacer con el paquete seleccionado?`r`n`r`n" +
+              "Solo copiar: deja el .msu/.cab en C:\Temp\ (si ya existe, lo indica y no vuelve a copiar).`r`n" +
+              "Copiar e instalar: copia a C:\Temp\ (o usa el existente) e instala; reinicia si hace falta."
+  $lbl.Location = New-Object System.Drawing.Point(16, 14)
+  $lbl.Size = New-Object System.Drawing.Size(410, 90)
+  $form.Controls.Add($lbl)
+
+  $btnCopy = New-Object System.Windows.Forms.Button
+  $btnCopy.Text = 'Solo copiar'
+  $btnCopy.Location = New-Object System.Drawing.Point(16, 120)
+  $btnCopy.Size = New-Object System.Drawing.Size(130, 36)
+  $btnInstall = New-Object System.Windows.Forms.Button
+  $btnInstall.Text = 'Copiar e instalar'
+  $btnInstall.Location = New-Object System.Drawing.Point(156, 120)
+  $btnInstall.Size = New-Object System.Drawing.Size(140, 36)
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = 'Cancelar'
+  $btnCancel.Location = New-Object System.Drawing.Point(310, 120)
+  $btnCancel.Size = New-Object System.Drawing.Size(110, 36)
+  $form.Controls.Add($btnCopy)
+  $form.Controls.Add($btnInstall)
+  $form.Controls.Add($btnCancel)
+
+  $script:__fixModeForm = $form
+  $btnCopy.Add_Click({
+    $script:__fixMode = 'copy'
+    $script:__fixModeForm.DialogResult = [System.Windows.Forms.DialogResult]::OK
+  })
+  $btnInstall.Add_Click({
+    $script:__fixMode = 'install'
+    $script:__fixModeForm.DialogResult = [System.Windows.Forms.DialogResult]::OK
+  })
+  $btnCancel.Add_Click({
+    $script:__fixMode = $null
+    $script:__fixModeForm.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+  })
+
+  $result = $form.ShowDialog()
+  try { $form.Dispose() } catch { }
+  $script:__fixModeForm = $null
+  if ($result -eq [System.Windows.Forms.DialogResult]::OK -and $script:__fixMode) {
+    return $script:__fixMode
+  }
+  return $null
+}
+
+function Start-FixJob($row, [string]$packagePath, [string]$packageName, [string]$Mode = 'install') {
   $server = $row.Servidor
   if ($script:FixJobs.ContainsKey($server) -or $script:Jobs.ContainsKey($server)) { return }
 
+  $copyOnly = ($Mode -eq 'copy')
   $row.State = 'DownloadInstall'
-  $row.Status = 'Fix: preparando...'
+  $row.Status = if ($copyOnly) { 'Fix: preparando copia...' } else { 'Fix: preparando...' }
   $row.Error = ''
 
-  $sync = [hashtable]::Synchronized(@{ done=$false; transportError='' })
+  $sync = [hashtable]::Synchronized(@{
+    done = $false
+    transportError = ''
+    copyOk = $false
+    alreadyExists = $false
+    phase = 'init'
+  })
   $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
   $fjob = {
-    param($server, $psexec, $fixWorker, $rel, $pkgLocal, $pkgName, $sync)
+    param($server, $psexec, $fixWorker, $rel, $pkgLocal, $pkgName, $sync, $copyOnly)
     try {
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\fix.json" -ErrorAction SilentlyContinue
-      Copy-Item -Path $fixWorker -Destination "$remoteDir\fix.ps1" -Force -ErrorAction Stop
-      Copy-Item -Path $pkgLocal -Destination "$remoteDir\$pkgName" -Force -ErrorAction Stop
+      # Ambos modos usan C:\Temp para el paquete
+      $tempDir = "\\$server\C`$\Temp"
+      $sync.phase = 'mkdir'
+      New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction Stop | Out-Null
+      $dest = Join-Path $tempDir $pkgName
+
+      if (Test-Path -LiteralPath $dest) {
+        $sync.alreadyExists = $true
+        $sync.copyOk = $true
+        $sync.phase = 'exists'
+      } else {
+        $sync.phase = 'copy'
+        Copy-Item -Path $pkgLocal -Destination $dest -Force -ErrorAction Stop
+        if (-not (Test-Path -LiteralPath $dest)) { throw "Copia incompleta: no se ve $pkgName en C:\Temp" }
+        $sync.alreadyExists = $false
+        $sync.copyOk = $true
+      }
+
+      if ($copyOnly) { return }
+
+      # Instalar desde C:\Temp via fix.ps1 (worker en carpeta WUU)
+      $sync.phase = 'install'
+      $wuuDir = "\\$server\C`$\$rel"
+      New-Item -ItemType Directory -Path $wuuDir -Force -ErrorAction Stop | Out-Null
+      Remove-Item "$wuuDir\fix.json" -ErrorAction SilentlyContinue
+      Copy-Item -Path $fixWorker -Destination "$wuuDir\fix.ps1" -Force -ErrorAction Stop
       $out = & $psexec "\\$server" -accepteula -nobanner -s `
                 powershell.exe -ExecutionPolicy Bypass -NonInteractive `
                 -File "C:\$rel\fix.ps1" -PackageName $pkgName 2>&1
@@ -2031,6 +2620,7 @@ function Start-FixJob($row, [string]$packagePath, [string]$packageName) {
       }
     } catch {
       $sync.transportError = $_.Exception.Message
+      $sync.copyOk = $false
     } finally {
       $sync.done = $true
     }
@@ -2042,11 +2632,15 @@ function Start-FixJob($row, [string]$packagePath, [string]$packageName) {
       AddArgument($server).AddArgument($script:PsExecPath).
       AddArgument($script:LocalFixWorker).AddArgument($script:RemoteRel).
       AddArgument($packagePath).AddArgument($packageName).
-      AddArgument($sync) | Out-Null
+      AddArgument($sync).AddArgument($copyOnly) | Out-Null
   $handle = $ps.BeginInvoke()
 
-  $script:FixJobs[$server] = @{ ps=$ps; handle=$handle; rs=$rs; sw=$sw; sync=$sync; pkg=$packageName }
-  Write-Log 'INFO' "Fix iniciado: $server ($packageName)"
+  $script:FixJobs[$server] = @{
+    ps=$ps; handle=$handle; rs=$rs; sw=$sw; sync=$sync
+    pkg=$packageName; mode=$Mode
+  }
+  $accion = if ($copyOnly) { 'copia' } else { 'copia+instalacion' }
+  Write-Log 'INFO' "Fix iniciado ($accion): $server ($packageName)"
 }
 
 function On-FixTick {
@@ -2062,46 +2656,92 @@ function On-FixTick {
     if (-not $row) { continue }
 
     $row.RunningTime = Format-Elapsed $job.sw.Elapsed
+    $copyOnly = ($job.mode -eq 'copy')
+
     if (-not $job.sync.done) {
-      $row.Status = "Fix: instalando $($job.pkg)..."
+      $phase = [string]$job.sync.phase
+      if ($phase -eq 'exists') {
+        if ($copyOnly) {
+          $row.Status = "Fix: el archivo ya existe en C:\Temp"
+        } else {
+          $row.Status = 'Fix: el archivo ya existe en el servidor. Instalando...'
+        }
+      } elseif ($copyOnly -or $phase -in @('copy','mkdir')) {
+        $row.Status = "Fix: copiando $($job.pkg) a C:\Temp..."
+      } else {
+        if ($job.sync.alreadyExists) {
+          $row.Status = 'Fix: el archivo ya existe en el servidor. Instalando...'
+        } else {
+          $row.Status = "Fix: instalando $($job.pkg)..."
+        }
+      }
       continue
     }
 
-    $unc = "\\$server\C`$\$($script:RemoteRel)\fix.json"
-    $fx = $null
-    try {
-      if (Test-Path $unc) {
-        $raw = Get-Content -Path $unc -Raw -ErrorAction Stop
-        if ($raw) { $fx = $raw | ConvertFrom-Json }
-      }
-    } catch {}
-
-    if ($fx) {
-      $row.Status = "$($fx.message)"
-      $code = [int]$fx.exitCode
-      if ($code -in @(0, 3010, 2359302)) {
-        if ($fx.rebootRequired -or $code -eq 3010) {
-          $row.State = 'RebootRequired'
-          $row.Status = 'Fix instalado. Requiere reinicio'
+    if ($copyOnly) {
+      if ($job.sync.copyOk -and -not $job.sync.transportError) {
+        $row.State = 'Updated'
+        $row.Error = ''
+        if ($job.sync.alreadyExists) {
+          $row.Status = "Fix: el archivo ya existe en C:\Temp\$($job.pkg)"
         } else {
-          $row.State = 'Updated'
+          $row.Status = "Fix: copiado a C:\Temp\$($job.pkg)"
         }
-        if ($code -eq 2359302) { $row.Error = '' }
-        elseif ($code -ne 0) { $row.Error = '' }
       } else {
         $row.State = 'Unselected'
-        $row.Error = "$($fx.message)"
+        $row.Status = 'Error al copiar a C:\Temp'
+        $row.Error = if ($job.sync.transportError) { $job.sync.transportError } else { 'Copia fallida' }
+        Write-Log 'ERROR' "Fix copia $server : $($row.Error)"
       }
-    } elseif ($job.sync.transportError) {
-      $row.State = 'Unselected'
-      $row.Status = 'Error Fix'
-      $row.Error = $job.sync.transportError
-      Write-Log 'ERROR' "Fix $server : $($job.sync.transportError)"
     } else {
-      $row.State = 'Unselected'
-      $row.Status = 'Error Fix'
-      $row.Error = 'Sin respuesta del servidor (fix.json)'
-      Write-Log 'ERROR' "Fix $server : sin fix.json"
+      $unc = "\\$server\C`$\$($script:RemoteRel)\fix.json"
+      $fx = $null
+      try {
+        if (Test-Path $unc) {
+          $raw = Get-Content -Path $unc -Raw -ErrorAction Stop
+          if ($raw) { $fx = $raw | ConvertFrom-Json }
+        }
+      } catch {}
+
+      if ($fx) {
+        $code = [int]$fx.exitCode
+        $prefix = if ($job.sync.alreadyExists) { 'El archivo ya existe en el servidor. ' } else { '' }
+        if ($code -in @(0, 3010, 2359302)) {
+          if ($fx.rebootRequired -or $code -eq 3010) {
+            $row.State = 'RebootRequired'
+            $row.Status = "${prefix}Fix instalado. Requiere reinicio"
+            $row.Error = ''
+            # Reinicio automatico tras Fix si lo requiere
+            if (-not $script:AutoRebootPending.ContainsKey($server)) {
+              $delay = 60
+              try { $delay = [int]$script:Cfg.AutoReboot.DelaySeconds } catch { $delay = 60 }
+              if ($delay -lt 5) { $delay = 5 }
+              $script:AutoRebootPending[$server] = (Get-Date).AddSeconds($delay)
+              $row.Status = "${prefix}Fix instalado. Reinicio automatico en ${delay}s..."
+              Write-Log 'INFO' "Fix auto-reinicio programado: $server en ${delay}s"
+              Start-AutoRebootTimer
+            }
+          } else {
+            $row.State = 'Updated'
+            $row.Status = "$prefix$($fx.message)"
+            $row.Error = ''
+          }
+        } else {
+          $row.State = 'Unselected'
+          $row.Status = "$prefix$($fx.message)"
+          $row.Error = "$($fx.message)"
+        }
+      } elseif ($job.sync.transportError) {
+        $row.State = 'Unselected'
+        $row.Status = 'Error Fix'
+        $row.Error = $job.sync.transportError
+        Write-Log 'ERROR' "Fix $server : $($job.sync.transportError)"
+      } else {
+        $row.State = 'Unselected'
+        $row.Status = 'Error Fix'
+        $row.Error = 'Sin respuesta del servidor (fix.json)'
+        Write-Log 'ERROR' "Fix $server : sin fix.json"
+      }
     }
 
     $job.sw.Stop()
@@ -2129,30 +2769,77 @@ function Start-FixFlow {
   $packages = Get-FixPackages
   if ($packages.Count -eq 0) {
     [System.Windows.MessageBox]::Show(
-      "No hay paquetes .msu o .cab en la carpeta Fix\ junto a WUU.ps1.",
+      "No hay paquetes .msu o .cab en la carpeta Fix\ junto a WUU.ps1.`n`nNota: Fix no instala .msi; solo .msu y .cab.",
       'WUU', 'OK', 'Information') | Out-Null
     return
   }
-  $pkg = Show-FixPackagePicker $packages
-  if (-not $pkg) { return }
-  $targets = Show-FixServerPicker
-  if (-not $targets) { return }
-  $resp = [System.Windows.MessageBox]::Show(
-    "Instalar '$($pkg.Name)' en $($targets.Count) servidor(es)?`n`n$($targets -join ', ')",
-    'WUU - Confirmar Fix', 'YesNo', 'Warning')
-  if ($resp -ne 'Yes') { return }
 
-  Write-Log 'INFO' "Fix: $($pkg.Name) en $($targets.Count) servidor(es)"
+  # 1) Servidores → 2) Paquete → 3) Confirmacion
+  # Los dialogos guardan el resultado en $script:__fixServers / $script:__fixPkg
+  # (evita el bug de PowerShell donde @(arrayDe49) queda con Count=1).
+  Write-Log 'INFO' ("Fix: {0} paquete(s) disponible(s) en Fix\" -f @($packages).Count)
+  if (-not (Show-FixServerPicker)) {
+    Write-Log 'INFO' 'Fix: seleccion de servidores cancelada.'
+    return
+  }
+  $targets = [string[]]$script:__fixServers
+  Write-Log 'INFO' ("Fix: targets listos = {0}" -f $targets.Length)
+  if ($targets.Length -eq 0) { return }
+
+  if (-not (Show-FixPackagePicker $packages)) {
+    Write-Log 'INFO' 'Fix: seleccion de paquete cancelada.'
+    [System.Windows.Forms.MessageBox]::Show(
+      "No se selecciono ningun paquete Fix.`n`nSi pulsaste Continuar y ves este mensaje, copia el WUU.ps1 actualizado a Desktop\PatchControl y reinicia WUU.",
+      'WUU Fix') | Out-Null
+    return
+  }
+  $pkg = $script:__fixPkg
+  $pkgName = [string]$pkg.Name
+  $pkgPath = [string]$pkg.FullName
+  if (-not $pkgPath -or -not (Test-Path -LiteralPath $pkgPath)) {
+    [System.Windows.Forms.MessageBox]::Show(
+      "No se pudo resolver la ruta del paquete seleccionado.`n$pkgName",
+      'WUU Fix') | Out-Null
+    Write-Log 'ERROR' "Fix: ruta invalida para $pkgName"
+    return
+  }
+
+  # 3) Modo: Solo copiar | Copiar e instalar
+  $mode = Show-FixModePicker
+  if (-not $mode) {
+    Write-Log 'INFO' 'Fix: modo cancelado.'
+    return
+  }
+
+  # 4) Confirmacion WinForms (Sí/No).
+  $preview = ($targets | Select-Object -First 15) -join ', '
+  if ($targets.Length -gt 15) { $preview += ", ... (+$($targets.Length - 15))" }
+  $accionTxt = if ($mode -eq 'copy') { 'SOLO COPIAR' } else { 'COPIAR E INSTALAR' }
+  $msg = "$accionTxt`r`n`r`nPaquete: $pkgName`r`nServidores: $($targets.Length)`r`n`r`n$preview"
+  $resp = [System.Windows.Forms.MessageBox]::Show(
+    $msg,
+    'WUU - Confirmar Fix',
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Warning
+  )
+  if ($resp -ne [System.Windows.Forms.DialogResult]::Yes) {
+    Write-Log 'INFO' 'Fix: confirmacion cancelada.'
+    return
+  }
+
+  Write-Log 'INFO' "Fix ($mode): $pkgName en $($targets.Length) servidor(es)"
   $started = 0
   foreach ($name in $targets) {
     $row = Get-Row $name
     if ($row) {
-      Start-FixJob $row $pkg.FullName $pkg.Name
+      Start-FixJob $row $pkgPath $pkgName $mode
       if ($script:FixJobs.ContainsKey($name)) { $started++ }
     }
   }
   if ($started -eq 0) {
-    [System.Windows.MessageBox]::Show('No se pudo iniciar Fix en ningun servidor (puede haber jobs activos).','WUU','OK','Warning') | Out-Null
+    [System.Windows.Forms.MessageBox]::Show(
+      'No se pudo iniciar Fix en ningun servidor (puede haber jobs activos).',
+      'WUU Fix') | Out-Null
     return
   }
   Start-FixTimer
@@ -2483,6 +3170,19 @@ function On-RebootTick {
       try { $job.ps.Dispose() } catch {}
       try { $job.rs.Close(); $job.rs.Dispose() } catch {}
       $script:RebootJobs.Remove($server)
+
+      if ($script:PatchAfterCacheClear.ContainsKey($server)) {
+        $script:PatchAfterCacheClear.Remove($server)
+        $monResult = "$($sync.result)"
+        if ($row -and $monResult -notin @('timeout', 'error')) {
+          Write-Log 'INFO' "Post-limpieza cache: iniciando parcheo en $server"
+          $row.Status = 'Iniciando parcheo tras limpieza de cache...'
+          $row.Error = ''
+          Start-ServerJob $row 'Install'
+        } elseif ($row) {
+          Write-Log 'WARN' "Post-limpieza cache: no se inicia parcheo en $server (monitor: $monResult)"
+        }
+      }
     }
   }
 }
@@ -2495,6 +3195,10 @@ function Stop-AllRebootMonitors {
     try { $job.ps.Dispose() } catch {}
     try { $job.rs.Close(); $job.rs.Dispose() } catch {}
     $script:RebootJobs.Remove($server)
+    if ($script:PatchAfterCacheClear.ContainsKey($server)) {
+      $script:PatchAfterCacheClear.Remove($server)
+    }
+  }
   }
   if ($script:RebootTimer) { try { $script:RebootTimer.Stop() } catch {} }
 }
@@ -2622,6 +3326,7 @@ function Save-History([array]$Rows, [string]$Type = 'Parcheo') {
       servers  = @($Rows | ForEach-Object {
         [ordered]@{
           Servidor=$_.Servidor; IP=$_.IP; Estado=$_.State
+          Grupo=$_.Grupo; Dominio=$_.Dominio; OS=$_.OS; Ambiente=$_.Ambiente
           Status=$_.Status; Error=$_.Error; RunningTime=$_.RunningTime
         }
       })
@@ -2636,6 +3341,10 @@ function Save-History([array]$Rows, [string]$Type = 'Parcheo') {
         TipoCorrida  = $Type
         Servidor     = $_.Servidor
         IP           = $_.IP
+        Grupo        = $_.Grupo
+        Dominio      = $_.Dominio
+        OS           = $_.OS
+        Ambiente     = $_.Ambiente
         Estado       = $_.State
         Status       = $_.Status
         Error        = $_.Error
@@ -2665,9 +3374,18 @@ function Save-History([array]$Rows, [string]$Type = 'Parcheo') {
 #  TAREA PROGRAMADA (Windows Task Scheduler)
 #==============================================================================
 
-function Get-TaskStatus {
+function Get-TaskStatus([string]$TaskName = '') {
   try {
-    $t = Get-ScheduledTask -TaskName $script:Cfg.ScheduledReport.TaskName -ErrorAction Stop
+    if (-not $TaskName) {
+      $ui = $script:SchedUi
+      if ($ui -and $ui.txtName) { $TaskName = "$($ui.txtName.Text)".Trim() }
+    }
+    if (-not $TaskName) {
+      Ensure-ConfigSection 'ScheduledReport'
+      $TaskName = "$($script:Cfg.ScheduledReport.TaskName)"
+    }
+    if (-not $TaskName) { return 'NoExiste' }
+    $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     return $t.State
   } catch { return 'NoExiste' }
 }
@@ -2693,11 +3411,106 @@ function Format-ScheduledDateDMY([datetime]$Date) {
   return $Date.ToString('dd/MM/yyyy')
 }
 
+function Assert-ScheduledTaskName([string]$Name) {
+  $n = "$Name".Trim()
+  if (-not $n) { throw 'Ingresa un nombre para la tarea.' }
+  if ($n -match '[\\/:*?"<>|]') {
+    throw 'El nombre de la tarea no puede contener: \ / : * ? " < > |'
+  }
+  return $n
+}
+
+function New-WuuScheduledTaskAction {
+  param(
+    [Parameter(Mandatory)][string]$ScriptPath,
+    [Parameter(Mandatory)][ValidateSet('-Scheduled','-ScheduledPatch')][string]$ModeSwitch
+  )
+  $path = "$ScriptPath".Trim()
+  if (-not $path) { throw 'No se pudo resolver la ruta de WUU.ps1.' }
+  if (-not (Test-Path -LiteralPath $path)) { throw "No existe el script: $path" }
+  if ($path.Contains("'")) {
+    throw "La ruta del script no puede contener comillas simples: $path"
+  }
+  $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+  $workDir = [System.IO.Path]::GetDirectoryName($path)
+  # Comillas simples alrededor de -File: evita HRESULT 0x8007007b de Task Scheduler
+  # con rutas entrecomilladas con " (path con espacios / Desktop, etc.).
+  $arg = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File '$path' $ModeSwitch"
+  return New-ScheduledTaskAction -Execute $psExe -Argument $arg -WorkingDirectory $workDir
+}
+
+function Save-WuuConfig {
+  $cfgPath = Join-Path $script:ScriptDir 'config.json'
+  $script:Cfg | ConvertTo-Json -Depth 5 | Set-Content -Path $cfgPath -Encoding UTF8
+}
+
+function Set-ScheduledReportConfig {
+  param(
+    [string]$TaskName,
+    [int]$Hour,
+    [int]$Minute,
+    [string]$StartDate,
+    [bool]$Enabled,
+    [ValidateSet('current','previous','specific')]$PeriodMode = 'current',
+    [int]$Year = 0,
+    [int]$Month = 0
+  )
+  # Corre en scope del script (no en GetNewClosure): evita "Cannot index into a null array".
+  Ensure-ConfigSection 'ScheduledReport'
+  $sr = $script:Cfg['ScheduledReport']
+  $sr['TaskName']   = $TaskName
+  $sr['Hour']       = $Hour
+  $sr['Minute']     = $Minute
+  $sr['StartDate']  = $StartDate
+  $sr['Enabled']    = $Enabled
+  $sr['PeriodMode'] = $PeriodMode
+  $sr['Year']       = $Year
+  $sr['Month']      = $Month
+  $script:Cfg['ScheduledReport'] = $sr
+  Save-WuuConfig
+}
+
+function Set-ScheduledReportEnabled([bool]$Enabled) {
+  Ensure-ConfigSection 'ScheduledReport'
+  $script:Cfg['ScheduledReport']['Enabled'] = $Enabled
+  Save-WuuConfig
+}
+
+function Set-ScheduledPatchConfig {
+  param(
+    [string]$TaskName,
+    [int]$Hour,
+    [int]$Minute,
+    [string]$StartDate,
+    [bool]$Enabled,
+    [string[]]$Groups = @(),
+    [string[]]$Servers = @()
+  )
+  Ensure-ConfigSection 'ScheduledPatch'
+  $sp = $script:Cfg['ScheduledPatch']
+  $sp['TaskName']  = $TaskName
+  $sp['Hour']      = $Hour
+  $sp['Minute']    = $Minute
+  $sp['StartDate'] = $StartDate
+  $sp['Enabled']   = $Enabled
+  $sp['Groups']    = @($Groups | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+  $sp['Servers']   = @($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+  $script:Cfg['ScheduledPatch'] = $sp
+  Save-WuuConfig
+}
+
+function Set-ScheduledPatchEnabled([bool]$Enabled) {
+  Ensure-ConfigSection 'ScheduledPatch'
+  $script:Cfg['ScheduledPatch']['Enabled'] = $Enabled
+  Save-WuuConfig
+}
+
 # Resuelve @{ Year; Month } para el reporte programado segun PeriodMode.
 #   current  -> 0/0 (el worker usa el mes en curso)
 #   previous -> mes anterior relativo a hoy
 #   specific -> Year/Month configurados
 function Resolve-ScheduledPeriod {
+  Ensure-ConfigSection 'ScheduledReport'
   $sr = $script:Cfg.ScheduledReport
   $mode = "$($sr.PeriodMode)".Trim().ToLower()
   if ($mode -eq 'previous') {
@@ -2711,14 +3524,266 @@ function Resolve-ScheduledPeriod {
   return @{ Year = 0; Month = 0 }
 }
 
+function Update-SchedulerStateLabel {
+  $ui = $script:SchedUi
+  if (-not $ui -or -not $ui.lblState) { return }
+  $name = if ($ui.txtName) { "$($ui.txtName.Text)".Trim() } else { '' }
+  $st = Get-TaskStatus $name
+  $ui.lblState.Text = $st
+  $ui.lblState.Foreground = if ($st -eq 'NoExiste') { [System.Windows.Media.Brushes]::Gray }
+                            elseif ($st -eq 'Ready') { [System.Windows.Media.Brushes]::Green }
+                            else { [System.Windows.Media.Brushes]::DarkOrange }
+}
+
+function Update-SchedulerModeUi {
+  $ui = $script:SchedUi
+  if (-not $ui) { return }
+  $isPatch = [bool]$ui.rbPatch.IsChecked
+  $ui.pnlReport.Visibility = if ($isPatch) { [System.Windows.Visibility]::Collapsed } else { [System.Windows.Visibility]::Visible }
+  $ui.pnlPatch.Visibility  = if ($isPatch) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+  $ui.lblTitle.Text = if ($isPatch) { 'Configuracion de ventana de actualizaciones' } else { 'Configuracion del reporte automatico' }
+  $ui.lblCoverage.Text = if ($isPatch) { 'Grupos y/o servidores especificos abajo' } else { 'Todos los grupos del CSV' }
+
+  Ensure-ConfigSection 'ScheduledReport'
+  Ensure-ConfigSection 'ScheduledPatch'
+  $src = if ($isPatch) { $script:Cfg['ScheduledPatch'] } else { $script:Cfg['ScheduledReport'] }
+  $ui.txtName.Text = "$($src['TaskName'])"
+  $ui.txtHour.Text = "$($src['Hour'])"
+  $ui.txtMin.Text  = "{0:00}" -f [int]$src['Minute']
+  $savedDate = "$($src['StartDate'])".Trim()
+  $ui.txtDate.Text = if ($savedDate) { $savedDate } else { (Get-Date).ToString('dd/MM/yyyy') }
+  Update-SchedulerStateLabel
+}
+
+function Get-SchedulerSelectedGroups {
+  $ui = $script:SchedUi
+  $out = @()
+  if (-not $ui -or -not $ui.spGroups) { return $out }
+  foreach ($child in @($ui.spGroups.Children)) {
+    if ($child -is [System.Windows.Controls.CheckBox] -and $child.IsChecked) {
+      $n = "$($child.Tag)".Trim()
+      if ($n) { $out += $n }
+    }
+  }
+  return $out
+}
+
+function Get-SchedulerSelectedServers {
+  $ui = $script:SchedUi
+  if (-not $ui -or -not $ui.SelectedServers) { return @() }
+  return @($ui.SelectedServers | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+}
+
+function Refresh-SchedulerSelectedServersUi {
+  $ui = $script:SchedUi
+  if (-not $ui -or -not $ui.spSchedServers) { return }
+  $ui.spSchedServers.Children.Clear()
+  $list = @(Get-SchedulerSelectedServers)
+  if ($list.Count -eq 0) {
+    $tb = New-Object System.Windows.Controls.TextBlock
+    $tb.Text = '(Ningun servidor especifico. Usa la busqueda o marca grupos.)'
+    $tb.Foreground = [System.Windows.Media.Brushes]::Gray
+    $tb.Margin = '0,2,0,2'
+    $tb.TextWrapping = 'Wrap'
+    [void]$ui.spSchedServers.Children.Add($tb)
+    return
+  }
+  foreach ($name in $list) {
+    $row = New-Object System.Windows.Controls.DockPanel
+    $row.LastChildFill = $true
+    $row.Margin = '0,2,0,2'
+    $btn = New-Object System.Windows.Controls.Button
+    $btn.Content = 'Quitar'
+    $btn.Padding = '8,2'
+    $btn.Margin = '8,0,0,0'
+    $btn.Tag = $name
+    [System.Windows.Controls.DockPanel]::SetDock($btn, 'Right')
+    $btn.Add_Click({
+      param($sender, $e)
+      $n = "$($sender.Tag)".Trim()
+      if ($script:SchedUi -and $script:SchedUi.SelectedServers) {
+        $script:SchedUi.SelectedServers = [System.Collections.ArrayList]@(
+          $script:SchedUi.SelectedServers | Where-Object { "$_".Trim() -ne $n }
+        )
+      }
+      if ($script:CmdSchedulerRefreshServers) { & $script:CmdSchedulerRefreshServers }
+      else { Refresh-SchedulerSelectedServersUi }
+    })
+    $tb = New-Object System.Windows.Controls.TextBlock
+    $csvRow = $null
+    if ($script:Csv) {
+      $csvRow = @($script:Csv | Where-Object { "$($_.Servidor)".Trim() -eq $name } | Select-Object -First 1)[0]
+    }
+    $sub = if ($csvRow) {
+      (@("$($csvRow.IP)", "$($csvRow.Grupo)", "$($csvRow.Ambiente)") | Where-Object { "$_".Trim() }) -join ' | '
+    } else { '' }
+    $tb.Text = if ($sub) { "$name  ($sub)" } else { $name }
+    $tb.VerticalAlignment = 'Center'
+    $tb.TextWrapping = 'Wrap'
+    [void]$row.Children.Add($btn)
+    [void]$row.Children.Add($tb)
+    [void]$ui.spSchedServers.Children.Add($row)
+  }
+}
+
+function Add-SchedulerServer([string]$ServerName) {
+  $name = "$ServerName".Trim()
+  if (-not $name) { return }
+  $ui = $script:SchedUi
+  if (-not $ui) { return }
+  if (-not $ui.SelectedServers) { $ui.SelectedServers = [System.Collections.ArrayList]@() }
+  $exists = @($ui.SelectedServers | Where-Object { "$_".Trim() -eq $name }).Count -gt 0
+  if (-not $exists) { [void]$ui.SelectedServers.Add($name) }
+  Refresh-SchedulerSelectedServersUi
+  if ($ui.txtSchedSearch) { $ui.txtSchedSearch.Text = '' }
+  if ($ui.lbSchedResults) {
+    $ui.lbSchedResults.ItemsSource = $null
+    $ui.lbSchedResults.Visibility = [System.Windows.Visibility]::Collapsed
+  }
+}
+
+function Do-SchedulerSearch {
+  $ui = $script:SchedUi
+  if (-not $ui -or -not $ui.txtSchedSearch -or -not $ui.lbSchedResults) { return }
+  $text = "$($ui.txtSchedSearch.Text)".Trim()
+  if ($text.Length -lt 2) {
+    $ui.lbSchedResults.ItemsSource = $null
+    $ui.lbSchedResults.Visibility = [System.Windows.Visibility]::Collapsed
+    return
+  }
+  if ($script:Csv.Count -eq 0) { try { Load-Csv } catch {} }
+  $matches = @($script:Csv | Where-Object {
+    $_.Servidor -like "*$text*" -or $_.IP -like "*$text*"
+  } | Select-Object -First 12)
+  if ($matches.Count -eq 0) {
+    $ui.lbSchedResults.ItemsSource = $null
+    $ui.lbSchedResults.Visibility = [System.Windows.Visibility]::Collapsed
+    if ($ui.lblMsg) {
+      $ui.lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkOrange
+      $ui.lblMsg.Text = "Sin coincidencias para '$text' en el inventario CSV."
+    }
+    return
+  }
+  $items = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+  $selected = @(Get-SchedulerSelectedServers)
+  foreach ($r in $matches) {
+    $name = "$($r.Servidor)".Trim()
+    $item = New-Object SearchResultItem
+    $item.Display = $name
+    $already = $selected -contains $name
+    $item.Sub = ("$($r.IP)" + $(if ($r.Grupo) { " | $($r.Grupo)" } else { '' }) +
+                 $(if ($r.Ambiente) { " | $($r.Ambiente)" } else { '' }) +
+                 $(if ($already) { '  [ya agregado]' } else { '' }))
+    $item.Tag = $r
+    $items.Add($item)
+  }
+  $ui.lbSchedResults.ItemsSource = $items
+  $ui.lbSchedResults.Visibility = [System.Windows.Visibility]::Visible
+}
+
+function Invoke-SchedulerCreate {
+  $ui = $script:SchedUi
+  if (-not $ui) { return }
+  $lblMsg = $ui.lblMsg
+  $h = 0; $m = 0
+  [void][int]::TryParse("$($ui.txtHour.Text)".Trim(), [ref]$h)
+  [void][int]::TryParse("$($ui.txtMin.Text)".Trim(), [ref]$m)
+  $dateText = "$($ui.txtDate.Text)".Trim()
+  $isPatch = [bool]$ui.rbPatch.IsChecked
+  if ($h -lt 0 -or $h -gt 23 -or $m -lt 0 -or $m -gt 59) {
+    $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red; $lblMsg.Text='Hora invalida (HH 0-23, MM 0-59).'; return
+  }
+  try {
+    $name = Assert-ScheduledTaskName "$($ui.txtName.Text)"
+    $startAt = Parse-ScheduledDateDMY $dateText $h $m
+    if ($startAt -lt (Get-Date).Date) { throw 'La fecha de inicio no puede ser anterior a hoy.' }
+    $scriptPath = "$($ui.ScriptPath)".Trim()
+    if (-not $scriptPath) { $scriptPath = "$PSCommandPath".Trim() }
+
+    if ($isPatch) {
+      $groups  = @(Get-SchedulerSelectedGroups)
+      $servers = @(Get-SchedulerSelectedServers)
+      if ($groups.Count -eq 0 -and $servers.Count -eq 0) {
+        throw 'Selecciona al menos un grupo o agrega un servidor especifico con la busqueda.'
+      }
+      $trigger = New-ScheduledTaskTrigger -Once -At $startAt
+      $action  = New-WuuScheduledTaskAction -ScriptPath $scriptPath -ModeSwitch '-ScheduledPatch'
+      $limitH = [Math]::Max(2, [int]([Math]::Ceiling([double]$script:Cfg.PatchTimeoutMinutes / 60.0)) + 2)
+      $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours $limitH) -StartWhenAvailable
+      Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
+        -Settings $set -RunLevel Highest -Force -ErrorAction Stop | Out-Null
+      Set-ScheduledPatchConfig -TaskName $name -Hour $h -Minute $m `
+        -StartDate (Format-ScheduledDateDMY $startAt) -Enabled $true -Groups $groups -Servers $servers
+      $lblMsg.Foreground=[System.Windows.Media.Brushes]::Green
+      $dateLabel = Format-ScheduledDateDMY $startAt
+      $covParts = @()
+      if ($groups.Count)  { $covParts += "Grupos: $($groups -join ', ')" }
+      if ($servers.Count) { $covParts += "Servidores: $($servers -join ', ')" }
+      $lblMsg.Text = "Ventana '$name' programada (unica vez): $dateLabel a ${h}:$("{0:00}" -f $m). $($covParts -join ' | '). Actualiza la fecha mensualmente."
+      Write-Log 'INFO' "Tarea ventana (Once) creada: $name @ $dateLabel ${h}:$("{0:00}" -f $m) groups=$($groups -join ',') servers=$($servers -join ',')"
+    } else {
+      $trigger = New-ScheduledTaskTrigger -Daily -At $startAt
+      $action  = New-WuuScheduledTaskAction -ScriptPath $scriptPath -ModeSwitch '-Scheduled'
+      $set     = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) -StartWhenAvailable
+      Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
+        -Settings $set -RunLevel Highest -Force -ErrorAction Stop | Out-Null
+      $periodModes = @('current','previous','specific')
+      $pIdx = [int]$ui.cbPeriod.SelectedIndex
+      if ($pIdx -lt 0 -or $pIdx -gt 2) { $pIdx = 0 }
+      $periodMode = $periodModes[$pIdx]
+      $yearOut = 0; $monthOut = 0
+      if ($pIdx -eq 2) {
+        $yearOut = if ($null -ne $ui.cbYear.SelectedItem) { [int]$ui.cbYear.SelectedItem } else { (Get-Date).Year }
+        $monthOut = if ($ui.cbMonth.SelectedIndex -ge 0) { $ui.cbMonth.SelectedIndex + 1 } else { (Get-Date).Month }
+      }
+      Set-ScheduledReportConfig -TaskName $name -Hour $h -Minute $m `
+        -StartDate (Format-ScheduledDateDMY $startAt) -Enabled $true `
+        -PeriodMode $periodMode -Year $yearOut -Month $monthOut
+      $lblMsg.Foreground=[System.Windows.Media.Brushes]::Green
+      $dateLabel = Format-ScheduledDateDMY $startAt
+      $lblMsg.Text = "Tarea '$name' creada/actualizada. Primera ejecucion: $dateLabel a ${h}:$("{0:00}" -f $m). Luego diariamente."
+      Write-Log 'INFO' "Tarea reporte creada: $name @ $dateLabel ${h}:$("{0:00}" -f $m)"
+    }
+    Update-SchedulerStateLabel
+  } catch {
+    $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red
+    $lblMsg.Text="Error: $($_.Exception.Message)"
+    Write-Log 'ERROR' "Programar tarea: $($_.Exception.Message)"
+  }
+}
+
+function Invoke-SchedulerDelete {
+  $ui = $script:SchedUi
+  if (-not $ui) { return }
+  $lblMsg = $ui.lblMsg
+  $name = "$($ui.txtName.Text)".Trim()
+  $isPatch = [bool]$ui.rbPatch.IsChecked
+  try {
+    Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop
+    if ($isPatch) { Set-ScheduledPatchEnabled $false } else { Set-ScheduledReportEnabled $false }
+    $lblMsg.Foreground=[System.Windows.Media.Brushes]::DarkOrange
+    $lblMsg.Text = "Tarea '$name' eliminada."
+    Write-Log 'INFO' "Tarea programada eliminada: $name"
+    Update-SchedulerStateLabel
+  } catch {
+    $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red
+    $lblMsg.Text="Error: $($_.Exception.Message)"
+  }
+}
+
 function Show-SchedulerWindow {
   [xml]$sx = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WUU - Reporte programado" Height="470" Width="470"
+        Title="WUU - Programar" Height="720" Width="540"
         WindowStartupLocation="CenterScreen" Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
   <StackPanel Margin="20">
-    <TextBlock Text="Configuracion del reporte automatico" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,16"/>
+    <TextBlock x:Name="lblTitle" Text="Configuracion del reporte automatico" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12"/>
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+      <RadioButton x:Name="rbReport" Content="Reporte automatico" IsChecked="True" Margin="0,0,16,0"/>
+      <RadioButton x:Name="rbPatch"  Content="Ventana de actualizaciones"/>
+    </StackPanel>
     <Grid Margin="0,0,0,10">
       <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
       <Grid.RowDefinitions>
@@ -2745,14 +3810,44 @@ function Show-SchedulerWindow {
       <TextBlock x:Name="lblScript" Grid.Row="4" Grid.Column="1" Text="-" VerticalAlignment="Center" Margin="0,6"
                  TextTrimming="CharacterEllipsis" ToolTip="-"/>
       <TextBlock Grid.Row="5" Grid.Column="0" Text="Cobertura:" VerticalAlignment="Center" Margin="0,6"/>
-      <TextBlock Grid.Row="5" Grid.Column="1" Text="Todos los grupos del CSV" VerticalAlignment="Center"
+      <TextBlock x:Name="lblCoverage" Grid.Row="5" Grid.Column="1" Text="Todos los grupos del CSV" VerticalAlignment="Center"
                  Margin="0,6" Foreground="#FF475569"/>
     </Grid>
-    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-      <TextBlock Text="Periodo del reporte:" Width="160" VerticalAlignment="Center"/>
-      <ComboBox x:Name="cbPeriod" Width="140"/>
-      <ComboBox x:Name="cbMonth"  Width="110" Margin="8,0,0,0" IsEnabled="False"/>
-      <ComboBox x:Name="cbYear"   Width="75"  Margin="8,0,0,0" IsEnabled="False"/>
+    <StackPanel x:Name="pnlReport" Margin="0,4,0,0">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Periodo del reporte:" Width="160" VerticalAlignment="Center"/>
+        <ComboBox x:Name="cbPeriod" Width="140"/>
+        <ComboBox x:Name="cbMonth"  Width="110" Margin="8,0,0,0" IsEnabled="False"/>
+        <ComboBox x:Name="cbYear"   Width="75"  Margin="8,0,0,0" IsEnabled="False"/>
+      </StackPanel>
+    </StackPanel>
+    <StackPanel x:Name="pnlPatch" Visibility="Collapsed" Margin="0,4,0,0">
+      <TextBlock Text="Ejecucion unica (no recurrente). Actualiza la fecha mensualmente." Foreground="#FF7C3AED" Margin="0,0,0,8" TextWrapping="Wrap"/>
+      <TextBlock Text="Grupos a parchear:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+      <Border BorderBrush="#FFE2E8F0" BorderThickness="1" Background="White" MaxHeight="120" CornerRadius="4">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel x:Name="spGroups" Margin="8"/>
+        </ScrollViewer>
+      </Border>
+      <TextBlock Text="Servidores especificos (opcional):" FontWeight="SemiBold" Margin="0,12,0,4"/>
+      <TextBlock Text="Busca por nombre o IP (min. 2 caracteres) y haz doble clic o Enter para agregar." Foreground="#FF64748B" Margin="0,0,0,4" TextWrapping="Wrap"/>
+      <TextBox x:Name="txtSchedSearch" Padding="4,3" Margin="0,0,0,4"/>
+      <ListBox x:Name="lbSchedResults" Visibility="Collapsed" MaxHeight="120" Margin="0,0,0,6"
+               BorderBrush="#FFE2E8F0" Background="White">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="2">
+              <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding Sub}" Foreground="#FF64748B" FontSize="11"/>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <Border BorderBrush="#FFE2E8F0" BorderThickness="1" Background="White" MaxHeight="120" CornerRadius="4">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel x:Name="spSchedServers" Margin="8"/>
+        </ScrollViewer>
+      </Border>
     </StackPanel>
     <Separator Margin="0,10,0,6"/>
     <DockPanel Margin="0,12,0,0" LastChildFill="False">
@@ -2762,21 +3857,33 @@ function Show-SchedulerWindow {
     </DockPanel>
     <TextBlock x:Name="lblMsg" Text="" Margin="0,12,0,0" TextWrapping="Wrap"/>
   </StackPanel>
+  </ScrollViewer>
 </Window>
 '@
   $rdr = New-Object System.Xml.XmlNodeReader $sx
   $win = [Windows.Markup.XamlReader]::Load($rdr)
-  $txtName  = $win.FindName('txtName');  $txtName.Text  = "$($script:Cfg.ScheduledReport.TaskName)"
-  $txtHour  = $win.FindName('txtHour'); $txtHour.Text  = "$($script:Cfg.ScheduledReport.Hour)"
-  $txtMin   = $win.FindName('txtMin');  $txtMin.Text   = "{0:00}" -f [int]$script:Cfg.ScheduledReport.Minute
+  Ensure-ConfigSection 'ScheduledReport'
+  Ensure-ConfigSection 'ScheduledPatch'
+  if ($script:Csv.Count -eq 0) { try { Load-Csv } catch {} }
+
+  $txtName  = $win.FindName('txtName')
+  $txtHour  = $win.FindName('txtHour')
+  $txtMin   = $win.FindName('txtMin')
   $txtDate  = $win.FindName('txtDate')
-  $savedDate = "$($script:Cfg.ScheduledReport.StartDate)".Trim()
-  $txtDate.Text = if ($savedDate) { $savedDate } else { (Get-Date).ToString('dd/MM/yyyy') }
   $lblScript= $win.FindName('lblScript'); $lblScript.Text = $PSCommandPath; $lblScript.ToolTip = $PSCommandPath
   $lblState = $win.FindName('lblState')
   $lblMsg   = $win.FindName('lblMsg')
+  $lblTitle = $win.FindName('lblTitle')
+  $lblCoverage = $win.FindName('lblCoverage')
+  $rbReport = $win.FindName('rbReport')
+  $rbPatch  = $win.FindName('rbPatch')
+  $pnlReport = $win.FindName('pnlReport')
+  $pnlPatch  = $win.FindName('pnlPatch')
+  $spGroups  = $win.FindName('spGroups')
+  $txtSchedSearch = $win.FindName('txtSchedSearch')
+  $lbSchedResults = $win.FindName('lbSchedResults')
+  $spSchedServers = $win.FindName('spSchedServers')
 
-  # Selector de periodo del reporte programado
   $cbPeriod = $win.FindName('cbPeriod')
   $cbMonth  = $win.FindName('cbMonth')
   $cbYear   = $win.FindName('cbYear')
@@ -2785,82 +3892,112 @@ function Show-SchedulerWindow {
   foreach ($mm in $mesesSched) { [void]$cbMonth.Items.Add($mm) }
   $nowSched = Get-Date
   for ($yy = $nowSched.Year; $yy -ge $nowSched.Year - 7; $yy--) { [void]$cbYear.Items.Add("$yy") }
-  $savedMode = "$($script:Cfg.ScheduledReport.PeriodMode)".Trim().ToLower()
+  $sr0 = $script:Cfg['ScheduledReport']
+  $savedMode = "$($sr0['PeriodMode'])".Trim().ToLower()
   $cbPeriod.SelectedIndex = switch ($savedMode) { 'previous' { 1 } 'specific' { 2 } default { 0 } }
-  $cfgMonth = [int]$script:Cfg.ScheduledReport.Month
-  $cfgYear  = [int]$script:Cfg.ScheduledReport.Year
+  $cfgMonth = [int]$sr0['Month']
+  $cfgYear  = [int]$sr0['Year']
   $cbMonth.SelectedIndex = if ($cfgMonth -ge 1 -and $cfgMonth -le 12) { $cfgMonth - 1 } else { $nowSched.Month - 1 }
   $cbYear.SelectedIndex  = if ($cfgYear -gt 0 -and $cbYear.Items.Contains("$cfgYear")) { $cbYear.Items.IndexOf("$cfgYear") } else { 0 }
-  $togglePeriod = {
-    $spec = ($cbPeriod.SelectedIndex -eq 2)
-    $cbMonth.IsEnabled = $spec; $cbYear.IsEnabled = $spec
-  }.GetNewClosure()
-  $cbPeriod.Add_SelectionChanged($togglePeriod)
-  & $togglePeriod
 
-  function Refresh-State {
-    $st = Get-TaskStatus
-    $lblState.Text = $st
-    $lblState.Foreground = if ($st -eq 'NoExiste') { [System.Windows.Media.Brushes]::Gray }
-                           elseif ($st -eq 'Ready') { [System.Windows.Media.Brushes]::Green }
-                           else { [System.Windows.Media.Brushes]::DarkOrange }
+  $savedGroups = @($script:Cfg['ScheduledPatch']['Groups'] | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+  $savedServers = @($script:Cfg['ScheduledPatch']['Servers'] | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+  $groupNames = @($script:Groups | ForEach-Object { $_.Name })
+  if ($groupNames.Count -eq 0 -and $script:Csv.Count -gt 0) {
+    $groupNames = @($script:Csv | Select-Object -ExpandProperty Grupo -Unique | Where-Object { "$_".Trim() } | Sort-Object)
   }
-  Refresh-State
+  foreach ($gn in $groupNames) {
+    $cb = New-Object System.Windows.Controls.CheckBox
+    $cb.Content = $gn
+    $cb.Tag = $gn
+    $cb.Margin = '0,2,0,2'
+    if ($savedGroups -contains $gn) { $cb.IsChecked = $true }
+    [void]$spGroups.Children.Add($cb)
+  }
 
-  $win.FindName('btnCreate').Add_Click({
-    $name = $txtName.Text.Trim()
-    $h    = [int]($txtHour.Text.Trim()); $m = [int]($txtMin.Text.Trim())
-    $dateText = $txtDate.Text.Trim()
-    if (-not $name) { $lblMsg.Text='Ingresa un nombre para la tarea.'; return }
-    if ($h -lt 0 -or $h -gt 23 -or $m -lt 0 -or $m -gt 59) { $lblMsg.Text='Hora invalida (HH 0-23, MM 0-59).'; return }
-    try {
-      $startAt = Parse-ScheduledDateDMY $dateText $h $m
-      if ($startAt -lt (Get-Date).Date) { throw 'La fecha de inicio no puede ser anterior a hoy.' }
-      $trigger = New-ScheduledTaskTrigger -Daily -At $startAt
-      $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
-                   -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`" -Scheduled"
-      $set     = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) -StartWhenAvailable
-      Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
-        -Settings $set -RunLevel Highest -Force | Out-Null
-      # Guardar en config.json
-      $script:Cfg.ScheduledReport.TaskName  = $name
-      $script:Cfg.ScheduledReport.Hour       = $h
-      $script:Cfg.ScheduledReport.Minute     = $m
-      $script:Cfg.ScheduledReport.StartDate  = Format-ScheduledDateDMY $startAt
-      $script:Cfg.ScheduledReport.Enabled    = $true
-      $script:Cfg.ScheduledReport.PeriodMode = @('current','previous','specific')[$cbPeriod.SelectedIndex]
-      if ($cbPeriod.SelectedIndex -eq 2) {
-        $script:Cfg.ScheduledReport.Year  = [int]$cbYear.SelectedItem
-        $script:Cfg.ScheduledReport.Month = ($cbMonth.SelectedIndex + 1)
-      } else {
-        $script:Cfg.ScheduledReport.Year  = 0
-        $script:Cfg.ScheduledReport.Month = 0
+  $script:SchedUi = @{
+    txtName     = $txtName
+    txtHour     = $txtHour
+    txtMin      = $txtMin
+    txtDate     = $txtDate
+    cbPeriod    = $cbPeriod
+    cbMonth     = $cbMonth
+    cbYear      = $cbYear
+    lblState    = $lblState
+    lblMsg      = $lblMsg
+    lblTitle    = $lblTitle
+    lblCoverage = $lblCoverage
+    rbReport    = $rbReport
+    rbPatch     = $rbPatch
+    pnlReport   = $pnlReport
+    pnlPatch    = $pnlPatch
+    spGroups    = $spGroups
+    txtSchedSearch = $txtSchedSearch
+    lbSchedResults = $lbSchedResults
+    spSchedServers = $spSchedServers
+    SelectedServers = [System.Collections.ArrayList]@($savedServers)
+    ScriptPath  = $PSCommandPath
+  }
+  Refresh-SchedulerSelectedServersUi
+
+  $script:CmdSchedulerSearch = Get-Command Do-SchedulerSearch -CommandType Function
+  $script:CmdSchedulerAddServer = Get-Command Add-SchedulerServer -CommandType Function
+  $script:CmdSchedulerRefreshServers = Get-Command Refresh-SchedulerSelectedServersUi -CommandType Function
+  $txtSchedSearch.Add_TextChanged({ & $script:CmdSchedulerSearch })
+  $txtSchedSearch.Add_KeyDown({
+    param($sender, $e)
+    if ($e.Key -eq 'Return' -or $e.Key -eq 'Enter') {
+      $ui = $script:SchedUi
+      if ($ui -and $ui.lbSchedResults -and $ui.lbSchedResults.SelectedItem) {
+        $tag = $ui.lbSchedResults.SelectedItem.Tag
+        if ($tag) { & $script:CmdSchedulerAddServer "$($tag.Servidor)" }
+      } elseif ($ui -and $ui.lbSchedResults -and $ui.lbSchedResults.Items.Count -gt 0) {
+        $first = $ui.lbSchedResults.Items[0]
+        if ($first -and $first.Tag) { & $script:CmdSchedulerAddServer "$($first.Tag.Servidor)" }
       }
-      $script:Cfg | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:ScriptDir 'config.json') -Encoding UTF8
-      $lblMsg.Foreground=[System.Windows.Media.Brushes]::Green
-      $dateLabel = Format-ScheduledDateDMY $startAt
-      $lblMsg.Text = "Tarea '$name' creada/actualizada. Primera ejecucion: $dateLabel a ${h}:$("{0:00}" -f $m). Luego diariamente."
-      Write-Log 'INFO' "Tarea programada creada: $name @ $dateLabel ${h}:$("{0:00}" -f $m)"
-      Refresh-State
-    } catch { $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red; $lblMsg.Text="Error: $($_.Exception.Message)" }
-  }.GetNewClosure())
+      $e.Handled = $true
+    }
+  })
+  $lbSchedResults.Add_MouseDoubleClick({
+    $ui = $script:SchedUi
+    if (-not $ui -or -not $ui.lbSchedResults -or -not $ui.lbSchedResults.SelectedItem) { return }
+    $tag = $ui.lbSchedResults.SelectedItem.Tag
+    if ($tag) { & $script:CmdSchedulerAddServer "$($tag.Servidor)" }
+  })
 
-  $win.FindName('btnDelete').Add_Click({
-    $name = $txtName.Text.Trim()
-    try {
-      Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop
-      $script:Cfg.ScheduledReport.Enabled = $false
-      $script:Cfg | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:ScriptDir 'config.json') -Encoding UTF8
-      $lblMsg.Foreground=[System.Windows.Media.Brushes]::DarkOrange
-      $lblMsg.Text = "Tarea '$name' eliminada."
-      Write-Log 'INFO' "Tarea programada eliminada: $name"
-      Refresh-State
-    } catch { $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red; $lblMsg.Text="Error: $($_.Exception.Message)" }
-  }.GetNewClosure())
+  $cbPeriod.Add_SelectionChanged({
+    $ui = $script:SchedUi
+    if (-not $ui) { return }
+    $spec = ($ui.cbPeriod.SelectedIndex -eq 2)
+    $ui.cbMonth.IsEnabled = $spec
+    $ui.cbYear.IsEnabled  = $spec
+  })
+  $spec0 = ($cbPeriod.SelectedIndex -eq 2)
+  $cbMonth.IsEnabled = $spec0; $cbYear.IsEnabled = $spec0
 
-  $win.FindName('btnClose2').Add_Click({ $win.Close() }.GetNewClosure())
+  $script:CmdSchedulerMode = Get-Command Update-SchedulerModeUi -CommandType Function
+  $rbReport.Add_Checked({ & $script:CmdSchedulerMode })
+  $rbPatch.Add_Checked({ & $script:CmdSchedulerMode })
+  Update-SchedulerModeUi
+
+  $script:CmdSchedulerCreate = Get-Command Invoke-SchedulerCreate -CommandType Function
+  $script:CmdSchedulerDelete = Get-Command Invoke-SchedulerDelete -CommandType Function
+  $script:SchedUi.Window = $win
+  $win.FindName('btnCreate').Add_Click({ & $script:CmdSchedulerCreate })
+  $win.FindName('btnDelete').Add_Click({ & $script:CmdSchedulerDelete })
+  $win.FindName('btnClose2').Add_Click({ if ($script:SchedUi -and $script:SchedUi.Window) { $script:SchedUi.Window.Close() } })
   $win.Owner = $Window
-  $win.ShowDialog() | Out-Null
+  try {
+    $win.ShowDialog() | Out-Null
+  } finally {
+    $script:SchedUi = $null
+    $script:CmdSchedulerCreate = $null
+    $script:CmdSchedulerDelete = $null
+    $script:CmdSchedulerMode = $null
+    $script:CmdSchedulerSearch = $null
+    $script:CmdSchedulerAddServer = $null
+    $script:CmdSchedulerRefreshServers = $null
+  }
 }
 
 #==============================================================================
@@ -2934,7 +4071,59 @@ function Do-Search($text) {
 }
 
 #--- Menu contextual (clic derecho sobre la grilla) ---------------------------
+
+function Start-ServerRdp($row) {
+  # Abre mstsc hacia el servidor con el usuario de la sesion actual (mismas credenciales
+  # de dominio que usa WUU para SMB/PsExec). Prefiere IP si esta en el inventario.
+  if (-not $row) {
+    [System.Windows.MessageBox]::Show("Selecciona primero una fila (clic sobre el servidor).","WUU",'OK','Information') | Out-Null
+    return
+  }
+  $server = "$($row.Servidor)".Trim()
+  if (-not $server) {
+    [System.Windows.MessageBox]::Show("La fila no tiene nombre de servidor.","WUU",'OK','Warning') | Out-Null
+    return
+  }
+  $ip = "$($row.IP)".Trim()
+  $target = if ($ip) { $ip } else { $server }
+  $user = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { "$env:USERNAME" }
+  $mstsc = Join-Path $env:SystemRoot 'System32\mstsc.exe'
+  if (-not (Test-Path -LiteralPath $mstsc)) {
+    [System.Windows.MessageBox]::Show("No se encuentra mstsc.exe en:`n$mstsc","WUU",'OK','Error') | Out-Null
+    return
+  }
+  try {
+    $safe = ($server -replace '[^\w\-]', '_')
+    $rdpPath = Join-Path $env:TEMP ("WUU_{0}.rdp" -f $safe)
+    $rdp = @(
+      "full address:s:$target"
+      "username:s:$user"
+      "domain:s:$env:USERDOMAIN"
+      "prompt for credentials:i:0"
+      "authentication level:i:2"
+      "negotiate security layer:i:1"
+      "enablecredsspsupport:i:1"
+      "autoreconnection enabled:i:1"
+      "screen mode id:i:2"
+    ) -join "`r`n"
+    Set-Content -LiteralPath $rdpPath -Value $rdp -Encoding ASCII -Force
+    Start-Process -FilePath $mstsc -ArgumentList "`"$rdpPath`""
+    $row.Status = "RDP abierto ($user -> $target)"
+    Write-Log 'INFO' "RDP: $server ($target) como $user"
+  } catch {
+    [System.Windows.MessageBox]::Show("No se pudo abrir RDP:`n$($_.Exception.Message)","WUU",'OK','Error') | Out-Null
+    Write-Log 'ERROR' "RDP ${server}: $($_.Exception.Message)"
+  }
+}
+
 $cm = New-Object System.Windows.Controls.ContextMenu
+
+# 0. Abrir en RDP
+$miRdp = New-Object System.Windows.Controls.MenuItem
+$miRdp.Header = "Abrir en RDP"
+$miRdp.Add_Click({
+  Start-ServerRdp $script:dg.SelectedItem
+})
 
 # 1. Reiniciar servidor
 $miReboot = New-Object System.Windows.Controls.MenuItem
@@ -3039,7 +4228,7 @@ $miClearCache.Add_Click({
     return
   }
   $resp = [System.Windows.MessageBox]::Show(
-    "Se limpiara la cache de Windows Update en '$($sel.Servidor)':`n`n1. Detener wuauserv, cryptSvc, bits y msiserver`n2. Renombrar SoftwareDistribution y catroot2`n3. Reiniciar servicios`n4. gpupdate /force`n5. Reinicio del servidor (10 s)`n`nContinuar?",
+    "Se limpiara la cache de Windows Update en '$($sel.Servidor)':`n`n1. Detener wuauserv, cryptSvc, bits y msiserver`n2. Renombrar SoftwareDistribution y catroot2`n3. Reiniciar servicios`n4. gpupdate /force`n5. Reinicio del servidor (10 s)`n6. Al volver, se inicia el parcheo automaticamente`n`nContinuar?",
     "WUU - Limpiar cache", 'YesNo', 'Warning')
   if ($resp -ne 'Yes') { return }
   Write-Log 'INFO' "Limpiar cache WU: $($sel.Servidor)"
@@ -3070,6 +4259,7 @@ $miInstall.Add_Click({
   Start-ServerJob $sel 'Install'
 })
 
+$cm.Items.Add($miRdp)        | Out-Null
 $cm.Items.Add($miReboot)     | Out-Null
 $cm.Items.Add($miCheck)      | Out-Null
 $cm.Items.Add($miClearCache) | Out-Null
@@ -3145,7 +4335,18 @@ $btnReport.Add_Click({
 })
 
 # Fix: instala .msu / .cab de la carpeta Fix\ en servidores elegidos
-$btnFix.Add_Click({ Start-FixFlow })
+$btnFix.Add_Click({
+  try {
+    Start-FixFlow
+  } catch {
+    Write-Log 'ERROR' "Fix: $($_.Exception.Message)"
+    try {
+      [System.Windows.Forms.MessageBox]::Show("Error en Fix:`n$($_.Exception.Message)", 'WUU') | Out-Null
+    } catch {
+      [System.Windows.MessageBox]::Show("Error en Fix:`n$($_.Exception.Message)", 'WUU') | Out-Null
+    }
+  }
+})
 
 # Programar: abre la ventana de gestion de la tarea programada
 $btnProgramar.Add_Click({ Show-SchedulerWindow })
@@ -3203,6 +4404,339 @@ $Window.Add_Closing({
 })
 
 #--- Arranque -----------------------------------------------------------------
+function Show-AnalystDialog {
+  # Solicita el nombre del analista al abrir la consola (obligatorio).
+  [xml]$ax = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WUU - Analista asignado" Height="220" Width="440"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock Grid.Row="0" Text="Identificacion del operador" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+    <TextBlock Grid.Row="1" TextWrapping="Wrap" Foreground="#FF475569" Margin="0,0,0,12"
+               Text="Ingresa el nombre de la persona que ejecuta WUU. Se incluira en el reporte como columna Analista asignado."/>
+    <TextBox x:Name="txtAnalyst" Grid.Row="2" Padding="6,5" Margin="0,0,0,8"/>
+    <TextBlock x:Name="lblErr" Grid.Row="3" Foreground="#FFDC2626" Text="" TextWrapping="Wrap"/>
+    <DockPanel Grid.Row="4" LastChildFill="False" HorizontalAlignment="Right">
+      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" Margin="0,0,8,0" IsCancel="True"/>
+      <Button x:Name="btnOk" Content="Continuar" Padding="14,7" IsDefault="True"/>
+    </DockPanel>
+  </Grid>
+</Window>
+'@
+  $rdr = New-Object System.Xml.XmlNodeReader $ax
+  $win = [Windows.Markup.XamlReader]::Load($rdr)
+  $txt = $win.FindName('txtAnalyst')
+  $lbl = $win.FindName('lblErr')
+  $ok  = $win.FindName('btnOk')
+  $cancel = $win.FindName('btnCancel')
+  $box = @{ Result = $null }
+  $ok.Add_Click({
+    $name = "$($txt.Text)".Trim()
+    if (-not $name) {
+      $lbl.Text = 'El nombre del analista es obligatorio.'
+      return
+    }
+    $box.Result = $name
+    $win.DialogResult = $true
+    $win.Close()
+  }.GetNewClosure())
+  $cancel.Add_Click({
+    $box.Result = $null
+    $win.DialogResult = $false
+    $win.Close()
+  }.GetNewClosure())
+  try { $win.Owner = $Window } catch {}
+  $null = $txt.Focus()
+  [void]$win.ShowDialog()
+  return $box.Result
+}
+
+function Get-ScheduledPatchServers {
+  Ensure-ConfigSection 'ScheduledPatch'
+  $groups = @($script:Cfg.ScheduledPatch.Groups | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+  $explicit = @($script:Cfg.ScheduledPatch.Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+  $seen = @{}; $list = @()
+  if ($groups.Count -gt 0) {
+    foreach ($r in @($script:Csv)) {
+      $g = "$($r.Grupo)".Trim(); $n = "$($r.Servidor)".Trim()
+      if (-not $n -or $seen.ContainsKey($n)) { continue }
+      if ($groups -contains $g) { $seen[$n] = $true; $list += $n }
+    }
+  }
+  foreach ($n in $explicit) {
+    if (-not $n -or $seen.ContainsKey($n)) { continue }
+    $seen[$n] = $true
+    $list += $n
+  }
+  return $list
+}
+
+function Invoke-HeadlessRemoteWorker {
+  param(
+    [string]$Server,
+    [ValidateSet('Install','Check')]$Mode = 'Install',
+    [switch]$RebootAfter,
+    [int]$TimeoutMinutes = 90
+  )
+  $result = [ordered]@{ Servidor=$Server; stage='error'; status=''; error=''; available=0; rebootRequired=$false }
+  $rel = $script:RemoteRel
+  $remoteDir = "\\$Server\C`$\$rel"
+  try {
+    New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+    Remove-Item "$remoteDir\status.json","$remoteDir\stop.flag" -ErrorAction SilentlyContinue
+    Copy-Item -Path $script:LocalWorker -Destination "$remoteDir\worker.ps1" -Force -ErrorAction Stop
+  } catch {
+    $result.error = "Sin conexion o sin acceso SMB: $($_.Exception.Message)"
+    $result.status = 'Error de conexion'
+    return [pscustomobject]$result
+  }
+  $argList = @("\\$Server",'-accepteula','-nobanner','-s','powershell.exe',
+    '-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\worker.ps1",'-Mode',$Mode)
+  if ($RebootAfter -and $Mode -eq 'Install') { $argList += '-RebootAfter' }
+  try {
+    $p = Start-Process -FilePath $script:PsExecPath -ArgumentList $argList -WindowStyle Hidden -PassThru
+  } catch {
+    $result.error = "PsExec: $($_.Exception.Message)"; $result.status='Error'
+    return [pscustomobject]$result
+  }
+  $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+  $terminal = @('done','reboot','error','stopped','checked')
+  do {
+    Start-Sleep -Seconds 4
+    try {
+      if (Test-Path "$remoteDir\status.json") {
+        $st = (Get-Content "$remoteDir\status.json" -Raw -ErrorAction Stop) | ConvertFrom-Json
+        $result.stage = "$($st.stage)"; $result.status = "$($st.status)"; $result.error = "$($st.error)"
+        $result.available = [int]($st.available); $result.rebootRequired = [bool]$st.rebootRequired
+      }
+    } catch {}
+    if ($p.HasExited -and $result.stage -in $terminal) { break }
+    if ($p.HasExited -and $result.stage -eq 'error') { break }
+  } while ((Get-Date) -lt $deadline)
+  if ((Get-Date) -ge $deadline -and $result.stage -notin $terminal) {
+    try { Set-Content "$remoteDir\stop.flag" '1' -ErrorAction SilentlyContinue } catch {}
+    try { if (-not $p.HasExited) { $p.Kill() } } catch {}
+    $result.stage = 'error'; $result.status = 'Timeout'; $result.error = "Timeout ($TimeoutMinutes min)"
+  }
+  return [pscustomobject]$result
+}
+
+function Invoke-HeadlessRebootMonitor {
+  param([string]$Server)
+  $rel = $script:RemoteRel
+  $remoteDir = "\\$Server\C`$\$rel"
+  $out = [ordered]@{ result='error'; status=''; available=0; error='' }
+  try {
+    $null = & $script:PsExecPath "\\$Server" -accepteula -nobanner -s `
+      shutdown.exe /r /t 10 /c "Reinicio WUU ventana programada" 2>&1
+    $out.status = 'Reinicio remoto enviado'
+  } catch { $out.status = "No se pudo enviar reinicio: $($_.Exception.Message)" }
+  $downDeadline = (Get-Date).AddMinutes(4)
+  while ((Get-Date) -lt $downDeadline) {
+    if (-not (Test-Path "\\$Server\C`$")) { break }
+    Start-Sleep -Seconds 5
+  }
+  $upDeadline = (Get-Date).AddMinutes(20)
+  $up = $false
+  while ((Get-Date) -lt $upDeadline) {
+    if (Test-Path "\\$Server\C`$") { $up = $true; break }
+    Start-Sleep -Seconds 10
+  }
+  if (-not $up) {
+    $out.result = 'timeout'; $out.status = 'Sin respuesta tras reinicio (SMB)'; $out.error = $out.status
+    return [pscustomobject]$out
+  }
+  Start-Sleep -Seconds 30
+  try {
+    New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+    Remove-Item "$remoteDir\verify.json" -ErrorAction SilentlyContinue
+    Copy-Item -Path $script:LocalVerifyWorker -Destination "$remoteDir\verify.ps1" -Force -ErrorAction Stop
+    $null = & $script:PsExecPath "\\$Server" -accepteula -nobanner -s `
+      powershell.exe -ExecutionPolicy Bypass -NonInteractive -File "C:\$rel\verify.ps1" 2>&1
+    if (Test-Path "$remoteDir\verify.json") {
+      $v = Get-Content "$remoteDir\verify.json" -Raw | ConvertFrom-Json
+      $out.available = [int]$v.available
+      if ($v.rebootRequired) { $out.result = 'reboot'; $out.status = 'Aun requiere reinicio' }
+      elseif ([int]$v.available -gt 0) { $out.result = 'pending'; $out.status = "$($v.available) update(s) pendientes" }
+      else { $out.result = 'updated'; $out.status = 'Actualizado tras reinicio' }
+      if ($v.error) { $out.error = "$($v.error)" }
+    } else {
+      $out.result = 'verifyfail'; $out.status = 'No se pudo verificar tras reinicio'; $out.error = $out.status
+    }
+  } catch {
+    $out.result = 'verifyfail'; $out.status = "Verify fallo: $($_.Exception.Message)"; $out.error = $out.status
+  }
+  return [pscustomobject]$out
+}
+
+if ($ScheduledPatch) {
+  Write-Log 'INFO' 'Modo headless (-ScheduledPatch) iniciado.'
+  if (-not (Test-Path $script:PsExecPath)) { Write-Log 'ERROR' "PsExec no encontrado: $script:PsExecPath"; exit 1 }
+  Load-Csv
+  if ($script:Csv.Count -eq 0) { Write-Log 'ERROR' 'Sin servidores en CSV. Saliendo.'; exit 1 }
+  $targets = @(Get-ScheduledPatchServers)
+  if ($targets.Count -eq 0) { Write-Log 'ERROR' 'ScheduledPatch sin grupos/servidores o sin coincidencias en CSV. Saliendo.'; exit 1 }
+  Write-Log 'INFO' "Ventana programada: $($targets.Count) servidor(es): $($targets -join ', ')"
+  $timeoutMin = [int]$script:Cfg.PatchTimeoutMinutes
+  if ($timeoutMin -lt 10) { $timeoutMin = 90 }
+
+  $patchStartedAt = Get-Date
+  $groupStr = ''
+  try {
+    Ensure-ConfigSection 'ScheduledPatch'
+    $gParts = @($script:Cfg.ScheduledPatch.Groups | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+    $sParts = @($script:Cfg.ScheduledPatch.Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ })
+    $bits = @()
+    if ($gParts.Count) { $bits += ($gParts -join ', ') }
+    if ($sParts.Count) { $bits += ('servidores: ' + ($sParts -join ', ')) }
+    $groupStr = $bits -join ' | '
+  } catch {}
+  try {
+    Send-TeamsPatchStarted $targets.Count $groupStr 'Ventana de actualizacion iniciada'
+    Write-Log 'INFO' 'Ventana: notificacion Teams de inicio enviada (si Enabled).'
+  } catch { Write-Log 'ERROR' "Ventana Teams inicio: $($_.Exception.Message)" }
+
+  $bag = @{}
+  foreach ($sv in $targets) {
+    Write-Log 'INFO' "Install: $sv"
+    $bag[$sv] = Invoke-HeadlessRemoteWorker -Server $sv -Mode Install -RebootAfter -TimeoutMinutes $timeoutMin
+    Write-Log 'INFO' "Install fin $sv -> $($bag[$sv].stage): $($bag[$sv].status)"
+  }
+
+  $final = @{}
+  foreach ($sv in $targets) {
+    $r = $bag[$sv]
+    $entry = [ordered]@{ Servidor=$sv; Estado="$($r.stage)"; Status="$($r.status)"; Error="$($r.error)"; Available="$($r.available)" }
+    if ("$($r.stage)" -eq 'reboot' -or [bool]$r.rebootRequired) {
+      Write-Log 'INFO' "Post-reinicio: $sv"
+      $mon = Invoke-HeadlessRebootMonitor -Server $sv
+      $entry.Status = "$($mon.status)"; $entry.Estado = "$($mon.result)"
+      if ($mon.error) { $entry.Error = "$($mon.error)" }
+      $entry.Available = "$($mon.available)"
+      if ("$($mon.result)" -eq 'timeout') {
+        Write-Log 'WARN' "Sin respuesta post-reinicio $sv -> Mode Check"
+        $chk = Invoke-HeadlessRemoteWorker -Server $sv -Mode Check -TimeoutMinutes ([Math]::Min(30, $timeoutMin))
+        $entry.Estado = 'check'; $entry.Status = "$($chk.status)"; $entry.Available = "$($chk.available)"
+        if ($chk.error) { $entry.Error = "$($chk.error)" }
+      }
+    } elseif ("$($r.stage)" -eq 'error') {
+      $entry.Estado = 'error'
+      if (-not $entry.Error) { $entry.Error = "$($r.status)" }
+    } elseif ("$($r.stage)" -eq 'done') { $entry.Estado = 'updated' }
+    $final[$sv] = [pscustomobject]$entry
+    Write-Log 'INFO' "Resultado $sv -> $($entry.Estado): $($entry.Status)"
+  }
+
+  Write-Log 'INFO' 'Ventana: todos los servidores sin procesos pendientes. Generando reporte...'
+  $repBag = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
+  $rpool = @()
+  $rjob = {
+    param($server,$psexec,$worker,$rel,$bag)
+    $obj=$null
+    try {
+      $remoteDir="\\$server\C`$\$rel"
+      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+      Remove-Item "$remoteDir\report.json" -ErrorAction SilentlyContinue
+      Copy-Item -Path $worker -Destination "$remoteDir\report.ps1" -Force -ErrorAction Stop
+      $null=& $psexec "\\$server" -accepteula -nobanner -s powershell.exe -ExecutionPolicy Bypass -NonInteractive -File "C:\$rel\report.ps1" -Year 0 -Month 0 2>&1
+      if (Test-Path "$remoteDir\report.json") {
+        $raw=Get-Content "$remoteDir\report.json" -Raw
+        if ($raw) { $obj=$raw|ConvertFrom-Json }
+      }
+    } catch {}
+    if (-not $obj) {
+      $obj=[pscustomobject]@{ Dominio='';Servidor=$server;IP='';Sistema_Operativo='';Version_Sistema_Operativo='';
+        Fecha_Instalacion='';KBs_Instaladas='';Fecha_Reinicio='';Running_Time='';Descripcion_Error='Sin conexion o sin datos';Disk_Space='' }
+    }
+    [void]$bag.Add($obj)
+  }
+  foreach ($sv in $targets) {
+    $rs=[runspacefactory]::CreateRunspace();$rs.ApartmentState='MTA';$rs.Open()
+    $ps=[powershell]::Create();$ps.Runspace=$rs
+    $ps.AddScript($rjob.ToString()).AddArgument($sv).AddArgument($script:PsExecPath).
+      AddArgument($script:LocalReportWorker).AddArgument($script:RemoteRel).AddArgument($repBag) | Out-Null
+    $rpool+=@{ps=$ps;handle=$ps.BeginInvoke();rs=$rs}
+  }
+  $rdl=(Get-Date).AddMinutes(10)
+  while ($repBag.Count -lt $targets.Count -and (Get-Date) -lt $rdl) { Start-Sleep -Milliseconds 500 }
+  foreach ($j in $rpool) {
+    try { if ($j.handle.IsCompleted){$j.ps.EndInvoke($j.handle)} } catch {}
+    try { $j.ps.Dispose() } catch {}
+    try { $j.rs.Close();$j.rs.Dispose() } catch {}
+  }
+
+  $rows = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+  foreach ($o in @($repBag | Sort-Object Servidor)) {
+    $name = "$($o.Servidor)".Trim(); $fr = $final[$name]
+    $rr = New-Object ReportRow
+    $rr.Dominio="$($o.Dominio)"; $rr.Servidor=$name; $rr.IP="$($o.IP)"
+    $rr.Sistema_Operativo="$($o.Sistema_Operativo)"; $rr.Version_Sistema_Operativo="$($o.Version_Sistema_Operativo)"
+    $rr.Fecha_Instalacion="$($o.Fecha_Instalacion)"; $rr.KBs_Instaladas="$($o.KBs_Instaladas)"
+    $rr.Fecha_Reinicio="$($o.Fecha_Reinicio)"; $rr.Running_Time="$($o.Running_Time)"; $rr.Disk_Space="$($o.Disk_Space)"
+    $errParts = @()
+    if ($fr -and $fr.Error) { $errParts += "$($fr.Error)" }
+    if ($fr -and $fr.Estado -eq 'error') { $errParts += "Estado ventana: error ($($fr.Status))" }
+    if ("$($o.Descripcion_Error)") { $errParts += "$($o.Descripcion_Error)" }
+    if ($fr -and $fr.Status -and $fr.Estado -notin @('updated','done')) { $errParts += "Ventana: $($fr.Status)" }
+    $rr.Descripcion_Error = (@($errParts | Where-Object { $_ } | Select-Object -Unique) -join ' | ')
+    $rr.Snap = Get-SnapReportText $false
+    $rr.Confirmado = Get-ConfirmadoReportText $false
+    $rows.Add($rr)
+  }
+
+  $rfile = Save-ReportCsv $rows ''
+  Write-Log 'INFO' "Ventana: reporte CSV $rfile"
+  if ($script:WUUDashboardUploadEnabled -and $script:WUUDashboardUploadUrl) {
+    try {
+      $lblFake = New-Object System.Windows.Controls.TextBlock
+      Sync-ToDashboard $rows $lblFake
+      Write-Log 'INFO' "Ventana: $($lblFake.Text)"
+    } catch { Write-Log 'ERROR' "Ventana Dashboard: $($_.Exception.Message)" }
+  }
+  Save-History -Rows @($targets | ForEach-Object {
+    $fr = $final[$_]
+    [pscustomobject]@{
+      Servidor=$_; IP=''; State=$(if($fr){$fr.Estado}else{'?'})
+      Status=$(if($fr){$fr.Status}else{'Parcheo programado'})
+      Error=$(if($fr){$fr.Error}else{''}); RunningTime=''
+    }
+  }) -Type 'ParcheoProgramado'
+
+  # Notificacion Teams de fin (mismas reglas Enabled / NotifyOnFinish que el parcheo interactivo)
+  try {
+    $runElapsed = ''
+    try { $runElapsed = Format-Elapsed ((Get-Date) - $patchStartedAt) } catch {}
+    $teamsRows = @($targets | ForEach-Object {
+      $fr = $final[$_]
+      $st = if ($fr) { "$($fr.Estado)".ToLower() } else { '' }
+      $uiState = switch -Regex ($st) {
+        '^(updated|done)$' { 'Updated' }
+        '^(reboot|rebootrequired)$' { 'RebootRequired' }
+        default { 'Unselected' }
+      }
+      $err = ''
+      if ($fr -and "$($fr.Error)".Trim()) { $err = "$($fr.Error)" }
+      elseif ($st -eq 'error') { $err = "$(if($fr){$fr.Status}else{'error'})" }
+      [pscustomobject]@{ Servidor = $_; State = $uiState; Error = $err }
+    })
+    Send-TeamsPatchFinished $teamsRows $runElapsed 'Ventana de actualizacion finalizada'
+    Write-Log 'INFO' 'Ventana: notificacion Teams de fin enviada (si Enabled).'
+  } catch { Write-Log 'ERROR' "Ventana Teams fin: $($_.Exception.Message)" }
+
+  try { Set-ScheduledPatchEnabled $false } catch {}
+  Write-Log 'INFO' 'Modo headless (-ScheduledPatch) finalizado.'
+  exit 0
+}
+
 if ($Scheduled) {
   #============================================================================
   #  MODO HEADLESS (-Scheduled): genera reporte, sincroniza y notifica
@@ -3222,6 +4756,12 @@ if ($Scheduled) {
   # Tomar todos los servidores de todos los grupos
   $allServers = @($script:Csv | Select-Object -ExpandProperty Servidor -Unique)
   Write-Log 'INFO' "Headless: consultando $($allServers.Count) servidor(es)."
+
+  $reportStartedAt = Get-Date
+  try {
+    Send-TeamsReportStarted $allServers.Count $periodLabel
+    Write-Log 'INFO' 'Reporte programado: notificacion Teams de inicio enviada (si Enabled).'
+  } catch { Write-Log 'ERROR' "Reporte Teams inicio: $($_.Exception.Message)" }
 
   # Correr el worker de reporte en paralelo (mismo mecanismo que el boton Reporte)
   $bag  = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
@@ -3272,32 +4812,36 @@ if ($Scheduled) {
 
   # Guardar CSV + JSON del reporte
   $rows = @($bag | Sort-Object Servidor | ForEach-Object {
-    [pscustomobject][ordered]@{
-      Dominio=$_.Dominio;Servidor=$_.Servidor;IP=$_.IP
-      Sistema_Operativo=$_.Sistema_Operativo;Version_Sistema_Operativo=$_.Version_Sistema_Operativo
-      Fecha_Instalacion=$_.Fecha_Instalacion;KBs_Instaladas=$_.KBs_Instaladas
-      Fecha_Reinicio=$_.Fecha_Reinicio;Running_Time=$_.Running_Time;Descripcion_Error=$_.Descripcion_Error
-      Disk_Space=$_.Disk_Space
-    }
+    $rr = New-Object ReportRow
+    $rr.Dominio                   = "$($_.Dominio)"
+    $rr.Servidor                  = "$($_.Servidor)"
+    $rr.IP                        = "$($_.IP)"
+    $rr.Sistema_Operativo         = "$($_.Sistema_Operativo)"
+    $rr.Version_Sistema_Operativo = "$($_.Version_Sistema_Operativo)"
+    $rr.Fecha_Instalacion         = "$($_.Fecha_Instalacion)"
+    $rr.KBs_Instaladas            = "$($_.KBs_Instaladas)"
+    $rr.Fecha_Reinicio            = "$($_.Fecha_Reinicio)"
+    $rr.Running_Time              = "$($_.Running_Time)"
+    $rr.Descripcion_Error         = "$($_.Descripcion_Error)"
+    $rr.Disk_Space                = "$($_.Disk_Space)"
+    $rr
   })
-  $reportDir = Join-Path $script:ScriptDir 'Reportes'
-  if (-not (Test-Path $reportDir)){ New-Item -ItemType Directory -Path $reportDir -Force | Out-Null }
-  $rsuffix = if ($periodLabel) { "_$periodLabel" } else { '' }
-  $rfile = Join-Path $reportDir ("Reporte{0}_{1}.csv" -f $rsuffix, (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'))
-  $rows | Export-Csv -Path $rfile -NoTypeInformation -Delimiter ';' -Encoding UTF8
+  Apply-ReportConfirmations $rows
+  $rfile = Save-ReportCsv $rows $periodLabel
   Write-Log 'INFO' "Headless: reporte CSV guardado en $rfile"
 
   # Sincronizar con Dashboard Web (mismo formato que el modo interactivo)
   if ($script:WUUDashboardUploadEnabled -and $script:WUUDashboardUploadUrl) {
     try {
       [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-      $vServers = @($bag | ForEach-Object {
+      $vServers = @($rows | ForEach-Object {
         [ordered]@{
-          Dominio=$_.Dominio; Servidor=$_.Servidor; IP=$_.IP
+          Grupo=$_.Grupo; Ambiente=$_.Ambiente; Dominio=$_.Dominio; Servidor=$_.Servidor; IP=$_.IP
           Sistema_Operativo=$_.Sistema_Operativo; Version_Sistema_Operativo=$_.Version_Sistema_Operativo
           Fecha_Instalacion=$_.Fecha_Instalacion; KBs_Instaladas=$_.KBs_Instaladas
           Fecha_Reinicio=$_.Fecha_Reinicio; Running_Time=$_.Running_Time; Descripcion_Error=$_.Descripcion_Error
-          Disk_Space=$_.Disk_Space
+          Disk_Space=$_.Disk_Space; Snap=$_.Snap; Confirmado=$_.Confirmado
+          'Analista asignado'=$_.Analista_Asignado
         }
       })
       # Deduplicar por nombre de servidor
@@ -3318,12 +4862,29 @@ if ($Scheduled) {
       Status='Reporte programado';Error=$_.Descripcion_Error;RunningTime=$_.Running_Time}
   }) -Type 'ReporteProgramado'
 
+  try {
+    $runElapsed = ''
+    try { $runElapsed = Format-Elapsed ((Get-Date) - $reportStartedAt) } catch {}
+    Send-TeamsReportFinished $rows $runElapsed $periodLabel "$rfile"
+    Write-Log 'INFO' 'Reporte programado: notificacion Teams de fin enviada (si Enabled).'
+  } catch { Write-Log 'ERROR' "Reporte Teams fin: $($_.Exception.Message)" }
+
   Write-Log 'INFO' 'Modo headless finalizado.'
   exit 0
 } else {
   #============================================================================
   #  MODO NORMAL: interfaz grafica
   #============================================================================
+  $analyst = Show-AnalystDialog
+  if (-not "$analyst".Trim()) {
+    Write-Log 'WARN' 'Inicio cancelado: no se indico Analista asignado.'
+    exit 0
+  }
+  $script:AnalistaAsignado = "$analyst".Trim()
+  Write-Log 'INFO' "Analista asignado: $script:AnalistaAsignado"
+  try {
+    if ($script:lblAnalyst) { $script:lblAnalyst.Text = $script:AnalistaAsignado }
+  } catch {}
   Load-Csv
   Update-ButtonStates
   $Window.ShowDialog() | Out-Null
