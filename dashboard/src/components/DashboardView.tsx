@@ -310,7 +310,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
             onClick={() => {
               const rows: ExportRow[] = filtered.map(s => ({
                 servidor: s.serverName,
-                dominio: s.info?.domain || "—",
+                dominio: s.domain || "—",
                 ip: s.ip || "—",
                 tipo: s.info?.type || "Sin clasificar",
                 ambiente: s.ambiente || "—",
