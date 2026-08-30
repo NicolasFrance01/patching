@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
+import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -306,12 +307,30 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
             Filtros
           </button>
           <button
-            onClick={() => setEmailPayload({
-              attachmentType: "dashboard",
-              summaryText: `Dashboard — ${filtered.length} servidores`,
-              defaultMessage: dashboardDefaultMessage,
-              data: filtered,
-            })}
+            onClick={() => {
+              const rows: ExportRow[] = filtered.map(s => ({
+                servidor: s.serverName,
+                dominio: s.info?.domain || "—",
+                ip: s.ip || "—",
+                tipo: s.info?.type || "Sin clasificar",
+                ambiente: s.ambiente || "—",
+                os: s.os || "—",
+                fechaInstalacion: s.installDate || "—",
+                kbsInstaladas: s.installedKBs || "—",
+                fechaReinicio: s.runningTime || "—",
+                estado: s.status === "ok" ? "OK" : s.status === "error" ? "Error" : "Sin Datos",
+                error: s.errorDescription || "—"
+              }));
+
+              setEmailPayload({
+                attachmentType: "dashboard",
+                summaryText: `Dashboard — ${filtered.length} servidores`,
+                defaultMessage: dashboardDefaultMessage,
+                data: filtered,
+                pdfBase64: getPDFBase64(rows, "Detalle de Servidores"),
+                pdfFilename: `Dashboard_${new Date().toISOString().slice(0, 10)}.pdf`
+              });
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border text-zinc-400 border-zinc-700/50 hover:border-indigo-500/50 hover:text-indigo-300 transition-all"
           >
             <Mail className="w-3.5 h-3.5" />

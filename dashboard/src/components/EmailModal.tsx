@@ -7,7 +7,9 @@ export interface EmailPayload {
   attachmentType: "history" | "report" | "dashboard";
   summaryText: string;
   defaultMessage?: string;
-  data: any[];
+  data?: any[];
+  pdfBase64?: string;
+  pdfFilename?: string;
 }
 
 interface EmailModalProps {
@@ -50,6 +52,8 @@ export default function EmailModal({ isOpen, onClose, payload }: EmailModalProps
           message,
           attachmentType: payload.attachmentType,
           payload: payload.data,
+          pdfBase64: payload.pdfBase64,
+          pdfFilename: payload.pdfFilename,
         }),
       });
 

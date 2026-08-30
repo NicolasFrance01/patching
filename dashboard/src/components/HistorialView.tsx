@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail } from "lucide-react";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
+import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
 
 interface SyncRecord {
   id: string;
@@ -320,11 +321,31 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                   });
                                   const historyDefaultMessage = `Estimados, un placer saludarlos,.\n\nInformamos que hemos finalizado con la ventana de actualizaciones sobre los Servidores Windows, programada para el ${syncDateTime}.\nAsí mismo, enviamos adjunto el Informe Técnico de Finalización de Actualizaciones correspondiente a los servidores involucrados.\nQuedamos a disposición para cualquier consulta adicional o información que puedan requerir.\n\n\nSaludos cordiales,`;
 
+                                  const recordsToExport = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+                                  const rows: ExportRow[] = recordsToExport.map(r => {
+                                    const info = getServerInfo(r.serverName);
+                                    return {
+                                      servidor: r.serverName,
+                                      dominio: r.domain || "—",
+                                      ip: r.ip || "—",
+                                      tipo: info?.type || "Sin clasificar",
+                                      ambiente: r.ambiente || "—",
+                                      os: r.os || "—",
+                                      fechaInstalacion: r.installDate || "—",
+                                      kbsInstaladas: r.installedKBs || "—",
+                                      fechaReinicio: r.runningTime || "—",
+                                      estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
+                                      error: r.errorDescription || "—"
+                                    };
+                                  });
+
                                   setEmailPayload({
                                     attachmentType: "history",
                                     summaryText: `Sincronización ${syncTime} (${filteredTotal} servidores)`,
                                     defaultMessage: historyDefaultMessage,
-                                    data: run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter)),
+                                    data: recordsToExport,
+                                    pdfBase64: getPDFBase64(rows, `Sincronización ${syncTime}`),
+                                    pdfFilename: `Sync_${run.syncedAt.replace(/[:T]/g, "-").slice(0, 19)}.pdf`
                                   });
                                 }}
                                 title="Enviar por correo"

@@ -12,7 +12,7 @@ import {
   TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server
 } from "lucide-react";
 import {
-  downloadCSV, downloadPDF, downloadFullReportPDF,
+  downloadCSV, downloadPDF, downloadFullReportPDF, getFullReportPDFBase64,
   FullReportPDFPayload, ExportRow, InactiveServerItem, InactiveBankGroup
 } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
@@ -1023,10 +1023,14 @@ export default function ReportesView({ data }: ReportesViewProps) {
           </button>
           <button
             onClick={() => {
+              const reporteDefaultMessage = `Estimados, espero que se encuentren muy bien.\n\nPor medio del presente, remito adjunto el Informe Mensual correspondiente, en el cual se detallan las actualizaciones implementadas en los servidores durante el período de ${fullReportPayload.timeFilterText.toLowerCase()}.\nQuedo a disposición para cualquier consulta o aclaración adicional que consideren pertinente.\n\nSaludos cordiales`;
               setEmailPayload({
                 attachmentType: "report",
                 summaryText: `Reporte Completo Integrado - Banco(s): ${fullReportPayload.selectedBanksText} | Tiempo: ${fullReportPayload.timeFilterText}`,
+                defaultMessage: reporteDefaultMessage,
                 data: [fullReportPayload],
+                pdfBase64: getFullReportPDFBase64(fullReportPayload),
+                pdfFilename: `Reporte_Completo_${new Date().toISOString().slice(0, 10)}.pdf`
               });
             }}
             className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all shadow-md flex items-center gap-2"

@@ -93,20 +93,16 @@ export function downloadCSV(rows: ExportRow[], filename: string) {
 }
 
 // ── STANDARD LIST PDF GENERATION (LANDSCAPE) ──
-export function downloadPDF(rows: ExportRow[], filename: string, title: string) {
+export function generatePDFDoc(rows: ExportRow[], title: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  // Page Dimensions: 297mm W x 210mm H
   const drawPageHeaderAndFooter = () => {
-    // Header image centered: aspect ratio 461/125 = 3.688. W=110mm, H=29.8mm
     if (HEADER_IMAGE_BASE64) {
       const hW = 110;
       const hH = hW / 3.688;
       const hX = (297 - hW) / 2;
       doc.addImage(HEADER_IMAGE_BASE64, "PNG", hX, 4, hW, hH);
     }
-
-    // Footer image centered: aspect ratio 916/206 = 4.4466. W=160mm, H=36mm
     if (FOOTER_IMAGE_BASE64) {
       const fW = 160;
       const fH = fW / 4.4466;
@@ -136,21 +132,19 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
     alternateRowStyles: { fillColor: [245, 245, 250] },
     margin: { top: 46, bottom: 42, left: 14, right: 14 },
     columnStyles: {
-      0: { cellWidth: 30 },  // Servidor
-      1: { cellWidth: 20 },  // Dominio
-      2: { cellWidth: 22 },  // IP
-      3: { cellWidth: 16 },  // Tipo
-      4: { cellWidth: 20 },  // Ambiente
-      5: { cellWidth: 28 },  // OS
-      6: { cellWidth: 22 },  // Fecha Instalación
-      7: { cellWidth: 28 },  // KBs
-      8: { cellWidth: 22 },  // Fecha Reinicio
-      9: { cellWidth: 14 },  // Estado
-      10: { cellWidth: "auto" }, // Error
+      0: { cellWidth: 30 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 22 },
+      3: { cellWidth: 16 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 28 },
+      6: { cellWidth: 22 },
+      7: { cellWidth: 28 },
+      8: { cellWidth: 22 },
+      9: { cellWidth: 14 },
+      10: { cellWidth: "auto" },
     },
-    didDrawPage: () => {
-      drawPageHeaderAndFooter();
-    },
+    didDrawPage: () => drawPageHeaderAndFooter(),
   });
 
   const pageCount = doc.getNumberOfPages();
@@ -161,24 +155,33 @@ export function downloadPDF(rows: ExportRow[], filename: string, title: string) 
     doc.text(`Página ${i} de ${pageCount}`, 283, 203, { align: "right" });
   }
 
+  return doc;
+}
+
+export function downloadPDF(rows: ExportRow[], filename: string, title: string) {
+  const doc = generatePDFDoc(rows, title);
   doc.save(filename);
 }
 
+export function getPDFBase64(rows: ExportRow[], title: string): string {
+  const doc = generatePDFDoc(rows, title);
+  // output datauristring format: "data:application/pdf;filename=generated.pdf;base64,JVBER..."
+  // we only want the base64 part
+  const dataUri = doc.output("datauristring");
+  return dataUri.split("base64,")[1];
+}
+
 // ── FULL REPORT PDF GENERATION (PORTRAIT) ──
-export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
+export function generateFullReportPDFDoc(payload: FullReportPDFPayload) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // Page Dimensions: 210mm W x 297mm H
   const drawPageHeaderAndFooter = () => {
-    // Top Header Image (encabezado.png) - aspect ratio 461/125 = 3.688. W=95mm, H=25.75mm, Centered
     if (HEADER_IMAGE_BASE64) {
       const hW = 95;
       const hH = hW / 3.688;
       const hX = (210 - hW) / 2;
       doc.addImage(HEADER_IMAGE_BASE64, "PNG", hX, 5, hW, hH);
     }
-
-    // Bottom Footer Image (pie de pag.png) - aspect ratio 916/206 = 4.4466. W=150mm, H=33.7mm, Centered
     if (FOOTER_IMAGE_BASE64) {
       const fW = 150;
       const fH = fW / 4.4466;
@@ -187,12 +190,10 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     }
   };
 
-  // Draw Page 1 Header and Footer
   drawPageHeaderAndFooter();
 
   let y = 35;
 
-  // Title Banner Card below header
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
   doc.roundedRect(14, y, 182, 20, 2, 2, "FD");
@@ -231,10 +232,8 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     y += 10;
   };
 
-  // ── SECTION 1: Por Tipo ──
   addSectionHeader("1. Resumen por Tipo de Banco", [79, 70, 229]);
 
-  // Chart 1.1: Visual Progress Bars (Tasa de éxito por tipo)
   checkPageBreak(25);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -272,7 +271,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y += 4;
 
-  // Chart 1.2: Vector Stacked Bar Chart (Servidores por tipo)
   checkPageBreak(45);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
@@ -285,12 +283,10 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   const chartW = 182;
   const chartH = 36;
 
-  // Background Container
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 232, 240);
   doc.roundedRect(chartX, chartY, chartW, chartH, 2, 2, "FD");
 
-  // Gridlines
   doc.setDrawColor(241, 245, 249);
   doc.setLineWidth(0.2);
   for (let gl = 1; gl <= 3; gl++) {
@@ -311,17 +307,17 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
     if (okH > 0) {
       currY -= okH;
-      doc.setFillColor(16, 185, 129); // Emerald Green
+      doc.setFillColor(16, 185, 129);
       doc.rect(barX, currY, colWidth - 4, okH, "F");
     }
     if (errH > 0) {
       currY -= errH;
-      doc.setFillColor(239, 68, 68); // Rose Red
+      doc.setFillColor(239, 68, 68);
       doc.rect(barX, currY, colWidth - 4, errH, "F");
     }
     if (nodataH > 0) {
       currY -= nodataH;
-      doc.setFillColor(100, 116, 139); // Slate Gray
+      doc.setFillColor(100, 116, 139);
       doc.rect(barX, currY, colWidth - 4, nodataH, "F");
     }
 
@@ -337,7 +333,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y = chartY + chartH + 6;
 
-  // Table 1: Summary Table
   checkPageBreak(30);
   autoTable(doc, {
     startY: y,
@@ -351,7 +346,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // ── SECTION 2: Errores por Sync ──
   addSectionHeader("2. Tendencia de Errores por Sincronización", [3, 105, 161]);
 
   if (payload.errorTrend.length > 0) {
@@ -419,7 +413,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     y = lineChartY + lineChartH + 6;
   }
 
-  // Table 2: Trend Table
   checkPageBreak(30);
   autoTable(doc, {
     startY: y,
@@ -433,7 +426,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // ── SECTION 3: Listado de Syncs ──
   addSectionHeader("3. Listado de Sincronizaciones por Día", [4, 120, 87]);
   checkPageBreak(30);
   autoTable(doc, {
@@ -448,7 +440,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // ── SECTION 4: Top Errores ──
   addSectionHeader("4. Top Errores Más Frecuentes", [159, 18, 57]);
   checkPageBreak(30);
   autoTable(doc, {
@@ -464,12 +455,10 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // ── SECTION 5: Evoluciones ──
   addSectionHeader("5. Evolución Histórica y Comparativa", [124, 58, 237]);
   
   checkPageBreak(30);
 
-  // KPI Card 1: Baseline
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
   doc.roundedRect(14, y, 88, 20, 2, 2, "FD");
@@ -487,7 +476,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   doc.text(`Total Servidores: ${payload.evoluciones.baselineTotal}`, 20, y + 9.5);
   doc.text(`OK: ${payload.evoluciones.baselineOk}  |  Errores: ${payload.evoluciones.baselineErrors}  |  Sin datos: ${payload.evoluciones.baselineNoData}`, 20, y + 14.5);
 
-  // KPI Card 2: Target
   doc.setFillColor(240, 242, 254);
   doc.setDrawColor(199, 210, 254);
   doc.roundedRect(108, y, 88, 20, 2, 2, "FD");
@@ -507,7 +495,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
 
   y += 25;
 
-  // Subtable 5.1 Errores Solucionados
   checkPageBreak(25);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
@@ -527,7 +514,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Subtable 5.2 Errores Actuales
   checkPageBreak(25);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
@@ -547,7 +533,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Subtable 5.3 Nuevos Servidores Ingresados
   checkPageBreak(25);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
@@ -567,7 +552,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Subtable 5.4 Servidores Removidos / Inactivos
   checkPageBreak(25);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
@@ -587,7 +571,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
   });
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // ── SECTION 6: Servidores Inactivos por Tiempo Configurado ──
   if (payload.inactiveServersByBank && payload.inactiveServersByBank.length > 0) {
     addSectionHeader(`6. Servidores Inactivos por Umbral (${payload.inactivityThresholdText || "15 días"})`, [225, 29, 72]);
 
@@ -622,7 +605,6 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     });
   }
 
-  // Ensure Page numbers on footers of every page
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -631,5 +613,16 @@ export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: s
     doc.text(`Página ${i} de ${pageCount}`, 196, 290, { align: "right" });
   }
 
+  return doc;
+}
+
+export function downloadFullReportPDF(payload: FullReportPDFPayload, filename: string) {
+  const doc = generateFullReportPDFDoc(payload);
   doc.save(filename);
+}
+
+export function getFullReportPDFBase64(payload: FullReportPDFPayload): string {
+  const doc = generateFullReportPDFDoc(payload);
+  const dataUri = doc.output("datauristring");
+  return dataUri.split("base64,")[1];
 }
