@@ -109,8 +109,8 @@ async function findTempoAccountViaJQL(projectKey: string, accountName: string, a
       }
     }
   } catch (e) { console.warn("[Jira] JQL fallback error:", e); }
-  // Hardcoded fallback for GP | SEC | Abono just in case everything fails
-  if (normalize(accountName).includes("abono")) return 609;
+  // Hardcoded fallback for GP | InO | Abono just in case everything fails
+  if (normalize(accountName).includes("abono")) return 27;
   return null;
 }
 
@@ -330,11 +330,11 @@ export async function POST(req: NextRequest) {
     if (accountField) {
       if (fieldMeta[accountField] && fieldMeta[accountField].allowedValues.length > 0) {
         // Sometimes it's just a normal select field
-        fields[accountField] = resolveValue(fieldMeta[accountField], "GP | SEC | Abono");
+        fields[accountField] = resolveValue(fieldMeta[accountField], "GP | InO | Abono");
       } else {
-        let tempoId = await findTempoAccountId("GP | SEC | Abono");
+        let tempoId = await findTempoAccountId("GP | InO | Abono");
         if (tempoId === null) {
-          tempoId = await findTempoAccountViaJQL(projectKey, "GP | SEC | Abono", accountField);
+          tempoId = await findTempoAccountViaJQL(projectKey, "GP | InO | Abono", accountField);
         }
         
         if (tempoId !== null) {
@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
         } else {
           console.warn("[Jira] Skipping accountField — could not resolve Tempo account ID, sending fallback object");
           // Fallback just in case Jira accepts the name object
-          fields[accountField] = { name: "GP | SEC | Abono" };
+          fields[accountField] = { name: "GP | InO | Abono" };
         }
       }
     }

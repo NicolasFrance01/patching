@@ -83,7 +83,7 @@ export default function Sidebar({ role, username }: SidebarProps) {
           <p className="text-[10px] text-zinc-600 capitalize">{role ?? "user"}</p>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: "https://patching.algeiba.com/login" })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-rose-400 hover:bg-rose-500/5 transition-colors"
         >
           <LogOut className="w-4 h-4 shrink-0" />
