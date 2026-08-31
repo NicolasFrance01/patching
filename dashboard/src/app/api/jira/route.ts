@@ -109,9 +109,9 @@ async function findTempoAccountViaJQL(projectKey: string, accountName: string, a
       }
     }
   } catch (e) { console.warn("[Jira] JQL fallback error:", e); }
-  // Hardcoded fallback for GP | InO | Abono just in case everything fails
-  if (normalize(accountName).includes("abono")) return 27;
-  return null;
+  // Hardcoded fallbacks based on project just in case JQL fails
+  if (projectKey === "ASJ") return 332; // ASJ | InO | Abono de Servicios
+  return 609; // GP | SEC | Abono
 }
 
 // ─── Field Discovery — ONLY from createmeta (fields on the screen) ────────────
@@ -328,21 +328,22 @@ export async function POST(req: NextRequest) {
 
     // Tempo Account — needs numeric ID from Tempo API
     if (accountField) {
+      const targetAccount = projectKey === "ASJ" ? "ASJ | InO | Abono de Servicios" : "GP | SEC | Abono";
+      
       if (fieldMeta[accountField] && fieldMeta[accountField].allowedValues.length > 0) {
         // Sometimes it's just a normal select field
-        fields[accountField] = resolveValue(fieldMeta[accountField], "GP | InO | Abono");
+        fields[accountField] = resolveValue(fieldMeta[accountField], targetAccount);
       } else {
-        let tempoId = await findTempoAccountId("GP | InO | Abono");
+        let tempoId = await findTempoAccountId(targetAccount);
         if (tempoId === null) {
-          tempoId = await findTempoAccountViaJQL(projectKey, "GP | InO | Abono", accountField);
+          tempoId = await findTempoAccountViaJQL(projectKey, targetAccount, accountField);
         }
         
         if (tempoId !== null) {
           fields[accountField] = tempoId; // Tempo expects just the numeric ID
         } else {
           console.warn("[Jira] Skipping accountField — could not resolve Tempo account ID, sending fallback object");
-          // Fallback just in case Jira accepts the name object
-          fields[accountField] = { name: "GP | InO | Abono" };
+          fields[accountField] = { name: targetAccount };
         }
       }
     }
@@ -374,10 +375,35 @@ export async function POST(req: NextRequest) {
     const issueUrl = `${JIRA_BASE_URL}/browse/${issueKey}`;
     console.log("[Jira] Created:", issueKey);
 
-    // ── Transition to WIP ────────────────────────────────────────────────────
-    const transitioned = await transitionToWIP(issueKey);
+    // Transition issue to "In Progress" if possible
+    let transitioned = false;
+    try {
+      const transRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`);
+      if (transRes.ok) {
+        const transData = await transRes.json();
+        const inProgressTransition = transData.transitions?.find((t: any) => 
+          t.to.statusCategory?.key === "in-progress" || 
+          t.name.toLowerCase().includes("progress") || 
+          t.name.toLowerCase().includes("progreso") ||
+          t.name.toLowerCase().includes("trabajo") ||
+          t.to.name.toLowerCase().includes("progress")
+        );
+        if (inProgressTransition) {
+          console.log(`[Jira] Transitioning ${issueKey} to In Progress (Transition ID: ${inProgressTransition.id})`);
+          await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
+            method: "POST",
+            body: JSON.stringify({ transition: { id: inProgressTransition.id } })
+          });
+          transitioned = true;
+        } else {
+          console.log(`[Jira] No 'In Progress' transition found for ${issueKey}`);
+        }
+      }
+    } catch (e) {
+      console.warn(`[Jira] Failed to transition ${issueKey}:`, e);
+    }
 
-    return NextResponse.json({ issueKey, issueUrl, transitioned });
+    return NextResponse.json({ success: true, key: issueKey, url: issueUrl, transitioned });
   } catch (err: any) {
     console.error("[Jira] Unexpected error:", err);
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
