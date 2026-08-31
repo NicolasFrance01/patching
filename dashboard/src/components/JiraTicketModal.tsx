@@ -341,10 +341,9 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-2 bg-black/80 backdrop-blur-sm">
       <div
-        className="glass rounded-2xl w-full max-w-4xl flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
-        style={{ height: "97vh" }}
+        className="glass w-full h-full sm:rounded-2xl sm:h-[98vh] sm:max-w-6xl flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
@@ -391,7 +390,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                   El error afecta <strong className="text-white">{errorGroup.count}</strong> servidores. Elegí el banco para el ticket.
                 </p>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {availableBanks.map((bank) => {
                   const color = TYPE_COLORS[bank] ?? "#6b7280";
                   const cfg = BANK_TO_JIRA[bank];
@@ -420,18 +419,18 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                 })}
               </div>
               {selectedBank && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 space-y-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
                   <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
                     Servidores en el ticket ({serversForBank.length})
                   </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto">
+                  <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto pr-2">
                     {serversForBank.map((s) => (
-                      <span key={s} className="px-2 py-0.5 rounded text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 font-medium">{s}</span>
+                      <span key={s} className="px-2 py-1 rounded-md text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 font-medium">{s}</span>
                     ))}
                   </div>
                   {isFetchingFields && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-indigo-400">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Cargando campos Jira...
+                    <div className="flex items-center gap-1.5 text-xs text-indigo-400 mt-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando configuración de Jira...
                     </div>
                   )}
                 </div>
@@ -506,7 +505,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
               )}
 
               {/* Reporter list */}
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {reporters.map((user) => {
                   const isSelected = selectedReporter?.accountId === user.accountId;
                   return (
@@ -534,12 +533,12 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                     </div>
                   );
                 })}
-                {reporters.length === 0 && (
-                  <p className="text-sm text-zinc-500 text-center py-6">
-                    No hay informadores en la lista. Agregá uno con el botón de arriba.
-                  </p>
-                )}
               </div>
+              {reporters.length === 0 && (
+                <p className="text-sm text-zinc-500 text-center py-6">
+                  No hay informadores en la lista. Agregá uno con el botón de arriba.
+                </p>
+              )}
             </div>
           )}
 
@@ -646,7 +645,7 @@ function FieldRow({ icon, label, value, multiline, accent }: {
       </div>
       <div className="flex-1">
         {multiline
-          ? <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-36 overflow-y-auto">{value}</pre>
+          ? <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-56 overflow-y-auto pr-2">{value}</pre>
           : <span className={`text-xs font-medium ${accent ? "text-blue-300" : "text-zinc-200"}`}>{value}</span>
         }
       </div>

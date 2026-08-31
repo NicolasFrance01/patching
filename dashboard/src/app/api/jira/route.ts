@@ -73,9 +73,37 @@ async function findTempoAccountId(searchName: string): Promise<number | null> {
       const n = normalize(a.name ?? "");
       return n.includes(t) || t.includes(n);
     });
-    console.log("[Jira] Tempo account:", found?.name, "id:", found?.id);
-    return typeof found?.id === "number" ? found.id : null;
+    console.log("[Jira] Tempo account via API:", found?.name, "id:", found?.id);
+    return typeof found?.id === "number" ? found.id : (typeof found?.id === "string" ? parseInt(found.id, 10) : null);
   } catch (e) { console.warn("[Jira] Tempo API error:", e); return null; }
+}
+
+async function findTempoAccountViaJQL(projectKey: string, accountName: string, accountFieldId: string): Promise<number | null> {
+  try {
+    console.log("[Jira] Attempting to find Tempo Account ID via JQL fallback...");
+    const jql = encodeURIComponent(`project = "${projectKey}" AND "${accountFieldId}" IS NOT EMPTY ORDER BY created DESC`);
+    const res = await jiraFetch(`/rest/api/3/search?jql=${jql}&maxResults=10&fields=${accountFieldId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const issue of (data.issues ?? [])) {
+      const acc = issue.fields?.[accountFieldId];
+      if (acc) {
+        const name = normalize(acc.name ?? acc.value ?? "");
+        const target = normalize(accountName);
+        if (name.includes(target) || target.includes(name)) {
+          const id = acc.id ?? acc.accountId;
+          if (id) {
+            const numId = typeof id === "number" ? id : parseInt(id, 10);
+            if (!isNaN(numId)) {
+              console.log("[Jira] Tempo account via JQL:", name, "id:", numId);
+              return numId;
+            }
+          }
+        }
+      }
+    }
+  } catch (e) { console.warn("[Jira] JQL fallback error:", e); }
+  return null;
 }
 
 // ─── Field Discovery — ONLY from createmeta (fields on the screen) ────────────
@@ -125,7 +153,7 @@ async function discoverFields(projectKey: string): Promise<{
       else if (n === "account" || n === "cuenta") key = "accountField";
       else if (n.includes("organizacion gp") || n.includes("organization gp") || n === "organizacion gp") key = "organizacionGPField";
       else if (n === "provider" || n === "proveedor") key = "providerField";
-      else if ((n.includes("tecnologia") || n.includes("componente")) && id.startsWith("customfield_")) key = "componentsField";
+      else if ((n.includes("tecnologia") || n.includes("component")) && id.startsWith("customfield_")) key = "componentsField";
       else if (id === "components") key = "componentsBuiltin";
 
       if (key) {
@@ -292,12 +320,22 @@ export async function POST(req: NextRequest) {
 
     // Tempo Account — needs numeric ID from Tempo API
     if (accountField) {
-      const tempoId = await findTempoAccountId("GP | SEC | Abono");
-      if (tempoId !== null) {
-        fields[accountField] = tempoId; // Tempo expects just the numeric ID
+      if (fieldMeta[accountField] && fieldMeta[accountField].allowedValues.length > 0) {
+        // Sometimes it's just a normal select field
+        fields[accountField] = resolveValue(fieldMeta[accountField], "GP | SEC | Abono");
       } else {
-        console.warn("[Jira] Skipping accountField — could not resolve Tempo account ID");
-        // Don't send the field if we can't resolve it (would cause a format error)
+        let tempoId = await findTempoAccountId("GP | SEC | Abono");
+        if (tempoId === null) {
+          tempoId = await findTempoAccountViaJQL(projectKey, "GP | SEC | Abono", accountField);
+        }
+        
+        if (tempoId !== null) {
+          fields[accountField] = tempoId; // Tempo expects just the numeric ID
+        } else {
+          console.warn("[Jira] Skipping accountField — could not resolve Tempo account ID, sending fallback object");
+          // Fallback just in case Jira accepts the name object
+          fields[accountField] = { name: "GP | SEC | Abono" };
+        }
       }
     }
 
