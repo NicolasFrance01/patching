@@ -23,7 +23,6 @@ async function jiraFetch(path: string, options: RequestInit = {}) {
   return res;
 }
 
-// Normalize string: lowercase, remove accents, remove special chars
 function normalize(str: string): string {
   return str
     .toLowerCase()
@@ -34,108 +33,97 @@ function normalize(str: string): string {
     .trim();
 }
 
-// ─── Field discovery: fetches ALL fields and maps names to IDs ─────────────────
-async function discoverFieldIds(projectKey: string): Promise<Record<string, string>> {
-  // Use the global /rest/api/3/field endpoint — most reliable
-  const res = await jiraFetch("/rest/api/3/field");
-  if (!res.ok) return {};
-
-  const allFields: Array<{ id: string; name: string; custom: boolean }> = await res.json();
-
+// ─── Field discovery — ONLY via createmeta (fields on the actual screen) ───────
+// This prevents sending fields that exist in Jira but are NOT on the create screen.
+async function discoverFieldIds(projectKey: string): Promise<{
+  mapping: Record<string, string>;
+  allFieldNames: string[];
+}> {
   const mapping: Record<string, string> = {};
+  const allFieldNames: string[] = [];
 
-  for (const field of allFields) {
-    const n = normalize(field.name);
-
-    // Informador
-    if (n === "informador" || n === "informer" || n.includes("informador")) {
-      mapping.informadorField = field.id;
-    }
-    // Start date (SoftwarePlant / Tempo)
-    if (n === "start date" || n === "fecha inicio" || n === "fecha de inicio") {
-      mapping.startDateField = field.id;
-    }
-    // Area
-    if (n === "area" || n === "area de negocio") {
-      mapping.areaField = field.id;
-    }
-    // Account (Tempo)
-    if (n === "account" || n === "cuenta") {
-      mapping.accountField = field.id;
-    }
-    // Organización GP
-    if (
-      n.includes("organizacion gp") ||
-      n.includes("organization gp") ||
-      n === "organizacion gp"
-    ) {
-      mapping.organizacionGPField = field.id;
-    }
-    // Provider
-    if (n === "provider" || n === "proveedor") {
-      mapping.providerField = field.id;
-    }
-    // Components / Tecnologías (custom multi-select)
-    if (
-      (n.includes("component") || n.includes("componente") || n.includes("tecnologia")) &&
-      field.custom
-    ) {
-      mapping.componentsCustomField = field.id;
-    }
-  }
-
-  // Also try createmeta for this specific project to get exact required fields
   try {
-    const cmRes = await jiraFetch(
+    // Step 1: Get issue types for the project
+    const itRes = await jiraFetch(
       `/rest/api/3/issue/createmeta/${projectKey}/issuetypes?maxResults=50`
     );
-    if (cmRes.ok) {
-      const cmData = await cmRes.json();
-      // Find Actividad issue type
-      const actividad = (cmData.issueTypes ?? cmData.values ?? []).find(
-        (it: any) => normalize(it.name) === "actividad"
-      );
-      if (actividad?.id) {
-        const fieldsRes = await jiraFetch(
-          `/rest/api/3/issue/createmeta/${projectKey}/issuetypes/${actividad.id}?maxResults=100`
-        );
-        if (fieldsRes.ok) {
-          const fieldsData = await fieldsRes.json();
-          for (const field of fieldsData.fields ?? fieldsData.values ?? []) {
-            const n = normalize(field.name);
-            if (n.includes("organizacion gp") || n.includes("organization gp")) {
-              mapping.organizacionGPField = field.fieldId ?? field.id;
-            }
-            if (n === "provider" || n === "proveedor") {
-              mapping.providerField = field.fieldId ?? field.id;
-            }
-            if (n === "account" || n === "cuenta") {
-              mapping.accountField = field.fieldId ?? field.id;
-            }
-            if (n === "area" || n === "area de negocio") {
-              mapping.areaField = field.fieldId ?? field.id;
-            }
-            if (n === "informador" || n.includes("informador")) {
-              mapping.informadorField = field.fieldId ?? field.id;
-            }
-            if (n === "start date" || n.includes("start date")) {
-              mapping.startDateField = field.fieldId ?? field.id;
-            }
-            if ((n.includes("component") || n.includes("tecnologia")) && field.custom) {
-              mapping.componentsCustomField = field.fieldId ?? field.id;
-            }
-          }
-        }
+    if (!itRes.ok) {
+      console.warn("[Jira] createmeta issuetypes failed:", itRes.status);
+      return { mapping, allFieldNames };
+    }
+
+    const itData = await itRes.json();
+    const issuetypes: any[] = itData.issueTypes ?? itData.values ?? [];
+    console.log("[Jira] Issue types found:", issuetypes.map((it: any) => it.name));
+
+    // Find "Actividad"
+    const actividad = issuetypes.find((it: any) => normalize(it.name) === "actividad");
+    if (!actividad) {
+      console.warn("[Jira] 'Actividad' issue type not found in project", projectKey);
+      return { mapping, allFieldNames };
+    }
+
+    // Step 2: Get fields for Actividad on this project (only fields on the screen)
+    const fieldsRes = await jiraFetch(
+      `/rest/api/3/issue/createmeta/${projectKey}/issuetypes/${actividad.id}?maxResults=200`
+    );
+    if (!fieldsRes.ok) {
+      console.warn("[Jira] createmeta fields failed:", fieldsRes.status);
+      return { mapping, allFieldNames };
+    }
+
+    const fieldsData = await fieldsRes.json();
+    const fields: any[] = fieldsData.fields ?? fieldsData.values ?? [];
+
+    for (const field of fields) {
+      const id: string = field.fieldId ?? field.id ?? "";
+      const name: string = field.name ?? "";
+      const n = normalize(name);
+
+      allFieldNames.push(`${id}: ${name}`);
+
+      // Map to our semantic keys
+      if (n === "informador" || n.includes("informador") || n.includes("informer")) {
+        mapping.informadorField = id;
+      }
+      if (n === "start date" || n === "fecha inicio" || n === "fecha de inicio") {
+        mapping.startDateField = id;
+      }
+      if (n === "area" || n === "area de negocio") {
+        mapping.areaField = id;
+      }
+      if (n === "account" || n === "cuenta") {
+        mapping.accountField = id;
+      }
+      if (n.includes("organizacion gp") || n.includes("organization gp") || n === "organizacion gp") {
+        mapping.organizacionGPField = id;
+      }
+      if (n === "provider" || n === "proveedor") {
+        mapping.providerField = id;
+      }
+      // Tecnologias / Components custom field
+      if (
+        (n.includes("tecnologia") || n.includes("component") || n.includes("componente")) &&
+        id.startsWith("customfield_")
+      ) {
+        mapping.componentsField = id;
+      }
+      // Built-in components field
+      if (id === "components") {
+        mapping.componentsBuiltin = id;
       }
     }
-  } catch {
-    // ignore
+
+    console.log("[Jira] Field mapping discovered:", JSON.stringify(mapping));
+    console.log("[Jira] All fields on screen:", allFieldNames);
+  } catch (e) {
+    console.error("[Jira] discoverFieldIds error:", e);
   }
 
-  return mapping;
+  return { mapping, allFieldNames };
 }
 
-// ─── Transition issue to "Work in Progress" ────────────────────────────────────
+// ─── Transition to Work in Progress ───────────────────────────────────────────
 async function transitionToWIP(issueKey: string): Promise<boolean> {
   try {
     const res = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`);
@@ -144,14 +132,18 @@ async function transitionToWIP(issueKey: string): Promise<boolean> {
     const data = await res.json();
     const transitions: Array<{ id: string; name: string }> = data.transitions ?? [];
 
-    // Look for "Work in Progress", "En Progreso", "En Curso", "In Progress", "Trabajo en Progreso"
-    const wipNames = ["work in progress", "en progreso", "en curso", "in progress", "trabajo en progreso", "wip", "in progress"];
+    console.log("[Jira] Available transitions for", issueKey, ":", transitions.map((t) => t.name));
+
+    const wipNames = [
+      "work in progress", "en progreso", "en curso", "in progress",
+      "trabajo en progreso", "wip", "en proceso", "iniciado", "en desarrollo",
+    ];
     const target = transitions.find((t) =>
       wipNames.some((name) => normalize(t.name).includes(name))
     );
 
     if (!target) {
-      console.log("[Jira] Available transitions:", transitions.map((t) => t.name));
+      console.warn("[Jira] WIP transition not found. Available:", transitions.map((t) => t.name));
       return false;
     }
 
@@ -160,8 +152,11 @@ async function transitionToWIP(issueKey: string): Promise<boolean> {
       body: JSON.stringify({ transition: { id: target.id } }),
     });
 
-    return transRes.ok || transRes.status === 204;
-  } catch {
+    const ok = transRes.ok || transRes.status === 204;
+    console.log("[Jira] Transition to WIP result:", transRes.status, ok);
+    return ok;
+  } catch (e) {
+    console.error("[Jira] Transition error:", e);
     return false;
   }
 }
@@ -171,7 +166,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const action = searchParams.get("action");
 
-  // Search users
   if (action === "search-users") {
     const query = searchParams.get("query") ?? "";
     const res = await jiraFetch(
@@ -181,15 +175,13 @@ export async function GET(req: NextRequest) {
       const text = await res.text();
       return NextResponse.json({ error: text }, { status: res.status });
     }
-    const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(await res.json());
   }
 
-  // Discover field IDs
   if (action === "get-fields") {
     const project = searchParams.get("project") ?? "GP";
-    const mapping = await discoverFieldIds(project);
-    return NextResponse.json({ mapping });
+    const { mapping, allFieldNames } = await discoverFieldIds(project);
+    return NextResponse.json({ mapping, allFieldNames });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
@@ -200,18 +192,28 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      projectKey,         // "GP" | "ASJ"
+      projectKey,
       errorMessage,
-      serversList,        // string[]
-      bankLabel,          // "Banco Santa Cruz" etc.
+      serversList,
+      bankLabel,
       bankCode,
       reporterAccountId,
-      fieldMapping,       // discovered field IDs from client
+      fieldMapping: clientMapping,
     } = body;
 
     const today = new Date().toISOString().slice(0, 10);
 
-    // ── Build description in Jira ADF ──────────────────────────────────────────
+    // ── Use mapping from client; if empty, re-discover server-side ────────────
+    let fieldMapping: Record<string, string> = clientMapping ?? {};
+    if (!fieldMapping || Object.keys(fieldMapping).length === 0) {
+      console.log("[Jira] No client mapping provided, discovering server-side...");
+      const { mapping } = await discoverFieldIds(projectKey);
+      fieldMapping = mapping;
+    }
+
+    console.log("[Jira] Final field mapping:", JSON.stringify(fieldMapping));
+
+    // ── Description ADF ───────────────────────────────────────────────────────
     const descriptionADF = {
       type: "doc",
       version: 1,
@@ -244,13 +246,6 @@ export async function POST(req: NextRequest) {
       ],
     };
 
-    // ── Discover field IDs server-side (backup if client didn't send them) ─────
-    const discoveredMapping = Object.keys(fieldMapping ?? {}).length > 0
-      ? fieldMapping
-      : await discoverFieldIds(projectKey);
-
-    console.log("[Jira] Field mapping used:", JSON.stringify(discoveredMapping));
-
     // ── Resolve assignee (gramirez) ───────────────────────────────────────────
     let assigneeAccountId: string | undefined;
     try {
@@ -264,10 +259,11 @@ export async function POST(req: NextRequest) {
             u.displayName?.toLowerCase().includes("gonzalo ramírez")
         );
         assigneeAccountId = found?.accountId;
+        console.log("[Jira] Assignee found:", found?.displayName, assigneeAccountId);
       }
     } catch { /* ignore */ }
 
-    // ── Build fields payload ───────────────────────────────────────────────────
+    // ── Build fields — ONLY include fields confirmed on the screen ────────────
     const fields: Record<string, any> = {
       project: { key: projectKey },
       issuetype: { name: "Actividad" },
@@ -285,42 +281,42 @@ export async function POST(req: NextRequest) {
       accountField,
       organizacionGPField,
       providerField,
-      componentsCustomField,
-    } = discoveredMapping ?? {};
+      componentsField,
+      componentsBuiltin,
+    } = fieldMapping;
 
-    if (startDateField) fields[startDateField] = today;
-
+    // Only add custom fields that were confirmed in the screen
+    if (startDateField) {
+      fields[startDateField] = today;
+    }
     if (areaField) {
-      // Try multiple formats for select fields
       fields[areaField] = { value: "SEC" };
     }
-
     if (accountField) {
-      // Tempo account — try by name
+      // Tempo account field — accepts { name: "..." }
       fields[accountField] = { name: "GP | SEC | Abono" };
     }
-
     if (organizacionGPField) {
       fields[organizacionGPField] = { value: bankLabel };
     }
-
     if (providerField) {
       fields[providerField] = { value: "Microsoft" };
     }
-
-    // Built-in components field
-    fields.components = [{ name: "Sistemas Operativos" }];
-
-    // Custom components/tecnologias field (if different from built-in)
-    if (componentsCustomField && componentsCustomField !== "components") {
-      fields[componentsCustomField] = [{ value: "Sistemas Operativos" }];
+    if (componentsField) {
+      // Custom multi-select (Tecnologias)
+      fields[componentsField] = [{ value: "Sistemas Operativos" }];
     }
-
+    if (componentsBuiltin) {
+      // Built-in components field
+      fields.components = [{ name: "Sistemas Operativos" }];
+    }
     if (informadorField && reporterAccountId) {
       fields[informadorField] = { accountId: reporterAccountId };
     }
 
-    // ── Create the issue ───────────────────────────────────────────────────────
+    console.log("[Jira] Creating issue with fields:", Object.keys(fields));
+
+    // ── Create issue ──────────────────────────────────────────────────────────
     const createRes = await jiraFetch("/rest/api/3/issue", {
       method: "POST",
       body: JSON.stringify({ fields }),
@@ -329,22 +325,18 @@ export async function POST(req: NextRequest) {
     const createData = await createRes.json();
 
     if (!createRes.ok) {
-      // Return full error details to help debug field issues
       console.error("[Jira] Create error:", JSON.stringify(createData));
       return NextResponse.json(
-        {
-          error: createData,
-          fieldMappingUsed: discoveredMapping,
-          fieldsSent: Object.keys(fields),
-        },
+        { error: createData, fieldMappingUsed: fieldMapping, fieldsSent: Object.keys(fields) },
         { status: createRes.status }
       );
     }
 
     const issueKey: string = createData.key;
     const issueUrl = `${JIRA_BASE_URL}/browse/${issueKey}`;
+    console.log("[Jira] Created:", issueKey);
 
-    // ── Transition to Work in Progress ─────────────────────────────────────────
+    // ── Transition to WIP ─────────────────────────────────────────────────────
     const transitioned = await transitionToWIP(issueKey);
 
     return NextResponse.json({ issueKey, issueUrl, transitioned });

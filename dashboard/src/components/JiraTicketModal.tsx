@@ -340,8 +340,8 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div
-        className="glass rounded-2xl w-full max-w-lg flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
-        style={{ maxHeight: "92vh" }}
+        className="glass rounded-2xl w-full max-w-4xl flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
+        style={{ maxHeight: "96vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
@@ -431,7 +431,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                   <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
                     Servidores en el ticket ({serversForBank.length})
                   </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                  <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
                     {serversForBank.map((s) => (
                       <span key={s} className="px-2 py-0.5 rounded text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 font-medium">{s}</span>
                     ))}
@@ -540,26 +540,36 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
             <div className="p-6 space-y-4">
               <div>
                 <h3 className="text-sm font-bold text-zinc-100 mb-1">Revisá el ticket antes de crearlo</h3>
-                <p className="text-xs text-zinc-400">Todos los campos serán enviados a Jira. El estado se cambiará a <strong className="text-blue-300">Work in Progress</strong> automáticamente.</p>
+                <p className="text-xs text-zinc-400">El estado se cambiará a <strong className="text-blue-300">Work in Progress</strong> automáticamente al crear.</p>
               </div>
 
               <div className="rounded-xl border border-zinc-800 overflow-hidden divide-y divide-zinc-800/60">
-                <FieldRow icon={<Building2 className="w-3.5 h-3.5" />} label="Espacio" value={jiraConfig?.spaceLabel ?? "—"} />
-                <FieldRow label="Tipo de actividad" value="Actividad" />
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow icon={<Building2 className="w-3.5 h-3.5" />} label="Espacio" value={jiraConfig?.spaceLabel ?? "—"} />
+                  <FieldRow label="Tipo de actividad" value="Actividad" />
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow label="Start Date" value={new Date().toLocaleDateString("es-AR")} />
+                  <FieldRow label="Area" value="SEC" />
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow label="Account" value="GP | SEC | Abono" />
+                  <FieldRow label="Organización GP" value={jiraConfig?.orgLabel ?? "—"} />
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow label="Components" value="Sistemas Operativos" />
+                  <FieldRow label="Provider" value="Microsoft" />
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow label="Persona asignada" value="Gonzalo Ramirez" />
+                  <FieldRow label="Informador" value={selectedReporter?.displayName ?? "—"} />
+                </div>
                 <FieldRow label="Resumen" value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join(", ")} multiline />
-                <FieldRow label="Persona asignada" value="Gonzalo Ramirez (gramirez@algeiba.com)" />
-                <FieldRow label="Informador" value={`${selectedReporter?.displayName} (${selectedReporter?.emailAddress})`} />
-                <FieldRow label="Start Date" value={new Date().toLocaleDateString("es-AR")} />
-                <FieldRow label="Area" value="SEC" />
-                <FieldRow label="Account" value="GP | SEC | Abono" />
-                <FieldRow label="Organización GP" value={jiraConfig?.orgLabel ?? "—"} />
                 <FieldRow label="Descripción" value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join("\n")} multiline />
-                <FieldRow label="Components" value="Sistemas Operativos" />
-                <FieldRow label="Provider" value="Microsoft" />
                 <FieldRow label="Estado inicial" value="→ Work in Progress (automático)" accent />
               </div>
 
-              {/* Field mapping debug info */}
+              {/* Field mapping indicator */}
               {Object.keys(fieldMapping).length > 0 && (
                 <div className="text-[10px] text-zinc-600 px-1">
                   ✓ {Object.keys(fieldMapping).length} campos custom detectados en Jira
@@ -629,14 +639,14 @@ function FieldRow({
   accent?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-3 bg-zinc-900/30">
-      <div className="w-36 shrink-0 flex items-center gap-1.5 pt-0.5">
+    <div className="flex items-start gap-3 px-4 py-2.5 bg-zinc-900/30">
+      <div className="w-32 shrink-0 flex items-center gap-1.5 pt-0.5">
         {icon && <span className="text-zinc-500">{icon}</span>}
         <span className="text-[11px] text-zinc-500 font-medium leading-tight">{label}</span>
       </div>
       <div className="flex-1">
         {multiline ? (
-          <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-24 overflow-y-auto">{value}</pre>
+          <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-32 overflow-y-auto">{value}</pre>
         ) : (
           <span className={`text-xs font-medium ${accent ? "text-blue-300" : "text-zinc-200"}`}>{value}</span>
         )}
