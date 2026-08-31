@@ -343,7 +343,8 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-2 bg-black/80 backdrop-blur-sm">
       <div
-        className="glass w-full h-full sm:rounded-2xl sm:h-[98vh] sm:max-w-6xl flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
+        className="glass w-full sm:rounded-2xl sm:max-w-6xl flex flex-col border border-zinc-700/80 shadow-2xl overflow-hidden"
+        style={{ height: "125vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
