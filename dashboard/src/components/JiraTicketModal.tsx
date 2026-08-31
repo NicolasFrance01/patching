@@ -575,10 +575,22 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                   <FieldRow label="Persona asignada" value="Gonzalo Ramirez" />
                   <FieldRow label="Informador" value={selectedReporter?.displayName ?? "—"} />
                 </div>
-                {/* Full-width rows for long content */}
-                <FieldRow label="Resumen" value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join(", ")} multiline />
-                <FieldRow label="Descripción" value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join("\n")} multiline />
+                {/* Estado inicial just below Assigned/Reporter */}
                 <FieldRow label="Estado inicial" value="→ Work in Progress (automático)" accent />
+                
+                {/* Resumen and Description side by side */}
+                <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
+                  <FieldRow 
+                    label="Resumen" 
+                    value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join(", ")} 
+                    multiline 
+                  />
+                  <FieldRow 
+                    label="Descripción" 
+                    value={errorGroup.message + "\n\nServidores (" + selectedBank + "):\n" + serversForBank.join("\n")} 
+                    multiline 
+                  />
+                </div>
               </div>
 
               {Object.keys(fieldMapping).length > 0 && (
@@ -639,14 +651,14 @@ function FieldRow({ icon, label, value, multiline, accent }: {
   icon?: React.ReactNode; label: string; value: string; multiline?: boolean; accent?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-2.5 bg-zinc-900/30">
-      <div className="w-32 shrink-0 flex items-center gap-1.5 pt-0.5">
+    <div className={`flex items-start gap-3 px-4 py-2.5 bg-zinc-900/30 ${multiline ? "flex-col sm:flex-row h-full" : ""}`}>
+      <div className="w-28 shrink-0 flex items-center gap-1.5 pt-0.5">
         {icon && <span className="text-zinc-500">{icon}</span>}
         <span className="text-[11px] text-zinc-500 font-medium leading-tight">{label}</span>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 w-full min-w-0">
         {multiline
-          ? <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-56 overflow-y-auto pr-2">{value}</pre>
+          ? <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed max-h-48 overflow-y-auto pr-2 break-words">{value}</pre>
           : <span className={`text-xs font-medium ${accent ? "text-blue-300" : "text-zinc-200"}`}>{value}</span>
         }
       </div>
