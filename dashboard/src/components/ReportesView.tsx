@@ -9,13 +9,14 @@ import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
-  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server
+  TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server, Ticket
 } from "lucide-react";
 import {
   downloadCSV, downloadPDF, downloadFullReportPDF, getFullReportPDFBase64,
   FullReportPDFPayload, ExportRow, InactiveServerItem, InactiveBankGroup
 } from "@/lib/exportUtils";
 import EmailModal, { EmailPayload } from "./EmailModal";
+import JiraTicketModal from "./JiraTicketModal";
 
 interface SyncRunData {
   id: string;
@@ -362,6 +363,10 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  // Jira ticket modal state
+  const [jiraModalOpen, setJiraModalOpen] = useState(false);
+  const [jiraErrorGroup, setJiraErrorGroup] = useState<{ message: string; servers: string[]; count: number } | null>(null);
 
   // Multi-bank selection state
   const [selectedBanks, setSelectedBanks] = useState<BankFilter[]>(["all"]);
@@ -1272,7 +1277,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
           <div className="divide-y divide-zinc-800/40">
             {filteredErrorGroups.map((g, i) => (
               <div key={g.message} className="py-3 flex items-start justify-between gap-3">
-                <div>
+                <div className="flex-1 min-w-0">
                   <span className="text-xs text-zinc-300 font-medium">#{i + 1} {g.message}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {g.servers.slice(0, 12).map((srv) => {
@@ -1285,11 +1290,32 @@ export default function ReportesView({ data }: ReportesViewProps) {
                         </span>
                       );
                     })}
+                    {g.servers.length > 12 && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-zinc-900 border border-zinc-700 text-zinc-500 font-medium">
+                        +{g.servers.length - 12} más
+                      </span>
+                    )}
                   </div>
                 </div>
-                <span className="text-rose-400 text-xs font-bold shrink-0">{g.count} srv</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-rose-400 text-xs font-bold">{g.count} srv</span>
+                  <button
+                    onClick={() => {
+                      setJiraErrorGroup({ message: g.message, servers: g.servers, count: g.count });
+                      setJiraModalOpen(true);
+                    }}
+                    title="Crear ticket en Jira"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 hover:border-indigo-500/70 text-indigo-300 hover:text-indigo-100 text-[11px] font-bold transition-all duration-200 shadow-sm hover:shadow-indigo-500/20 hover:shadow-md"
+                  >
+                    <Ticket className="w-3.5 h-3.5" />
+                    Ticket
+                  </button>
+                </div>
               </div>
             ))}
+            {filteredErrorGroups.length === 0 && (
+              <p className="text-zinc-500 text-sm text-center py-10">Sin errores para el período y banco seleccionados.</p>
+            )}
           </div>
         </div>
       )}
@@ -1779,6 +1805,12 @@ export default function ReportesView({ data }: ReportesViewProps) {
         isOpen={!!emailPayload} 
         onClose={() => setEmailPayload(null)} 
         payload={emailPayload} 
+      />
+
+      <JiraTicketModal
+        isOpen={jiraModalOpen}
+        onClose={() => { setJiraModalOpen(false); setJiraErrorGroup(null); }}
+        errorGroup={jiraErrorGroup}
       />
     </div>
   );
