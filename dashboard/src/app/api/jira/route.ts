@@ -376,27 +376,38 @@ export async function POST(req: NextRequest) {
     console.log("[Jira] Created:", issueKey);
 
     // Transition issue to "In Progress" if possible
+    // NOTE: In Jira's data model, the statusCategory.key for "In Progress" is "indeterminate", NOT "in-progress"
     let transitioned = false;
     try {
+      // Small delay to allow Jira to fully index the new ticket before querying transitions
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const transRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`);
       if (transRes.ok) {
         const transData = await transRes.json();
+        console.log(`[Jira] Available transitions for ${issueKey}:`, transData.transitions?.map((t: any) => `${t.id}=${t.name}(${t.to.statusCategory?.key})`));
+        // "indeterminate" is the real Jira statusCategory.key for "In Progress" type states
         const inProgressTransition = transData.transitions?.find((t: any) => 
-          t.to.statusCategory?.key === "in-progress" || 
-          t.name.toLowerCase().includes("progress") || 
-          t.name.toLowerCase().includes("progreso") ||
-          t.name.toLowerCase().includes("trabajo") ||
-          t.to.name.toLowerCase().includes("progress")
+          t.to.statusCategory?.key === "indeterminate" || 
+          t.name.toLowerCase().includes("work in progress") || 
+          t.name.toLowerCase().includes("trabajo en progeso") ||
+          t.to.name.toLowerCase().includes("trabajo en progeso") ||
+          t.to.name.toLowerCase().includes("work in progress")
         );
         if (inProgressTransition) {
           console.log(`[Jira] Transitioning ${issueKey} to In Progress (Transition ID: ${inProgressTransition.id})`);
-          await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
+          const applyRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
             method: "POST",
             body: JSON.stringify({ transition: { id: inProgressTransition.id } })
           });
-          transitioned = true;
+          if (applyRes.ok || applyRes.status === 204) {
+            transitioned = true;
+            console.log(`[Jira] Successfully transitioned ${issueKey} to In Progress`);
+          } else {
+            const errBody = await applyRes.text();
+            console.warn(`[Jira] Transition POST failed ${applyRes.status}: ${errBody}`);
+          }
         } else {
-          console.log(`[Jira] No 'In Progress' transition found for ${issueKey}`);
+          console.log(`[Jira] No 'In Progress' transition found for ${issueKey}. Available:`, transData.transitions?.map((t: any) => t.name));
         }
       }
     } catch (e) {
