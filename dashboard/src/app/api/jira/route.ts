@@ -110,7 +110,7 @@ async function findTempoAccountViaJQL(projectKey: string, accountName: string, a
     }
   } catch (e) { console.warn("[Jira] JQL fallback error:", e); }
   // Hardcoded fallbacks based on project just in case JQL fails
-  if (projectKey === "ASJ") return 332; // ASJ | InO | Abono de Servicios
+  if (projectKey === "ASJ") return 608; // ASJ | SEC | Abono
   return 609; // GP | SEC | Abono
 }
 
@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
 
     // Tempo Account — needs numeric ID from Tempo API
     if (accountField) {
-      const targetAccount = projectKey === "ASJ" ? "ASJ | InO | Abono de Servicios" : "GP | SEC | Abono";
+      const targetAccount = projectKey === "ASJ" ? "ASJ | SEC | Abono" : "GP | SEC | Abono";
       
       if (fieldMeta[accountField] && fieldMeta[accountField].allowedValues.length > 0) {
         // Sometimes it's just a normal select field
