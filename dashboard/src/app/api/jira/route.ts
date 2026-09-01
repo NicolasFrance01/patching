@@ -375,39 +375,72 @@ export async function POST(req: NextRequest) {
     const issueUrl = `${JIRA_BASE_URL}/browse/${issueKey}`;
     console.log("[Jira] Created:", issueKey);
 
-    // Transition issue to "In Progress" if possible
-    // NOTE: In Jira's data model, the statusCategory.key for "In Progress" is "indeterminate", NOT "in-progress"
+    // Transition issue to "Work in Progress"
+    // Transition ID 891 = "Work in Progress" confirmed by ROVO AI for this Jira instance
+    // The workflow requires a comment to complete this transition
     let transitioned = false;
     try {
       // Small delay to allow Jira to fully index the new ticket before querying transitions
       await new Promise(resolve => setTimeout(resolve, 1500));
-      const transRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`);
-      if (transRes.ok) {
-        const transData = await transRes.json();
-        console.log(`[Jira] Available transitions for ${issueKey}:`, transData.transitions?.map((t: any) => `${t.id}=${t.name}(${t.to.statusCategory?.key})`));
-        // "indeterminate" is the real Jira statusCategory.key for "In Progress" type states
-        const inProgressTransition = transData.transitions?.find((t: any) => 
-          t.to.statusCategory?.key === "indeterminate" || 
-          t.name.toLowerCase().includes("work in progress") || 
-          t.name.toLowerCase().includes("trabajo en progeso") ||
-          t.to.name.toLowerCase().includes("trabajo en progeso") ||
-          t.to.name.toLowerCase().includes("work in progress")
-        );
-        if (inProgressTransition) {
-          console.log(`[Jira] Transitioning ${issueKey} to In Progress (Transition ID: ${inProgressTransition.id})`);
-          const applyRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
-            method: "POST",
-            body: JSON.stringify({ transition: { id: inProgressTransition.id } })
-          });
-          if (applyRes.ok || applyRes.status === 204) {
-            transitioned = true;
-            console.log(`[Jira] Successfully transitioned ${issueKey} to In Progress`);
-          } else {
-            const errBody = await applyRes.text();
-            console.warn(`[Jira] Transition POST failed ${applyRes.status}: ${errBody}`);
+      
+      const WORK_IN_PROGRESS_TRANSITION_ID = "891";
+      
+      const applyRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
+        method: "POST",
+        body: JSON.stringify({
+          transition: { id: WORK_IN_PROGRESS_TRANSITION_ID },
+          update: {
+            comment: [
+              {
+                add: {
+                  body: {
+                    type: "doc",
+                    version: 1,
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [
+                          {
+                            text: "Generado automáticamente desde el Centro de Control de Parcheo.",
+                            type: "text"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
           }
-        } else {
-          console.log(`[Jira] No 'In Progress' transition found for ${issueKey}. Available:`, transData.transitions?.map((t: any) => t.name));
+        })
+      });
+
+      if (applyRes.ok || applyRes.status === 204) {
+        transitioned = true;
+        console.log(`[Jira] Successfully transitioned ${issueKey} to Work in Progress`);
+      } else {
+        const errBody = await applyRes.text();
+        console.warn(`[Jira] Transition POST failed ${applyRes.status}: ${errBody}`);
+        // Fallback: try dynamic search for any "indeterminate" transition
+        const transRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`);
+        if (transRes.ok) {
+          const transData = await transRes.json();
+          console.log(`[Jira] Available transitions for ${issueKey}:`, transData.transitions?.map((t: any) => `${t.id}=${t.name}(${t.to.statusCategory?.key})`));
+          const fallbackTransition = transData.transitions?.find((t: any) =>
+            t.to.statusCategory?.key === "indeterminate" ||
+            t.name.toLowerCase().includes("work in progress") ||
+            t.to.name.toLowerCase().includes("trabajo en progeso")
+          );
+          if (fallbackTransition) {
+            const fallbackRes = await jiraFetch(`/rest/api/3/issue/${issueKey}/transitions`, {
+              method: "POST",
+              body: JSON.stringify({ transition: { id: fallbackTransition.id } })
+            });
+            if (fallbackRes.ok || fallbackRes.status === 204) {
+              transitioned = true;
+              console.log(`[Jira] Fallback transition successful with ID ${fallbackTransition.id}`);
+            }
+          }
         }
       }
     } catch (e) {

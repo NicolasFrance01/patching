@@ -32,6 +32,16 @@ export const authOptions: NextAuthOptions = {
       if (session.user) (session.user as any).role = token.role;
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Always redirect to the custom domain, never to the Azure internal URL
+      const CUSTOM_DOMAIN = "https://patching.algeiba.com";
+      // If it's a relative URL, prefix with custom domain
+      if (url.startsWith("/")) return `${CUSTOM_DOMAIN}${url}`;
+      // If it's already on the custom domain, allow it
+      if (url.startsWith(CUSTOM_DOMAIN)) return url;
+      // Otherwise default to custom domain login
+      return `${CUSTOM_DOMAIN}/login`;
+    },
   },
   pages: {
     signIn: "/login",
