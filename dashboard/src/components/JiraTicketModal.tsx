@@ -561,10 +561,10 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
                   <FieldRow label="Start Date" value={new Date().toLocaleDateString("es-AR")} />
-                  <FieldRow label="Area" value="InO" />
+                  <FieldRow label="Area" value={jiraConfig?.projectKey === "ASJ" ? "InO" : "SEC"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
-                  <FieldRow label="Account" value="GP | InO | Abono" accent />
+                  <FieldRow label="Account" value={jiraConfig?.projectKey === "ASJ" ? "ASJ | InO | Abono de Servicios" : "GP | SEC | Abono"} accent />
                   <FieldRow label="Organización GP" value={jiraConfig?.orgLabel ?? "—"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">

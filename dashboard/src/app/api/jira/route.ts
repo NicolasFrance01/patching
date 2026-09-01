@@ -403,7 +403,7 @@ export async function POST(req: NextRequest) {
       console.warn(`[Jira] Failed to transition ${issueKey}:`, e);
     }
 
-    return NextResponse.json({ success: true, key: issueKey, url: issueUrl, transitioned });
+    return NextResponse.json({ success: true, issueKey, issueUrl, transitioned });
   } catch (err: any) {
     console.error("[Jira] Unexpected error:", err);
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
