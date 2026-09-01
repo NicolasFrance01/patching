@@ -48,11 +48,12 @@ const BANK_CHIPS: { label: string; value: BankFilter }[] = [
   { label: "Sin clasificar", value: "unclassified" },
 ];
 
-function matchesBankFilter(serverName: string, bankFilter: BankFilter): boolean {
-  if (bankFilter === "all") return true;
+function matchesBankFilter(serverName: string, bankFilters: BankFilter[]): boolean {
+  if (bankFilters.includes("all")) return true;
   const info = getServerInfo(serverName);
-  if (bankFilter === "unclassified") return !info;
-  return info?.type === bankFilter;
+  if (!info && bankFilters.includes("unclassified")) return true;
+  if (info && bankFilters.includes(info.type as BankFilter)) return true;
+  return false;
 }
 
 function toLocalDayKey(iso: string): string {
@@ -69,7 +70,11 @@ function formatDayHeader(dayKey: string): string {
 
 export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [search, setSearch] = useState("");
-  const [bankFilter, setBankFilter] = useState<BankFilter>("all");
+  const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
+  const [timeFilter, setTimeFilter] = useState<"all" | "month" | "custom">("all");
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [expandedDay, setExpandedDay] = useState<string | null>(() => {
     if (syncRuns.length === 0) return null;
     return toLocalDayKey(syncRuns[0].syncedAt);
@@ -81,8 +86,20 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
 
   const filteredRuns = useMemo(() => {
     return syncRuns.filter((run) => {
-      const bankMatchedRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
-      if (bankFilter !== "all" && bankMatchedRecords.length === 0) return false;
+      // 1. Time Filter
+      if (timeFilter === "month" && selectedMonth) {
+        if (!run.syncedAt.startsWith(selectedMonth)) return false;
+      }
+      if (timeFilter === "custom") {
+        const d = new Date(run.syncedAt);
+        const f = customFrom ? new Date(customFrom) : new Date(0);
+        const t = customTo ? new Date(customTo + "T23:59:59") : new Date();
+        if (d < f || d > t) return false;
+      }
+
+      // 2. Bank Filter
+      const bankMatchedRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
+      if (!bankFilters.includes("all") && bankMatchedRecords.length === 0) return false;
       if (!search) return true;
       const q = search.toLowerCase();
       const dateStr = new Date(run.syncedAt).toLocaleString("es-AR").toLowerCase();
@@ -96,7 +113,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           (r.ambiente ?? "").toLowerCase().includes(q)
       );
     });
-  }, [syncRuns, search, bankFilter]);
+  }, [syncRuns, search, bankFilters, timeFilter, selectedMonth, customFrom, customTo]);
 
   const dayGroups = useMemo(() => {
     const groups: Record<string, SyncRun[]> = {};
@@ -113,16 +130,16 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         );
         const latest = sorted[0];
 
-        const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+        const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
         const latestTotal = latestFiltered.length;
         const latestSuccess = latestFiltered.filter((r) => r.status === "ok").length;
 
         const totalSuccess = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "ok").length, 0);
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "ok").length, 0);
         const totalErrors = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "error").length, 0);
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "error").length, 0);
         const totalNoData = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilter) && rec.status === "nodata").length, 0);
+          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "nodata").length, 0);
 
         return {
           day,
@@ -134,13 +151,13 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           successRate: latestTotal > 0 ? Math.round((latestSuccess / latestTotal) * 100) : 0,
         };
       });
-  }, [filteredRuns, bankFilter]);
+  }, [filteredRuns, bankFilters]);
 
   function getFilteredRecords(run: SyncRun) {
     const q = (recordSearch[run.id] ?? "").toLowerCase();
     const sf = statusFilter[run.id] ?? "all";
     return run.records.filter((r) => {
-      if (!matchesBankFilter(r.serverName, bankFilter)) return false;
+      if (!matchesBankFilter(r.serverName, bankFilters)) return false;
       if (sf !== "all" && r.status !== sf) return false;
       if (!q) return true;
       return (
@@ -161,41 +178,78 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
     );
   }
 
-  const activeBankColor = bankFilter !== "all" && bankFilter !== "unclassified"
-    ? TYPE_COLORS[bankFilter]
-    : bankFilter === "unclassified" ? TYPE_COLORS["Sin clasificar"] : null;
 
   return (
     <div className="space-y-4">
-      {/* ── Bank Type Filter ── */}
-      <div className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco:</span>
-        {BANK_CHIPS.map(({ label, value }) => {
-          const color = value !== "all" ? (value === "unclassified" ? TYPE_COLORS["Sin clasificar"] : TYPE_COLORS[value as string]) : null;
-          const isActive = bankFilter === value;
-          return (
+      {/* ── Filters ── */}
+      <div className="glass rounded-xl p-4 space-y-3">
+        {/* Bank Type Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco(s):</span>
+          {BANK_CHIPS.map(({ label, value }) => {
+            const color = value !== "all" ? (value === "unclassified" ? TYPE_COLORS["Sin clasificar"] : TYPE_COLORS[value as string]) : null;
+            const isActive = bankFilters.includes(value);
+            return (
+              <button
+                key={value}
+                onClick={() => {
+                  setBankFilters(prev => {
+                    if (value === "all") return ["all"];
+                    const next = prev.filter(b => b !== "all");
+                    if (next.includes(value)) {
+                      const res = next.filter(b => b !== value);
+                      return res.length === 0 ? ["all"] : res;
+                    }
+                    return [...next, value];
+                  });
+                }}
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                  isActive
+                    ? "text-white border-transparent shadow-lg"
+                    : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+                }`}
+                style={isActive && color ? { backgroundColor: color + "33", borderColor: color + "66", color } : isActive ? { backgroundColor: "#6366f133", borderColor: "#6366f166", color: "#a5b4fc" } : {}}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Time Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Filtro de Tiempo:</span>
+          {(["all", "month", "custom"] as const).map((tf) => (
             <button
-              key={value}
-              onClick={() => setBankFilter(value)}
-              className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                isActive
-                  ? "text-white border-transparent shadow-lg"
-                  : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+              key={tf}
+              onClick={() => setTimeFilter(tf)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${
+                timeFilter === tf
+                  ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                  : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
               }`}
-              style={isActive && color ? { backgroundColor: color + "33", borderColor: color + "66", color } : isActive ? { backgroundColor: "#6366f133", borderColor: "#6366f166", color: "#a5b4fc" } : {}}
             >
-              {label}
+              {tf === "all" ? "Todos" : tf === "month" ? "Mes" : "Rango Personalizado"}
             </button>
-          );
-        })}
-        {bankFilter !== "all" && (
-          <span className="text-[10px] text-zinc-600 ml-auto">
-            Mostrando sólo servidores{" "}
-            <span style={{ color: activeBankColor ?? "#a5b4fc" }} className="font-semibold">
-              {bankFilter === "unclassified" ? "Sin clasificar" : bankFilter}
-            </span>
-          </span>
-        )}
+          ))}
+          {timeFilter === "month" && (
+            <input 
+              type="month" 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" 
+            />
+          )}
+          {timeFilter === "custom" && (
+            <div className="flex items-center gap-2">
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
+                className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
+              <span className="text-zinc-600 text-xs">→</span>
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)}
+                className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Búsqueda global */}
@@ -285,10 +339,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                         hour: "2-digit", minute: "2-digit",
                       });
                       const records = getFilteredRecords(run);
-                      const filteredTotal = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter)).length;
-                      const filteredSuccess = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "ok").length;
-                      const filteredErrors = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "error").length;
-                      const filteredNoData = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter) && r.status === "nodata").length;
+                      const filteredTotal = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters)).length;
+                      const filteredSuccess = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "ok").length;
+                      const filteredErrors = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "error").length;
+                      const filteredNoData = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "nodata").length;
                       const syncSuccessRate = filteredTotal > 0 ? Math.round((filteredSuccess / filteredTotal) * 100) : 0;
 
                       return (
@@ -321,7 +375,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                   });
                                   const historyDefaultMessage = `Estimados, un placer saludarlos,.\n\nInformamos que hemos finalizado con la ventana de actualizaciones sobre los Servidores Windows, programada para el ${syncDateTime}.\nAsí mismo, enviamos adjunto el Informe Técnico de Finalización de Actualizaciones correspondiente a los servidores involucrados.\nQuedamos a disposición para cualquier consulta adicional o información que puedan requerir.\n\n\nSaludos cordiales,`;
 
-                                  const recordsToExport = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+                                  const recordsToExport = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
                                   const rows: ExportRow[] = recordsToExport.map(r => {
                                     const info = getServerInfo(r.serverName);
                                     return {

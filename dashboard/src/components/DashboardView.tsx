@@ -39,7 +39,7 @@ interface DashboardViewProps {
 }
 
 type BankFilter = "all" | ServerType | "unclassified";
-type TimeFilter = "all" | "hoy" | "semana" | "mes" | "custom";
+type TimeFilter = "mes" | "custom";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -69,11 +69,12 @@ const tooltipStyle = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function matchesBankFilter(serverName: string, bankFilter: BankFilter): boolean {
-  if (bankFilter === "all") return true;
+function matchesBankFilter(serverName: string, bankFilters: BankFilter[]): boolean {
+  if (bankFilters.includes("all")) return true;
   const info = getServerInfo(serverName);
-  if (bankFilter === "unclassified") return !info;
-  return info?.type === bankFilter;
+  if (!info && bankFilters.includes("unclassified")) return true;
+  if (info && bankFilters.includes(info.type as BankFilter)) return true;
+  return false;
 }
 
 function toLocalDayKey(iso: string): string {
@@ -82,11 +83,8 @@ function toLocalDayKey(iso: string): string {
 }
 
 function isInTimeFilter(iso: string, tf: TimeFilter, from: string, to: string): boolean {
-  if (tf === "all") return true;
   const d = new Date(iso);
   const now = new Date();
-  if (tf === "hoy") return toLocalDayKey(iso) === toLocalDayKey(now.toISOString());
-  if (tf === "semana") return d >= new Date(now.getTime() - 7 * 86400000);
   if (tf === "mes") return d >= new Date(now.getTime() - 30 * 86400000);
   if (tf === "custom") {
     const f = from ? new Date(from) : new Date(0);
@@ -119,8 +117,8 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function DashboardView({ initialData, syncRuns = [] }: DashboardViewProps) {
   const [search, setSearch] = useState("");
-  const [bankFilter, setBankFilter] = useState<BankFilter>("all");
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("mes");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo]   = useState("");
   const [showFilterBar, setShowFilterBar] = useState(false);
@@ -144,7 +142,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return enriched.filter((s) => {
-      if (!matchesBankFilter(s.serverName, bankFilter)) return false;
+      if (!matchesBankFilter(s.serverName, bankFilters)) return false;
       if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, customFrom, customTo)) return false;
       if (!q) return true;
       return (
@@ -156,7 +154,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
         (s.ambiente ?? "").toLowerCase().includes(q)
       );
     });
-  }, [enriched, bankFilter, timeFilter, customFrom, customTo, search]);
+  }, [enriched, bankFilters, timeFilter, customFrom, customTo, search]);
 
   // ── KPI Stats ───────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -177,9 +175,9 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
 
   // ── Cumplimiento por banco ──────────────────────────────────────────────────
   const byBankData = useMemo(() => {
-    const banks = bankFilter === "all"
+    const banks = bankFilters.includes("all")
       ? [...SERVER_TYPES, "Sin clasificar"]
-      : [bankFilter === "unclassified" ? "Sin clasificar" : bankFilter];
+      : bankFilters.map(b => b === "unclassified" ? "Sin clasificar" : b);
 
     return banks.map((bank) => {
       const srvs = filtered.filter((s) => {
@@ -193,7 +191,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
       const nodata = total - ok - errors;
       return { name: bank, total, ok, errors, nodata, pct: total > 0 ? Math.round((ok / total) * 100) : 0 };
     }).filter((d) => d.total > 0).sort((a, b) => b.total - a.total);
-  }, [filtered, bankFilter]);
+  }, [filtered, bankFilters]);
 
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
   const trendData = useMemo(() => {
@@ -203,7 +201,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
       .slice(-12);
 
     return runs.map((run) => {
-      const recs = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilter));
+      const recs = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
       const total  = recs.length;
       const ok     = recs.filter((r) => r.status === "ok").length;
       const errors = recs.filter((r) => r.status === "error").length;
@@ -215,7 +213,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
         pct: total > 0 ? Math.round((ok / total) * 100) : 0,
       };
     });
-  }, [syncRuns, timeFilter, customFrom, customTo, bankFilter]);
+  }, [syncRuns, timeFilter, customFrom, customTo, bankFilters]);
 
   // ── Top KBs instaladas ──────────────────────────────────────────────────────
   const topKBs = useMemo(() => {
@@ -275,9 +273,6 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
     : "—";
 
   const getPeriodoString = () => {
-    if (timeFilter === "all") return "todo el historial";
-    if (timeFilter === "hoy") return "el día de hoy";
-    if (timeFilter === "semana") return "la última semana";
     if (timeFilter === "mes") return "el último mes";
     if (timeFilter === "custom") return `desde el ${customFrom || "inicio"} hasta el ${customTo || "hoy"}`;
     return "el período seleccionado";
@@ -346,11 +341,21 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
             <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco(s):</span>
             {BANK_CHIPS.map(({ label, value }) => {
               const color = value !== "all" ? TYPE_COLORS[value === "unclassified" ? "Sin clasificar" : value as string] : null;
-              const isActive = bankFilter === value;
+              const isActive = bankFilters.includes(value);
               return (
                 <button
                   key={value}
-                  onClick={() => setBankFilter(value)}
+                  onClick={() => {
+                    setBankFilters(prev => {
+                      if (value === "all") return ["all"];
+                      const next = prev.filter(b => b !== "all");
+                      if (next.includes(value)) {
+                        const res = next.filter(b => b !== value);
+                        return res.length === 0 ? ["all"] : res;
+                      }
+                      return [...next, value];
+                    });
+                  }}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
                     isActive ? "text-white border-transparent shadow-lg" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
                   }`}
@@ -364,7 +369,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Filtro de Tiempo:</span>
-            {(["all","hoy","semana","mes","custom"] as TimeFilter[]).map((tf) => (
+            {(["mes","custom"] as TimeFilter[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeFilter(tf)}
@@ -374,7 +379,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                     : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
                 }`}
               >
-                {tf === "all" ? "Todo" : tf === "hoy" ? "Hoy" : tf === "semana" ? "Semana" : tf === "mes" ? "Mes" : "Rango Personalizado"}
+                {tf === "mes" ? "Mes" : "Rango Personalizado"}
               </button>
             ))}
             {timeFilter === "custom" && (
@@ -386,9 +391,9 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                   className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
               </div>
             )}
-            {(bankFilter !== "all" || timeFilter !== "all") && (
+            {(!bankFilters.includes("all") || timeFilter !== "mes") && (
               <button
-                onClick={() => { setBankFilter("all"); setTimeFilter("all"); setCustomFrom(""); setCustomTo(""); }}
+                onClick={() => { setBankFilters(["all"]); setTimeFilter("mes"); setCustomFrom(""); setCustomTo(""); }}
                 className="ml-auto flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <X className="w-3 h-3" /> Limpiar filtros
