@@ -249,6 +249,51 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                 className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
             </div>
           )}
+          {/* Enviar mes completo por correo */}
+          {timeFilter === "month" && selectedMonth && filteredRuns.length > 0 && (
+            <button
+              onClick={() => {
+                const [y, m] = selectedMonth.split("-");
+                const monthLabel = new Date(Number(y), Number(m) - 1, 1)
+                  .toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+                const capitalizedMonth = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+                // Build month email: all runs grouped by day
+                const allRecords = filteredRuns.flatMap(run =>
+                  run.records.filter(r => matchesBankFilter(r.serverName, bankFilters))
+                );
+                const rows: ExportRow[] = allRecords.map(r => {
+                  const info = getServerInfo(r.serverName);
+                  return {
+                    servidor: r.serverName,
+                    dominio: r.domain || "—",
+                    ip: r.ip || "—",
+                    tipo: info?.type || "Sin clasificar",
+                    ambiente: r.ambiente || "—",
+                    os: r.os || "—",
+                    fechaInstalacion: r.installDate || "—",
+                    kbsInstaladas: r.installedKBs || "—",
+                    fechaReinicio: r.runningTime || "—",
+                    estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
+                    error: r.errorDescription || "—"
+                  };
+                });
+                const defaultMsg = `Estimados, espero que se encuentren muy bien.\n\nPor medio del presente, remito adjunto el Informe Mensual de ${capitalizedMonth}, en el cual se detallan todas las sincronizaciones y actualizaciones implementadas en los servidores durante dicho período.\nQuedo a disposición para cualquier consulta o aclaración adicional que consideren pertinente.\n\nSaludos cordiales`;
+                setEmailPayload({
+                  attachmentType: "history",
+                  summaryText: `Historial completo – ${capitalizedMonth} (${filteredRuns.length} syncs · ${rows.length} registros)`,
+                  defaultMessage: defaultMsg,
+                  data: allRecords,
+                  pdfBase64: getPDFBase64(rows, `Historial ${capitalizedMonth}`),
+                  pdfFilename: `Historial_${selectedMonth}.pdf`
+                });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/20 transition-colors"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Enviar mes completo por correo
+            </button>
+          )}
         </div>
       </div>
 
@@ -268,6 +313,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           {filteredRuns.length} sync{filteredRuns.length !== 1 ? "s" : ""}
         </span>
       </div>
+
 
       {/* Lista de días */}
       {dayGroups.length === 0 ? (

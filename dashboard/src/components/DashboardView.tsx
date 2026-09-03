@@ -82,10 +82,12 @@ function toLocalDayKey(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isInTimeFilter(iso: string, tf: TimeFilter, from: string, to: string): boolean {
+function isInTimeFilter(iso: string, tf: TimeFilter, selectedMonth: string, from: string, to: string): boolean {
   const d = new Date(iso);
-  const now = new Date();
-  if (tf === "mes") return d >= new Date(now.getTime() - 30 * 86400000);
+  if (tf === "mes" && selectedMonth) {
+    return iso.startsWith(selectedMonth);
+  }
+  if (tf === "mes") return true; // no month selected yet, show all
   if (tf === "custom") {
     const f = from ? new Date(from) : new Date(0);
     const t = to ? new Date(to + "T23:59:59") : new Date();
@@ -119,6 +121,10 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("mes");
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo]   = useState("");
   const [showFilterBar, setShowFilterBar] = useState(false);
@@ -143,7 +149,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
     const q = search.toLowerCase();
     return enriched.filter((s) => {
       if (!matchesBankFilter(s.serverName, bankFilters)) return false;
-      if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, customFrom, customTo)) return false;
+      if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, selectedMonth, customFrom, customTo)) return false;
       if (!q) return true;
       return (
         s.serverName.toLowerCase().includes(q) ||
@@ -154,7 +160,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
         (s.ambiente ?? "").toLowerCase().includes(q)
       );
     });
-  }, [enriched, bankFilters, timeFilter, customFrom, customTo, search]);
+  }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search]);
 
   // ── KPI Stats ───────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -196,7 +202,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
   const trendData = useMemo(() => {
     const runs = syncRuns
-      .filter((r) => isInTimeFilter(r.syncedAt, timeFilter, customFrom, customTo))
+      .filter((r) => isInTimeFilter(r.syncedAt, timeFilter, selectedMonth, customFrom, customTo))
       .sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime())
       .slice(-12);
 
@@ -213,7 +219,7 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
         pct: total > 0 ? Math.round((ok / total) * 100) : 0,
       };
     });
-  }, [syncRuns, timeFilter, customFrom, customTo, bankFilters]);
+  }, [syncRuns, timeFilter, selectedMonth, customFrom, customTo, bankFilters]);
 
   // ── Top KBs instaladas ──────────────────────────────────────────────────────
   const topKBs = useMemo(() => {
@@ -273,7 +279,10 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
     : "—";
 
   const getPeriodoString = () => {
-    if (timeFilter === "mes") return "el último mes";
+    if (timeFilter === "mes" && selectedMonth) {
+      const [y, m] = selectedMonth.split("-");
+      return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+    }
     if (timeFilter === "custom") return `desde el ${customFrom || "inicio"} hasta el ${customTo || "hoy"}`;
     return "el período seleccionado";
   };
@@ -382,6 +391,14 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                 {tf === "mes" ? "Mes" : "Rango Personalizado"}
               </button>
             ))}
+            {timeFilter === "mes" && (
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
+              />
+            )}
             {timeFilter === "custom" && (
               <div className="flex items-center gap-2">
                 <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}

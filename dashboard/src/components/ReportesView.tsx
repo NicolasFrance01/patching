@@ -91,7 +91,7 @@ function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boo
   return selectedBanks.includes(bank as BankFilter);
 }
 
-function isDateInRange(isoDate: string, timeFilter: TimeFilter, fromStr: string, toStr: string): boolean {
+function isDateInRange(isoDate: string, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string): boolean {
   if (timeFilter === "all") return true;
   const d = new Date(isoDate);
   const now = new Date();
@@ -104,8 +104,8 @@ function isDateInRange(isoDate: string, timeFilter: TimeFilter, fromStr: string,
     return d >= cutoff;
   }
   if (timeFilter === "mes") {
-    const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return d >= cutoff;
+    if (selectedMonth) return isoDate.startsWith(selectedMonth);
+    return true; // no month selected, show all
   }
   if (timeFilter === "custom") {
     let from = fromStr ? new Date(fromStr) : new Date(0);
@@ -370,9 +370,9 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
   // Multi-bank selection state
   const [selectedBanks, setSelectedBanks] = useState<BankFilter[]>(["all"]);
-
   // Unified Time Filter State across ALL modules
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
 
@@ -423,9 +423,9 @@ export default function ReportesView({ data }: ReportesViewProps) {
 
   const filteredEnrichedServers = useMemo(() =>
     enrichedServers.filter(
-      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, trendFrom, trendTo)
+      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, selectedMonth, trendFrom, trendTo)
     ),
-    [enrichedServers, selectedBanks, timeFilter, trendFrom, trendTo]
+    [enrichedServers, selectedBanks, timeFilter, selectedMonth, trendFrom, trendTo]
   );
 
   const activeBankList = useMemo(() => {
@@ -530,7 +530,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
       return [{ label: "Estado actual", errores, ok, total: filteredEnrichedServers.length }];
     }
 
-    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo));
+    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo));
 
     const dayMap: Record<string, SyncRunData> = {};
     for (const run of runs) {
@@ -574,7 +574,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo));
+      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo));
       for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
@@ -605,7 +605,7 @@ export default function ReportesView({ data }: ReportesViewProps) {
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
     const validRuns = hasSyncHistory
-      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, trendFrom, trendTo))
+      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo))
       : (() => {
           if (filteredEnrichedServers.length === 0) return [];
           const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
@@ -851,7 +851,11 @@ export default function ReportesView({ data }: ReportesViewProps) {
     let timeFilterText = "Todo el historial";
     if (timeFilter === "hoy") timeFilterText = "Hoy";
     else if (timeFilter === "semana") timeFilterText = "Última Semana (7 días)";
-    else if (timeFilter === "mes") timeFilterText = "Último Mes (30 días)";
+    else if (timeFilter === "mes" && selectedMonth) {
+      const [y, m] = selectedMonth.split("-");
+      const monthName = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+      timeFilterText = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+    } else if (timeFilter === "mes") timeFilterText = "Mes seleccionado";
     else if (timeFilter === "custom") {
       timeFilterText = `Personalizado (${trendFrom || "Inicio"} a ${trendTo || "Hoy"})`;
     }
@@ -1115,6 +1119,16 @@ export default function ReportesView({ data }: ReportesViewProps) {
           </div>
         </div>
 
+        {timeFilter === "mes" && (
+          <div className="flex items-center gap-2 bg-zinc-900/80 px-3 py-1 rounded-lg border border-zinc-800">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-2 py-0.5 text-xs bg-black/40 border border-zinc-700 rounded text-zinc-200 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+        )}
         {timeFilter === "custom" && (
           <div className="flex items-center gap-2 bg-zinc-900/80 px-3 py-1 rounded-lg border border-zinc-800">
             <span className="text-[11px] text-zinc-400 font-medium">Desde:</span>
