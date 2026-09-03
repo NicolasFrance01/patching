@@ -34,6 +34,7 @@ interface SyncRun {
   success: number;
   errors: number;
   noData: number;
+  isNew: boolean;
   records: SyncRecord[];
 }
 
@@ -86,6 +87,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [recordSearch, setRecordSearch] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
+  const [readSyncIds, setReadSyncIds] = useState<Set<string>>(new Set());
 
   const filteredRuns = useMemo(() => {
     return syncRuns.filter((run) => {
@@ -330,6 +332,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         <div className="space-y-3">
           {dayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, successRate }) => {
             const isDayOpen = expandedDay === day;
+            const hasNew = runs.some(r => r.isNew && !readSyncIds.has(r.id));
 
             return (
               <div key={day} className="glass rounded-2xl overflow-hidden">
@@ -354,7 +357,15 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                       }
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-200 capitalize">{formatDayHeader(day)}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-zinc-200 capitalize">{formatDayHeader(day)}</p>
+                        {hasNew && (
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-zinc-500">
                         {runs.length} sync{runs.length !== 1 ? "s" : ""} · {serverCount} servidores
                       </p>
@@ -402,7 +413,13 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                           {/* Sync sub-header */}
                           <button
                             className="w-full flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors text-left"
-                            onClick={() => setExpandedSync(isSyncOpen ? null : run.id)}
+                            onClick={() => {
+                              setExpandedSync(isSyncOpen ? null : run.id);
+                              if (run.isNew && !readSyncIds.has(run.id)) {
+                                setReadSyncIds(prev => new Set(prev).add(run.id));
+                                fetch('/api/sync', { method: 'PATCH', body: JSON.stringify({ action: 'mark-read', syncId: run.id }) });
+                              }
+                            }}
                           >
                             <div className="flex items-center gap-3">
                               {isSyncOpen
@@ -410,7 +427,15 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                 : <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
                               }
                               <div>
-                                <p className="text-xs font-medium text-zinc-300">Sync · {syncTime}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs font-medium text-zinc-300">Sync · {syncTime}</p>
+                                  {run.isNew && !readSyncIds.has(run.id) && (
+                                    <span className="flex h-2 w-2 relative">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-zinc-600">{filteredTotal} servidores</p>
                               </div>
                             </div>

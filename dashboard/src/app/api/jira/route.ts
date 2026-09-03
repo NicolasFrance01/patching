@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL!;
 const JIRA_USER = process.env.JIRA_USER!;
@@ -479,5 +481,40 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[Jira] Unexpected error:", err);
     return NextResponse.json({ error: err.message ?? "Internal error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await request.json();
+    const { action, id, newCreatorUsername } = body;
+    
+    if (action === "mark-read" && id) {
+      await prisma.jiraTicket.update({
+        where: { id },
+        data: { isUnread: false }
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reassign" && id && newCreatorUsername) {
+      await prisma.jiraTicket.update({
+        where: { id },
+        data: {
+          creatorUsername: newCreatorUsername,
+          isUnread: true,
+          reassignedBy: session.user?.name || "admin"
+        }
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Invalid action or parameters" }, { status: 400 });
+  } catch (error) {
+    console.error("[Jira] Error in PATCH:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

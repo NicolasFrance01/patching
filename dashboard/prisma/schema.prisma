@@ -36,6 +36,7 @@ model SyncRun {
   success  Int           @default(0)
   errors   Int           @default(0)
   noData   Int           @default(0)
+  isNew    Boolean       @default(true)
   records  SyncHistory[]
 }
 
@@ -74,6 +75,8 @@ model JiraTicket {
   bank             String
   errorDescription String
   creatorUsername  String?
+  isUnread         Boolean  @default(false)
+  reassignedBy     String?
   createdAt        DateTime @default(now())
 
   @@index([bank, errorDescription])
