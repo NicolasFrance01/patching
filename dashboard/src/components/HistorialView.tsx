@@ -21,6 +21,9 @@ interface SyncRecord {
   installedKBs: string | null;
   runningTime: string | null;
   diskSpace: string | null;
+  comentarios: string | null;
+  snap: string | null;
+  confirmado: string | null;
   createdAt: string;
 }
 
@@ -275,7 +278,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                     kbsInstaladas: r.installedKBs || "—",
                     fechaReinicio: r.runningTime || "—",
                     estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
-                    error: r.errorDescription || "—"
+                    error: r.errorDescription || "—",
+                    comentarios: r.comentarios || "—",
+                    snap: r.snap || "—",
+                    confirmado: r.confirmado || "—"
                   };
                 });
                 const defaultMsg = `Estimados, espero que se encuentren muy bien.\n\nPor medio del presente, remito adjunto el Informe Mensual de ${capitalizedMonth}, en el cual se detallan todas las sincronizaciones y actualizaciones implementadas en los servidores durante dicho período.\nQuedo a disposición para cualquier consulta o aclaración adicional que consideren pertinente.\n\nSaludos cordiales`;

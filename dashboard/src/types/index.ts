@@ -13,6 +13,9 @@ export interface ServerStatus {
   runningTime?: string | null;
   diskSpace?: string | null;
   errorDescription: string | null;
+  comentarios?: string | null;
+  snap?: string | null;
+  confirmado?: string | null;
   updatedAt: Date;
   createdAt: Date;
 }

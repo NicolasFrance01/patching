@@ -333,7 +333,10 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 kbsInstaladas: s.installedKBs || "—",
                 fechaReinicio: s.runningTime || "—",
                 estado: s.status === "ok" ? "OK" : s.status === "error" ? "Error" : "Sin Datos",
-                error: s.errorDescription || "—"
+                error: s.errorDescription || "—",
+                comentarios: s.comentarios || "—",
+                snap: s.snap || "—",
+                confirmado: s.confirmado || "—"
               }));
 
               setEmailPayload({
