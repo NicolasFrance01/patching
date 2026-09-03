@@ -41,6 +41,12 @@ interface ServerData {
 
 interface ReportesViewProps {
   data: { syncRuns: SyncRunData[]; currentServers: ServerData[] };
+  selectedBanks?: BankFilter[];
+  timeFilter?: TimeFilter;
+  selectedMonth?: string;
+  customFrom?: string;
+  customTo?: string;
+  creatorUsername?: string;
 }
 
 type ByTypeItem = {
@@ -93,18 +99,24 @@ function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boo
 
 function isDateInRange(isoDate: string, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string): boolean {
   if (timeFilter === "all") return true;
-  const d = new Date(isoDate);
+  let d: Date;
+  try {
+    d = new Date(isoDate);
+    if (isNaN(d.getTime())) d = new Date();
+  } catch {
+    d = new Date();
+  }
   const now = new Date();
 
   if (timeFilter === "hoy") {
-    return toLocalDayKey(isoDate) === toLocalDayKey(now.toISOString());
+    return toLocalDayKey(d.toISOString()) === toLocalDayKey(now.toISOString());
   }
   if (timeFilter === "semana") {
     const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return d >= cutoff;
   }
   if (timeFilter === "mes") {
-    if (selectedMonth) return isoDate.startsWith(selectedMonth);
+    if (selectedMonth) return d.toISOString().startsWith(selectedMonth);
     return true; // no month selected, show all
   }
   if (timeFilter === "custom") {
@@ -353,7 +365,15 @@ function MetricDetailModal({
   );
 }
 
-export default function ReportesView({ data }: ReportesViewProps) {
+export default function ReportesView({
+  data,
+  selectedBanks: defaultSelectedBanks = ["all"],
+  timeFilter: defaultTimeFilter = "mes",
+  selectedMonth: defaultSelectedMonth = "",
+  customFrom: defaultCustomFrom = "",
+  customTo: defaultCustomTo = "",
+  creatorUsername
+}: ReportesViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Por Tipo");
   const [expandedSync, setExpandedSync] = useState<string | null>(null);
   const [syncListExpandedDay, setSyncListExpandedDay] = useState<string | null>(null);
@@ -367,6 +387,13 @@ export default function ReportesView({ data }: ReportesViewProps) {
   // Jira ticket modal state
   const [jiraModalOpen, setJiraModalOpen] = useState(false);
   const [jiraErrorGroup, setJiraErrorGroup] = useState<{ message: string; servers: string[]; count: number } | null>(null);
+  const [jiraTickets, setJiraTickets] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/jira?action=get-tickets").then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setJiraTickets(data);
+    }).catch(() => {});
+  }, []);
 
   // Multi-bank selection state
   const [selectedBanks, setSelectedBanks] = useState<BankFilter[]>(["all"]);
@@ -1313,17 +1340,43 @@ export default function ReportesView({ data }: ReportesViewProps) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-rose-400 text-xs font-bold">{g.count} srv</span>
-                  <button
-                    onClick={() => {
-                      setJiraErrorGroup({ message: g.message, servers: g.servers, count: g.count });
-                      setJiraModalOpen(true);
-                    }}
-                    title="Crear ticket en Jira"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 hover:border-indigo-500/70 text-indigo-300 hover:text-indigo-100 text-[11px] font-bold transition-all duration-200 shadow-sm hover:shadow-indigo-500/20 hover:shadow-md"
-                  >
-                    <Ticket className="w-3.5 h-3.5" />
-                    Ticket
-                  </button>
+                  {(() => {
+                    const relevantBanks = Array.from(new Set(g.servers.map(s => getServerInfo(s)?.type ?? "Sin clasificar")));
+                    const reportedTickets = jiraTickets.filter(t => t.errorDescription === g.message && relevantBanks.includes(t.bank));
+                    const isFullyReported = reportedTickets.length > 0 && reportedTickets.length >= relevantBanks.length;
+                    const isPartiallyReported = reportedTickets.length > 0 && reportedTickets.length < relevantBanks.length;
+                    
+                    if (isFullyReported) {
+                      return (
+                        <a
+                          href="/jira"
+                          title="Ver en Jira"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold shadow-sm transition-all hover:bg-emerald-600/30"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Reportados
+                        </a>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={() => {
+                          setJiraErrorGroup({ message: g.message, servers: g.servers, count: g.count });
+                          setJiraModalOpen(true);
+                        }}
+                        title={isPartiallyReported ? "Crear ticket para bancos restantes" : "Crear ticket en Jira"}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-all duration-200 shadow-sm ${
+                          isPartiallyReported 
+                            ? "bg-amber-600/20 hover:bg-amber-600/40 border-amber-500/40 hover:border-amber-500/70 text-amber-300 hover:text-amber-100" 
+                            : "bg-indigo-600/20 hover:bg-indigo-600/40 border-indigo-500/40 hover:border-indigo-500/70 text-indigo-300 hover:text-indigo-100"
+                        }`}
+                      >
+                        <Ticket className="w-3.5 h-3.5" />
+                        {isPartiallyReported ? "Ticket (Faltan)" : "Ticket"}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}

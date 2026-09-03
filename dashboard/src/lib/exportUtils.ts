@@ -14,6 +14,9 @@ export interface ExportRow {
   fechaReinicio: string;
   estado: string;
   error: string;
+  comentarios: string;
+  snap: string;
+  confirmado: string;
 }
 
 export interface InactiveServerItem {
@@ -68,12 +71,14 @@ const BANK_RGB: Record<string, [number, number, number]> = {
 const HEADERS = [
   "Servidor", "Dominio", "IP", "Tipo", "Ambiente",
   "OS", "Fecha Instalación", "KBs Instaladas", "Fecha Reinicio", "Estado", "Error",
+  "Comentarios", "Snap", "Confirmado"
 ];
 
 function toRow(r: ExportRow): string[] {
   return [
     r.servidor, r.dominio, r.ip, r.tipo, r.ambiente,
     r.os, r.fechaInstalacion, r.kbsInstaladas, r.fechaReinicio, r.estado, r.error,
+    r.comentarios, r.snap, r.confirmado
   ];
 }
 
@@ -132,17 +137,20 @@ export function generatePDFDoc(rows: ExportRow[], title: string) {
     alternateRowStyles: { fillColor: [245, 245, 250] },
     margin: { top: 46, bottom: 42, left: 14, right: 14 },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 20 },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 16 },
-      4: { cellWidth: 20 },
-      5: { cellWidth: 28 },
-      6: { cellWidth: 22 },
-      7: { cellWidth: 28 },
-      8: { cellWidth: 22 },
-      9: { cellWidth: 14 },
-      10: { cellWidth: "auto" },
+      0: { cellWidth: 20 },
+      1: { cellWidth: 15 },
+      2: { cellWidth: 15 },
+      3: { cellWidth: 12 },
+      4: { cellWidth: 15 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 15 },
+      7: { cellWidth: 18 },
+      8: { cellWidth: 15 },
+      9: { cellWidth: 12 },
+      10: { cellWidth: 30 },
+      11: { cellWidth: 25 },
+      12: { cellWidth: 10 },
+      13: { cellWidth: 15 },
     },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });

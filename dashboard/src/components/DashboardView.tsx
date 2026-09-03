@@ -36,6 +36,7 @@ interface SyncRun {
 interface DashboardViewProps {
   initialData: ServerStatus[];
   syncRuns?: SyncRun[];
+  creatorUsername?: string;
 }
 
 type BankFilter = "all" | ServerType | "unclassified";
@@ -83,9 +84,17 @@ function toLocalDayKey(iso: string): string {
 }
 
 function isInTimeFilter(iso: string, tf: TimeFilter, selectedMonth: string, from: string, to: string): boolean {
-  const d = new Date(iso);
+  let d: Date;
+  try {
+    d = new Date(iso);
+    if (isNaN(d.getTime())) d = new Date();
+  } catch {
+    d = new Date();
+  }
+
   if (tf === "mes" && selectedMonth) {
-    return iso.startsWith(selectedMonth);
+    const isoString = d.toISOString();
+    return isoString.startsWith(selectedMonth);
   }
   if (tf === "mes") return true; // no month selected yet, show all
   if (tf === "custom") {
@@ -117,7 +126,8 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function DashboardView({ initialData, syncRuns = [] }: DashboardViewProps) {
+export default function DashboardView({ initialData, syncRuns = [], creatorUsername }: DashboardViewProps) {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "reportes" | "historial" | "jira" | "mis-tickets">("dashboard");
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("mes");
@@ -652,6 +662,9 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Comentarios</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Snap</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Confirmado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -700,12 +713,17 @@ export default function DashboardView({ initialData, syncRuns = [] }: DashboardV
                         <span className="block text-[10px] whitespace-normal truncate" title={server.errorDescription ?? ""}>{server.errorDescription}</span>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
+                      <span className="block truncate" title={server.comentarios ?? ""}>{server.comentarios ?? "—"}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.snap ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.confirmado ?? "—"}</td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-zinc-600">
+                  <td colSpan={16} className="px-4 py-10 text-center text-zinc-600">
                     No se encontraron servidores con ese criterio de búsqueda.
                   </td>
                 </tr>

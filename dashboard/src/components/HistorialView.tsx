@@ -435,7 +435,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                       kbsInstaladas: r.installedKBs || "—",
                                       fechaReinicio: r.runningTime || "—",
                                       estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
-                                      error: r.errorDescription || "—"
+                                      error: r.errorDescription || "—",
+                                      comentarios: r.comentarios || "—",
+                                      snap: r.snap || "—",
+                                      confirmado: r.confirmado || "—"
                                     };
                                   });
 
@@ -504,6 +507,9 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Comentarios</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Snap</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Confirmado</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
@@ -542,12 +548,14 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                         <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.runningTime ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.diskSpace ?? ""}>{r.diskSpace ?? "—"}</td>
                                         <td className="px-3 py-2 text-rose-400/80 text-[10px] min-w-[180px] truncate" title={r.errorDescription ?? ""}>{r.errorDescription ?? "—"}</td>
-
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.comentarios ?? ""}>{r.comentarios ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.snap ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.confirmado ?? "—"}</td>
                                       </tr>
                                     ))}
                                     {records.length === 0 && (
                                       <tr>
-                                        <td colSpan={12} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
+                                        <td colSpan={16} className="px-4 py-6 text-center text-zinc-600">Sin resultados.</td>
                                       </tr>
                                     )}
                                   </tbody>

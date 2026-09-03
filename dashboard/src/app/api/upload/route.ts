@@ -47,6 +47,9 @@ export async function POST(req: Request) {
         runningTime: item.Running_Time ? String(item.Running_Time) : null,
         diskSpace: item.Disk_Space ? String(item.Disk_Space) : null,
         errorDescription: item.Descripcion_Error ? String(item.Descripcion_Error) : null,
+        comentarios: item.Comentarios ? String(item.Comentarios) : null,
+        snap: item.Snap ? String(item.Snap) : null,
+        confirmado: item.Confirmado ? String(item.Confirmado) : null,
         status,
       };
     });
@@ -69,6 +72,9 @@ export async function POST(req: Request) {
         runningTime: item.runningTime,
         diskSpace: item.diskSpace,
         errorDescription: item.errorDescription,
+        comentarios: item.comentarios,
+        snap: item.snap,
+        confirmado: item.confirmado,
       };
 
       await prisma.serverStatus.upsert({
@@ -95,6 +101,9 @@ export async function POST(req: Request) {
           runningTime: item.runningTime,
           diskSpace: item.diskSpace,
           errorDescription: item.errorDescription,
+          comentarios: item.comentarios,
+          snap: item.snap,
+          confirmado: item.confirmado,
           status: item.status,
         })),
       });

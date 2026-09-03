@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL!;
 const JIRA_USER = process.env.JIRA_USER!;
@@ -220,6 +221,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ mapping: result.mapping, allFieldNames: result.allFieldNames });
   }
 
+  if (action === "get-tickets") {
+    try {
+      const tickets = await prisma.jiraTicket.findMany({
+        orderBy: { createdAt: "desc" }
+      });
+      return NextResponse.json(tickets);
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -377,7 +389,23 @@ export async function POST(req: NextRequest) {
 
     // Transition issue to "Work in Progress"
     // Transition ID 891 = "Work in Progress" confirmed by ROVO AI for this Jira instance
-    // The workflow requires a comment to complete this transition
+    // Save to database
+    try {
+      await prisma.jiraTicket.create({
+        data: {
+          ticketKey: issueKey,
+          ticketUrl: issueUrl,
+          bank: body.bank,
+          errorDescription: body.errorName,
+          creatorUsername: body.creatorUsername || "unknown",
+        }
+      });
+      console.log(`[Jira] Saved ticket ${issueKey} to database`);
+    } catch (dbError) {
+      console.error(`[Jira] Error saving ticket to DB:`, dbError);
+    }
+
+    // Work in Progress transition
     let transitioned = false;
     try {
       // Small delay to allow Jira to fully index the new ticket before querying transitions

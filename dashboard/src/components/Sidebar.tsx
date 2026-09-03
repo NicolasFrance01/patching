@@ -10,6 +10,8 @@ import {
   Users,
   LogOut,
   Shield,
+  Ticket,
+  ClipboardList
 } from "lucide-react";
 
 interface SidebarProps {
@@ -21,6 +23,8 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/historial", label: "Historial", icon: History },
   { href: "/reportes", label: "Reportes", icon: BarChart2 },
+  { href: "/jira", label: "Jira", icon: Ticket },
+  { href: "/mis-tickets", label: "Mis Tickets", icon: ClipboardList },
 ];
 
 export default function Sidebar({ role, username }: SidebarProps) {
