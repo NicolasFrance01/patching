@@ -1,16 +1,21 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ReportesView from "@/components/ReportesView";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportesPage() {
-  const [syncRuns, currentServers] = await Promise.all([
+  const [syncRuns, currentServers, session] = await Promise.all([
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
       include: { records: { select: { serverName: true, ip: true, status: true, errorDescription: true } } },
     }),
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
+    getServerSession(authOptions),
   ]);
+
+  const username = session?.user?.name ?? undefined;
 
   const serialized = {
     syncRuns: syncRuns.map((r) => ({
@@ -34,7 +39,7 @@ export default async function ReportesPage() {
           Análisis y estadísticas del estado de parcheo.
         </p>
       </div>
-      <ReportesView data={serialized} />
+      <ReportesView data={serialized} creatorUsername={username} />
     </div>
   );
 }
