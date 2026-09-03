@@ -1874,11 +1874,19 @@ export default function ReportesView({
         payload={emailPayload} 
       />
 
-      <JiraTicketModal
-        isOpen={jiraModalOpen}
-        onClose={() => { setJiraModalOpen(false); setJiraErrorGroup(null); }}
-        errorGroup={jiraErrorGroup}
-      />
+      {jiraErrorGroup && (
+        <JiraTicketModal
+          isOpen={jiraModalOpen}
+          onClose={() => { setJiraModalOpen(false); setJiraErrorGroup(null); }}
+          errorGroup={jiraErrorGroup}
+          creatorUsername={creatorUsername}
+          reportedBanks={(() => {
+            const relevantBanks = Array.from(new Set(jiraErrorGroup.servers.map(s => getServerInfo(s)?.type ?? "Sin clasificar")));
+            const tickets = jiraTickets.filter(t => t.errorDescription === jiraErrorGroup.message && relevantBanks.includes(t.bank));
+            return tickets.map(t => t.bank);
+          })()}
+        />
+      )}
     </div>
   );
 }

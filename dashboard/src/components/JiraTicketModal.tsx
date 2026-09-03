@@ -27,6 +27,8 @@ interface JiraTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   errorGroup: ErrorGroup | null;
+  creatorUsername?: string;
+  reportedBanks?: string[];
 }
 
 // ─── Reporter list persistence ────────────────────────────────────────────────
@@ -185,7 +187,7 @@ function ReporterAvatar({ user, size = "md" }: { user: JiraUser; size?: "sm" | "
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
-export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTicketModalProps) {
+export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUsername, reportedBanks }: JiraTicketModalProps) {
   const [step, setStep] = useState(1);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [selectedReporter, setSelectedReporter] = useState<JiraUser | null>(null);
@@ -212,7 +214,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
     setReporters(loadReporters());
   }, []);
 
-  // Reset on close
+  // Reset on close or init on open
   useEffect(() => {
     if (!isOpen) {
       const t = setTimeout(() => {
@@ -222,8 +224,21 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
         setFieldMapping({});
       }, 300);
       return () => clearTimeout(t);
+    } else if (errorGroup) {
+      // Auto-skip step 1 if only 1 unreported bank
+      const bankGroups = getBankGroups(errorGroup.servers);
+      const allBanks = Object.keys(bankGroups).sort();
+      const unreportedBanks = reportedBanks ? allBanks.filter(b => !reportedBanks.includes(b)) : allBanks;
+      
+      if (unreportedBanks.length === 1) {
+        const bank = unreportedBanks[0];
+        setSelectedBank(bank);
+        setStep(2);
+      } else {
+        setStep(1);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, errorGroup, reportedBanks]);
 
   // Reporter management
   const addReporter = useCallback((user: JiraUser) => {
@@ -258,6 +273,13 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
     finally { setIsFetchingFields(false); }
   }, []);
 
+  // Effect to fetch fields when selectedBank changes (like auto-skip)
+  useEffect(() => {
+    if (selectedBank) {
+      fetchFieldMapping((BANK_TO_JIRA[selectedBank] ?? BANK_TO_JIRA["Corp"]).projectKey);
+    }
+  }, [selectedBank, fetchFieldMapping]);
+
   // User search
   const handleSearch = (val: string) => {
     setSearchQuery(val);
@@ -283,7 +305,6 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
 
   const handleSelectBank = (bank: string) => {
     setSelectedBank(bank);
-    fetchFieldMapping((BANK_TO_JIRA[bank] ?? BANK_TO_JIRA["Corp"]).projectKey);
   };
 
   // ─── Create ticket ──────────────────────────────────────────────────────────
@@ -318,6 +339,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
           bankCode: selectedBank,
           reporterAccountId,
           fieldMapping,
+          creatorUsername,
         }),
       });
       const data = await res.json();
@@ -365,7 +387,23 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
         {/* Step Indicator */}
         {!createdTicket && (
           <div className="px-6 py-4 border-b border-zinc-800/50 bg-black/10 shrink-0">
-            <StepIndicator step={step} />
+            {step === 1 || Object.keys(getBankGroups(errorGroup.servers)).length > 1 ? (
+              <StepIndicator step={step} />
+            ) : (
+              <div className="flex justify-center">
+                <div className="flex items-center gap-2">
+                  <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ${step >= 2 ? "bg-indigo-500 text-white" : "bg-zinc-800 text-zinc-400"}`}>
+                    1
+                  </div>
+                  <span className={`text-xs font-semibold ${step >= 2 ? "text-zinc-100" : "text-zinc-500"}`}>Informador</span>
+                  <div className={`w-8 h-0.5 rounded-full ${step >= 3 ? "bg-indigo-500" : "bg-zinc-800"}`} />
+                  <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ${step >= 3 ? "bg-indigo-500 text-white" : "bg-zinc-800 text-zinc-400"}`}>
+                    2
+                  </div>
+                  <span className={`text-xs font-semibold ${step >= 3 ? "text-zinc-100" : "text-zinc-500"}`}>Confirmar</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -393,19 +431,22 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup }: JiraTic
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {availableBanks.map((bank) => {
+                  const isReported = reportedBanks?.includes(bank);
                   const color = TYPE_COLORS[bank] ?? "#6b7280";
                   const cfg = BANK_TO_JIRA[bank];
                   const count = bankGroups[bank].length;
                   const isSelected = selectedBank === bank;
                   return (
-                    <button key={bank} onClick={() => handleSelectBank(bank)}
+                    <button key={bank} onClick={() => !isReported && handleSelectBank(bank)}
+                      disabled={isReported}
                       className={`w-full p-4 rounded-xl border text-left transition-all flex items-center justify-between ${
+                        isReported ? "opacity-50 cursor-not-allowed border-zinc-800 bg-zinc-900/20" :
                         isSelected ? "border-indigo-500/60 bg-indigo-500/10 shadow-md" : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-600 hover:bg-zinc-900/70"
                       }`}>
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color, boxShadow: isSelected ? `0 0 8px ${color}80` : "none" }} />
                         <div>
-                          <p className="text-sm font-bold" style={{ color: isSelected ? "#fff" : color }}>{bank}</p>
+                          <p className="text-sm font-bold" style={{ color: isSelected ? "#fff" : color }}>{bank} {isReported && "(Reportado)"}</p>
                           {cfg && <p className="text-[10px] text-zinc-500 mt-0.5">{cfg.spaceLabel} · {cfg.orgLabel}</p>}
                         </div>
                       </div>

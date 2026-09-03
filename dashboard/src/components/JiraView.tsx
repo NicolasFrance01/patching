@@ -17,7 +17,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
   const [tickets, setTickets] = useState<JiraTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedBank, setSelectedBank] = useState<string>("all");
+  const [selectedBanks, setSelectedBanks] = useState<string[]>(["all"]);
 
   useEffect(() => {
     fetch("/api/jira?action=get-tickets")
@@ -37,7 +37,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
     const matchSearch = t.ticketKey.toLowerCase().includes(search.toLowerCase()) || 
                         t.errorDescription.toLowerCase().includes(search.toLowerCase()) ||
                         t.creatorUsername.toLowerCase().includes(search.toLowerCase());
-    const matchBank = selectedBank === "all" || t.bank === selectedBank;
+    const matchBank = selectedBanks.includes("all") || selectedBanks.includes(t.bank);
     return matchSearch && matchBank;
   });
 
@@ -67,16 +67,38 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
               className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700/50 rounded-xl text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
             />
           </div>
-          <select
-            value={selectedBank}
-            onChange={(e) => setSelectedBank(e.target.value)}
-            className="px-4 py-2 bg-zinc-900 border border-zinc-700/50 rounded-xl text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 min-w-[150px]"
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco(s):</span>
+          <button
+            onClick={() => setSelectedBanks(["all"])}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+              selectedBanks.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+            }`}
           >
-            <option value="all">Todos los bancos</option>
-            {banks.map(b => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
+            Todos
+          </button>
+          {banks.map(b => (
+            <button
+              key={b}
+              onClick={() => {
+                setSelectedBanks(prev => {
+                  const next = prev.filter(x => x !== "all");
+                  if (next.includes(b)) {
+                    const res = next.filter(x => x !== b);
+                    return res.length === 0 ? ["all"] : res;
+                  }
+                  return [...next, b];
+                });
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                selectedBanks.includes(b) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+              }`}
+            >
+              {b}
+            </button>
+          ))}
         </div>
 
         {loading ? (

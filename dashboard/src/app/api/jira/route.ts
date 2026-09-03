@@ -395,8 +395,8 @@ export async function POST(req: NextRequest) {
         data: {
           ticketKey: issueKey,
           ticketUrl: issueUrl,
-          bank: body.bank,
-          errorDescription: body.errorName,
+          bank: body.bankCode,
+          errorDescription: body.errorMessage,
           creatorUsername: body.creatorUsername || "unknown",
         }
       });
