@@ -10,6 +10,7 @@ interface JiraTicket {
   bank: string;
   errorDescription: string;
   creatorUsername: string;
+  reporterName?: string | null;
   isUnread?: boolean;
   reassignedBy?: string | null;
   createdAt: string;
@@ -115,7 +116,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
         </div>
 
         {/* Filters Group */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className={`grid grid-cols-1 ${creatorOnly ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6 mb-6`}>
           <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
             <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Banco(s)</span>
             <div className="flex flex-wrap items-center gap-2">
@@ -150,39 +151,41 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
-            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Creado por</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setSelectedUserFilter(["all"])}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                  selectedUserFilter.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
-                }`}
-              >
-                Todos
-              </button>
-              {uniqueUsers.map(u => (
+          {!creatorOnly && (
+            <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
+              <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Creado por</span>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  key={u}
-                  onClick={() => {
-                    setSelectedUserFilter(prev => {
-                      const next = prev.filter(x => x !== "all");
-                      if (next.includes(u)) {
-                        const res = next.filter(x => x !== u);
-                        return res.length === 0 ? ["all"] : res;
-                      }
-                      return [...next, u];
-                    });
-                  }}
+                  onClick={() => setSelectedUserFilter(["all"])}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                    selectedUserFilter.includes(u) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                    selectedUserFilter.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
                   }`}
                 >
-                  {u} <span className="opacity-50 ml-1">({userCounts[u]})</span>
+                  Todos
                 </button>
-              ))}
+                {uniqueUsers.map(u => (
+                  <button
+                    key={u}
+                    onClick={() => {
+                      setSelectedUserFilter(prev => {
+                        const next = prev.filter(x => x !== "all");
+                        if (next.includes(u)) {
+                          const res = next.filter(x => x !== u);
+                          return res.length === 0 ? ["all"] : res;
+                        }
+                        return [...next, u];
+                      });
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                      selectedUserFilter.includes(u) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                    }`}
+                  >
+                    {u} <span className="opacity-50 ml-1">({userCounts[u]})</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
             <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo</span>
@@ -251,6 +254,11 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
                   <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                     <User className="w-3.5 h-3.5" /> Creado por: <span className="text-zinc-400">{t.creatorUsername}</span>
                   </div>
+                  {t.reporterName && (
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                      <User className="w-3.5 h-3.5" /> Informador: <span className="text-zinc-300">{t.reporterName}</span>
+                    </div>
+                  )}
                   {isUnreadAlert && t.reassignedBy && (
                     <div className="flex items-center gap-2 text-[11px] text-indigo-400 font-semibold">
                       <User className="w-3.5 h-3.5" /> Derivado por: <span>{t.reassignedBy}</span>

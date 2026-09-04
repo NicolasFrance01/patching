@@ -400,6 +400,7 @@ export async function POST(req: NextRequest) {
           bank: body.bankCode,
           errorDescription: body.errorMessage,
           creatorUsername: body.creatorUsername || "unknown",
+          reporterName: body.reporterName || null,
         }
       });
       console.log(`[Jira] Saved ticket ${issueKey} to database`);

@@ -338,6 +338,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUs
           bankLabel: jiraConfig.orgLabel,
           bankCode: selectedBank,
           reporterAccountId,
+          reporterName: selectedReporter.displayName,
           fieldMapping,
           creatorUsername,
         }),

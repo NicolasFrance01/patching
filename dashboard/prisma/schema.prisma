@@ -75,6 +75,7 @@ model JiraTicket {
   bank             String
   errorDescription String
   creatorUsername  String?
+  reporterName     String?
   isUnread         Boolean  @default(false)
   reassignedBy     String?
   createdAt        DateTime @default(now())
