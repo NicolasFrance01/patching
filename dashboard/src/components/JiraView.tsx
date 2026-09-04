@@ -22,7 +22,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedBanks, setSelectedBanks] = useState<string[]>(["all"]);
-  const [selectedUserFilter, setSelectedUserFilter] = useState<string>("all");
+  const [selectedUserFilter, setSelectedUserFilter] = useState<string[]>(["all"]);
   const [timeFilter, setTimeFilter] = useState<"all" | "month" | "custom">("all");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [customFrom, setCustomFrom] = useState("");
@@ -60,7 +60,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
                         t.errorDescription.toLowerCase().includes(search.toLowerCase()) ||
                         t.creatorUsername.toLowerCase().includes(search.toLowerCase());
     const matchBank = selectedBanks.includes("all") || selectedBanks.includes(t.bank);
-    const matchUser = selectedUserFilter === "all" || t.creatorUsername === selectedUserFilter;
+    const matchUser = selectedUserFilter.includes("all") || selectedUserFilter.includes(t.creatorUsername);
     
     // Time filter
     let matchTime = true;
@@ -115,85 +115,109 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
         </div>
 
         {/* Filters Group */}
-        <div className="space-y-4 mb-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Banco(s):</span>
-            <button
-              onClick={() => setSelectedBanks(["all"])}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                selectedBanks.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
-              }`}
-            >
-              Todos
-            </button>
-            {banks.map(b => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Banco(s)</span>
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                key={b}
-                onClick={() => {
-                  setSelectedBanks(prev => {
-                    const next = prev.filter(x => x !== "all");
-                    if (next.includes(b)) {
-                      const res = next.filter(x => x !== b);
-                      return res.length === 0 ? ["all"] : res;
-                    }
-                    return [...next, b];
-                  });
-                }}
+                onClick={() => setSelectedBanks(["all"])}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                  selectedBanks.includes(b) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                  selectedBanks.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
                 }`}
               >
-                {b}
+                Todos
               </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Creado por:</span>
-            <select
-              value={selectedUserFilter}
-              onChange={(e) => setSelectedUserFilter(e.target.value)}
-              className="px-3 py-1 bg-zinc-900 border border-zinc-700/50 rounded-lg text-xs text-zinc-300 focus:outline-none focus:border-indigo-500"
-            >
-              <option value="all">Todos</option>
-              {uniqueUsers.map(u => (
-                <option key={u} value={u}>{u} ({userCounts[u]})</option>
+              {banks.map(b => (
+                <button
+                  key={b}
+                  onClick={() => {
+                    setSelectedBanks(prev => {
+                      const next = prev.filter(x => x !== "all");
+                      if (next.includes(b)) {
+                        const res = next.filter(x => x !== b);
+                        return res.length === 0 ? ["all"] : res;
+                      }
+                      return [...next, b];
+                    });
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                    selectedBanks.includes(b) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                  }`}
+                >
+                  {b}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Tiempo:</span>
-            {(["all", "month", "custom"] as const).map((tf) => (
+          <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Creado por</span>
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                key={tf}
-                onClick={() => setTimeFilter(tf)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${
-                  timeFilter === tf
-                    ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                    : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                onClick={() => setSelectedUserFilter(["all"])}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                  selectedUserFilter.includes("all") ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
                 }`}
               >
-                {tf === "all" ? "Todos" : tf === "month" ? "Mes" : "Rango Personalizado"}
+                Todos
               </button>
-            ))}
-            {timeFilter === "month" && (
-              <input 
-                type="month" 
-                value={selectedMonth} 
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" 
-              />
-            )}
-            {timeFilter === "custom" && (
-              <div className="flex items-center gap-2">
-                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
-                  className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
-                <span className="text-zinc-600 text-xs">→</span>
-                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)}
-                  className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
-              </div>
-            )}
+              {uniqueUsers.map(u => (
+                <button
+                  key={u}
+                  onClick={() => {
+                    setSelectedUserFilter(prev => {
+                      const next = prev.filter(x => x !== "all");
+                      if (next.includes(u)) {
+                        const res = next.filter(x => x !== u);
+                        return res.length === 0 ? ["all"] : res;
+                      }
+                      return [...next, u];
+                    });
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                    selectedUserFilter.includes(u) ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                  }`}
+                >
+                  {u} <span className="opacity-50 ml-1">({userCounts[u]})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50">
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {(["all", "month", "custom"] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeFilter(tf)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${
+                    timeFilter === tf
+                      ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                      : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
+                  }`}
+                >
+                  {tf === "all" ? "Todos" : tf === "month" ? "Mes" : "Rango Personalizado"}
+                </button>
+              ))}
+              {timeFilter === "month" && (
+                <input 
+                  type="month" 
+                  value={selectedMonth} 
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 w-full mt-2" 
+                />
+              )}
+              {timeFilter === "custom" && (
+                <div className="flex items-center gap-2 w-full mt-2">
+                  <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
+                    className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 w-full" />
+                  <span className="text-zinc-600 text-xs">→</span>
+                  <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)}
+                    className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500 w-full" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

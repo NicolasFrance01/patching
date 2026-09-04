@@ -501,6 +501,91 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === "reassign" && id && newCreatorUsername) {
+      const ticket = await prisma.jiraTicket.findUnique({ where: { id } });
+      
+      if (ticket) {
+        // Try to update Jira issue reporter
+        try {
+          const projectKey = ticket.ticketKey.split('-')[0];
+          const { mapping } = await discoverFields(projectKey);
+          
+          // Get the email or username of the new user to search in Jira
+          const newDbUser = await prisma.user.findUnique({ where: { username: newCreatorUsername } });
+          const query = newDbUser?.email || newDbUser?.fullName || newCreatorUsername;
+          
+          // Search for user in Jira
+          const uRes = await jiraFetch(`/rest/api/3/user/search?query=${encodeURIComponent(query)}&maxResults=5`);
+          let assigneeAccountId;
+          if (uRes.ok) {
+            const users = await uRes.json();
+            if (users.length > 0) {
+              assigneeAccountId = users[0].accountId;
+            }
+          }
+
+          if (assigneeAccountId) {
+            const updateFields: any = {
+              reporter: { accountId: assigneeAccountId }
+            };
+            if (mapping.informadorField) {
+              updateFields[mapping.informadorField] = { accountId: assigneeAccountId };
+            }
+
+            const putRes = await jiraFetch(`/rest/api/3/issue/${ticket.ticketKey}`, {
+              method: "PUT",
+              body: JSON.stringify({ fields: updateFields })
+            });
+            
+            if (!putRes.ok) {
+              console.warn(`[Jira] Failed to update reporter on reassign: ${await putRes.text()}`);
+            } else {
+              console.log(`[Jira] Successfully updated reporter for ${ticket.ticketKey} to ${assigneeAccountId}`);
+              
+              // Add comment to notify the new user
+              const commentRes = await jiraFetch(`/rest/api/3/issue/${ticket.ticketKey}/comment`, {
+                method: "POST",
+                body: JSON.stringify({
+                  body: {
+                    type: "doc",
+                    version: 1,
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [
+                          {
+                            type: "text",
+                            text: "Este ticket ha sido reasignado a "
+                          },
+                          {
+                            type: "mention",
+                            attrs: {
+                              id: assigneeAccountId,
+                              text: `@${newCreatorUsername}`
+                            }
+                          },
+                          {
+                            type: "text",
+                            text: " para darle seguimiento y continuidad (acción realizada desde el Centro de Control de Parcheo)."
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                })
+              });
+              
+              if (!commentRes.ok) {
+                console.warn(`[Jira] Failed to add comment on reassign: ${await commentRes.text()}`);
+              } else {
+                console.log(`[Jira] Successfully added reassign comment to ${ticket.ticketKey}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("[Jira] Error updating Jira issue on reassign:", err);
+        }
+      }
+
       await prisma.jiraTicket.update({
         where: { id },
         data: {

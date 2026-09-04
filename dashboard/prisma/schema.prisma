@@ -87,5 +87,7 @@ model User {
   username  String   @unique
   password  String
   role      String   @default("user")
+  fullName  String?
+  email     String?
   createdAt DateTime @default(now())
 }

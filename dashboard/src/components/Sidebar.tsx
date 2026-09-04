@@ -13,6 +13,8 @@ import {
   Ticket,
   ClipboardList
 } from "lucide-react";
+import ProfileModal from "./ProfileModal";
+import { useState } from "react";
 
 interface SidebarProps {
   role?: string;
@@ -29,6 +31,7 @@ const navItems = [
 
 export default function Sidebar({ role, username }: SidebarProps) {
   const pathname = usePathname();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <aside className="fixed inset-y-0 left-0 w-56 flex flex-col bg-zinc-950 border-r border-zinc-800/60 z-40">
@@ -82,10 +85,18 @@ export default function Sidebar({ role, username }: SidebarProps) {
 
       {/* User */}
       <div className="px-2 py-3 border-t border-zinc-800/60">
-        <div className="px-3 py-2 mb-1">
-          <p className="text-xs font-medium text-zinc-300 truncate">{username ?? "Usuario"}</p>
-          <p className="text-[10px] text-zinc-600 capitalize">{role ?? "user"}</p>
-        </div>
+        <button
+          onClick={() => setShowProfileModal(true)}
+          className="w-full flex items-center justify-between px-3 py-2 mb-1 rounded-lg text-left hover:bg-white/[0.04] transition-colors"
+        >
+          <div className="flex flex-col overflow-hidden mr-2">
+            <p className="text-xs font-medium text-zinc-300 truncate">{username ?? "Usuario"}</p>
+            <p className="text-[10px] text-zinc-600 capitalize">{role ?? "user"}</p>
+          </div>
+          <div className="px-2 py-1 rounded bg-indigo-500/10 text-[10px] font-bold text-indigo-400 border border-indigo-500/20 whitespace-nowrap">
+            Mi Perfil
+          </div>
+        </button>
         <button
           onClick={() => signOut({ callbackUrl: "https://patching.algeiba.com/login" })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-rose-400 hover:bg-rose-500/5 transition-colors"
@@ -94,6 +105,8 @@ export default function Sidebar({ role, username }: SidebarProps) {
           Cerrar sesión
         </button>
       </div>
+
+      <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </aside>
   );
 }
