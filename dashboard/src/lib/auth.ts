@@ -19,17 +19,34 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null;
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) return null;
-        return { id: user.id, name: user.username, email: user.username, role: user.role };
+
+        if (!user.isConfirmed && user.passwordExpiry && new Date(user.passwordExpiry) <= new Date()) {
+          throw new Error("EXPIRED_PASSWORD");
+        }
+
+        return { 
+          id: user.id, 
+          name: user.username, 
+          email: user.username, 
+          role: user.role,
+          mustChangePassword: user.mustChangePassword
+        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = (user as any).role;
+      if (user) {
+        token.role = (user as any).role;
+        token.mustChangePassword = (user as any).mustChangePassword;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) (session.user as any).role = token.role;
+      if (session.user) {
+        (session.user as any).role = token.role;
+        (session.user as any).mustChangePassword = token.mustChangePassword;
+      }
       return session;
     },
     async redirect({ url, baseUrl }) {

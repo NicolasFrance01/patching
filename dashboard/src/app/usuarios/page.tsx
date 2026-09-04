@@ -12,10 +12,14 @@ export default async function UsuariosPage() {
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
-    select: { id: true, username: true, role: true, createdAt: true },
+    select: { id: true, username: true, role: true, email: true, isConfirmed: true, passwordExpiry: true, createdAt: true },
   });
 
-  const serialized = users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }));
+  const serialized = users.map((u) => ({
+    ...u,
+    createdAt: u.createdAt.toISOString(),
+    passwordExpiry: u.passwordExpiry?.toISOString() || null
+  }));
 
   return (
     <div className="p-6 md:p-8 space-y-6">

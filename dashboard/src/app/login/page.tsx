@@ -26,7 +26,11 @@ export default function LoginPage() {
       router.push("/");
       router.refresh();
     } else {
-      setError("Usuario o contraseña incorrectos");
+      if (res?.error === "EXPIRED_PASSWORD") {
+        setError("Tu contraseña temporal ha expirado. Por favor, solicita una nueva.");
+      } else {
+        setError("Usuario o contraseña incorrectos");
+      }
     }
   }
 
@@ -59,7 +63,12 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-zinc-400 font-medium">Contraseña</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-zinc-400 font-medium">Contraseña</label>
+                <a href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input

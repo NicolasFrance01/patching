@@ -83,11 +83,14 @@ model JiraTicket {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  role      String   @default("user")
-  fullName  String?
-  email     String?
-  createdAt DateTime @default(now())
+  id                 String    @id @default(uuid())
+  username           String    @unique
+  password           String
+  role               String    @default("user")
+  fullName           String?
+  email              String?
+  isConfirmed        Boolean   @default(false)
+  mustChangePassword Boolean   @default(true)
+  passwordExpiry     DateTime?
+  createdAt          DateTime  @default(now())
 }

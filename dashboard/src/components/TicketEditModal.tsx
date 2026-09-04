@@ -21,7 +21,7 @@ interface TicketEditModalProps {
 }
 
 export default function TicketEditModal({ isOpen, onClose, ticket, onSuccess }: TicketEditModalProps) {
-  const [users, setUsers] = useState<{ id: string, username: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string, username: string, email?: string | null }[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
@@ -102,7 +102,9 @@ export default function TicketEditModal({ isOpen, onClose, ticket, onSuccess }: 
             >
               <option value="">Seleccione un usuario...</option>
               {users.map(u => (
-                <option key={u.id} value={u.username}>{u.username}</option>
+                <option key={u.id} value={u.username}>
+                  {u.username} {u.email ? `(${u.email})` : ""}
+                </option>
               ))}
             </select>
             <p className="text-[11px] text-zinc-500">
