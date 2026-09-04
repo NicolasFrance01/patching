@@ -13,7 +13,7 @@ interface TicketDetailModalProps {
 interface TicketDetail {
   status: string;
   statusCategory: string;
-  description: string;
+  description: any;
   comments: any[];
 }
 

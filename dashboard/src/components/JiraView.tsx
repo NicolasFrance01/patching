@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Ticket, ExternalLink, Search, User, Calendar, Database, Building2 } from "lucide-react";
 
-interface JiraTicket {
+export interface JiraTicket {
   id: string;
   ticketKey: string;
   ticketUrl: string;

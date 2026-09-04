@@ -521,6 +521,7 @@ export async function PATCH(request: NextRequest) {
     if (action === "reassign" && id && newCreatorUsername) {
       const ticket = await prisma.jiraTicket.findUnique({ where: { id } });
       
+      let reporterNameStr = newCreatorUsername;
       if (ticket) {
         // Try to update Jira issue reporter
         try {
@@ -529,6 +530,7 @@ export async function PATCH(request: NextRequest) {
           
           // Get the email or username of the new user to search in Jira
           const newDbUser = await prisma.user.findUnique({ where: { username: newCreatorUsername } });
+          reporterNameStr = newDbUser?.fullName || newDbUser?.username || newCreatorUsername;
           const query = newDbUser?.email || newDbUser?.fullName || newCreatorUsername;
           
           // Search for user in Jira
@@ -608,7 +610,7 @@ export async function PATCH(request: NextRequest) {
         where: { id },
         data: {
           assignedUsername: newCreatorUsername,
-          reporterName: newDbUser?.fullName || newDbUser?.username || newCreatorUsername,
+          reporterName: reporterNameStr,
           isUnread: true,
           reassignedBy: session.user?.name || "admin"
         }
