@@ -10,6 +10,7 @@ interface JiraTicket {
   bank: string;
   errorDescription: string;
   creatorUsername: string;
+  assignedUsername?: string | null;
   reporterName?: string | null;
   isUnread?: boolean;
   reassignedBy?: string | null;
@@ -17,6 +18,7 @@ interface JiraTicket {
 }
 
 import TicketEditModal from "./TicketEditModal";
+import TicketDetailModal from "./TicketDetailModal";
 
 export default function JiraView({ creatorOnly = false, creatorUsername }: { creatorOnly?: boolean; creatorUsername?: string }) {
   const [tickets, setTickets] = useState<JiraTicket[]>([]);
@@ -29,6 +31,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [editingTicket, setEditingTicket] = useState<JiraTicket | null>(null);
+  const [detailTicket, setDetailTicket] = useState<JiraTicket | null>(null);
 
   const fetchTickets = () => {
     setLoading(true);
@@ -36,7 +39,7 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setTickets(creatorOnly ? data.filter(t => t.creatorUsername === creatorUsername) : data);
+          setTickets(creatorOnly ? data.filter(t => t.assignedUsername === creatorUsername || t.creatorUsername === creatorUsername) : data);
         }
       })
       .catch((e) => console.error("Error fetching Jira tickets:", e))
@@ -267,7 +270,16 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
                   <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                     <Calendar className="w-3.5 h-3.5" /> {new Date(t.createdAt).toLocaleString("es-AR")}
                   </div>
-                  <div className="pt-2 flex justify-end">
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailTicket(t);
+                      }}
+                      className="px-3 py-1 text-[11px] font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/20"
+                    >
+                      Detalle
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -295,6 +307,12 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
         onClose={() => setEditingTicket(null)}
         ticket={editingTicket}
         onSuccess={fetchTickets}
+      />
+
+      <TicketDetailModal
+        isOpen={!!detailTicket}
+        onClose={() => setDetailTicket(null)}
+        ticket={detailTicket}
       />
     </div>
   );

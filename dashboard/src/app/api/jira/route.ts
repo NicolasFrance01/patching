@@ -234,6 +234,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (action === "get-issue") {
+    const issueKey = searchParams.get("issueKey");
+    if (!issueKey) return NextResponse.json({ error: "Missing issueKey" }, { status: 400 });
+    
+    const res = await jiraFetch(`/rest/api/3/issue/${issueKey}?fields=status,description,comment`);
+    if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: res.status });
+    
+    const data = await res.json();
+    return NextResponse.json({
+      status: data.fields?.status?.name,
+      statusCategory: data.fields?.status?.statusCategory?.colorName,
+      description: data.fields?.description,
+      comments: data.fields?.comment?.comments || []
+    });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -400,6 +416,7 @@ export async function POST(req: NextRequest) {
           bank: body.bankCode,
           errorDescription: body.errorMessage,
           creatorUsername: body.creatorUsername || "unknown",
+          assignedUsername: body.creatorUsername || "unknown",
           reporterName: body.reporterName || null,
         }
       });
@@ -590,7 +607,8 @@ export async function PATCH(request: NextRequest) {
       await prisma.jiraTicket.update({
         where: { id },
         data: {
-          creatorUsername: newCreatorUsername,
+          assignedUsername: newCreatorUsername,
+          reporterName: newDbUser?.fullName || newDbUser?.username || newCreatorUsername,
           isUnread: true,
           reassignedBy: session.user?.name || "admin"
         }
