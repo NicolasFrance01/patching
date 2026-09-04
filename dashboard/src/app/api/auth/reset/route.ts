@@ -92,7 +92,7 @@ export async function POST(req: Request) {
 
     try {
       await sendEmail({ to: user.email!, subject: "Recuperación de Contraseña - Centro de Parcheo", htmlBody });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to send reset email", e);
     }
 

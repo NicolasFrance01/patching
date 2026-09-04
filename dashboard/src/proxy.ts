@@ -22,9 +22,22 @@ export async function proxy(request: NextRequest) {
   });
 
   if (!token) {
+    if (pathname.startsWith("/forgot-password")) {
+      return NextResponse.next();
+    }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const mustChange = (token as any).mustChangePassword;
+  
+  if (mustChange && !pathname.startsWith("/api") && pathname !== "/change-password") {
+    return NextResponse.redirect(new URL("/change-password", request.url));
+  }
+  
+  if (!mustChange && pathname === "/change-password") {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
