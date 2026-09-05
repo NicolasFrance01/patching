@@ -62,38 +62,49 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
     setLoading(true);
     setError("");
     
-    if (!editingUserId) {
-      // Create
-      const res = await fetch("/api/usuarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email || null, username, password, role }),
-      });
-      const data = await res.json();
-      setLoading(false);
-      if (!res.ok) {
-        setError(data.error ?? "Error al crear usuario");
-        return;
+    try {
+      if (!editingUserId) {
+        // Create
+        const res = await fetch("/api/usuarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email || null, username, password, role }),
+        });
+        
+        let data;
+        try { data = await res.json(); } catch(e) { throw new Error("Error en el servidor"); }
+        
+        setLoading(false);
+        if (!res.ok) {
+          setError(data.error ?? "Error al crear usuario");
+          return;
+        }
+        setUsers((prev) => [{ ...data, createdAt: data.createdAt }, ...prev]);
+      } else {
+        // Edit
+        const res = await fetch("/api/usuarios", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingUserId, email: email || null, username, role }),
+        });
+        
+        let data;
+        try { data = await res.json(); } catch(e) { throw new Error("Error en el servidor"); }
+        
+        setLoading(false);
+        if (!res.ok) {
+          setError(data.error ?? "Error al editar usuario");
+          return;
+        }
+        setUsers((prev) => prev.map(u => u.id === editingUserId ? { ...u, ...data } : u));
       }
-      setUsers((prev) => [{ ...data, createdAt: data.createdAt }, ...prev]);
-    } else {
-      // Edit
-      const res = await fetch("/api/usuarios", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingUserId, email: email || null, username, role }),
-      });
-      const data = await res.json();
+      
+      resetForm();
+      router.refresh();
+    } catch (err: any) {
       setLoading(false);
-      if (!res.ok) {
-        setError(data.error ?? "Error al editar usuario");
-        return;
-      }
-      setUsers((prev) => prev.map(u => u.id === editingUserId ? { ...u, ...data } : u));
+      setError(err.message ?? "Ocurrió un error inesperado.");
     }
-    
-    resetForm();
-    router.refresh();
   }
 
   async function handleDelete(id: string, uname: string) {

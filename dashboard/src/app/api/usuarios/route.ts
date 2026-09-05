@@ -34,8 +34,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const { email, password, role } = await req.json();
-  let { username } = await req.json(); // It could be passed in the body
+  const body = await req.json();
+  const { email, password, role } = body;
+  let { username } = body;
 
   if (!email && (!username || !password)) {
     return NextResponse.json({ error: "Debe proveer correo o (usuario y contraseña)" }, { status: 400 });
