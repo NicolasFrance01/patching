@@ -10,29 +10,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Month parameter is required (YYYY-MM)" }, { status: 400 });
     }
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const monthlyServers = await prisma.monthlyServerStatus.findMany({
+      where: { month },
+      orderBy: { updatedAt: 'desc' },
+    });
 
-    let servers;
-
-    if (month === currentMonth) {
-      // For the current month, returning from the main table is faster and real-time.
-      // But we can also use MonthlyServerStatus if it represents the same.
-      servers = await prisma.serverStatus.findMany({
-        orderBy: { updatedAt: 'desc' },
-      });
-    } else {
-      // Historical data from MonthlyServerStatus
-      const monthlyServers = await prisma.monthlyServerStatus.findMany({
-        where: { month },
-        orderBy: { updatedAt: 'desc' },
-      });
-      // Map to the same structure as ServerStatus so the dashboard doesn't need to change much
-      servers = monthlyServers.map(s => ({
-        ...s,
-        updatedAt: s.updatedAt,
-        createdAt: s.createdAt,
-      }));
-    }
+    // Map to the same structure as ServerStatus so the dashboard doesn't need to change much
+    const servers = monthlyServers.map((s: any) => ({
+      ...s,
+      updatedAt: s.updatedAt,
+      createdAt: s.createdAt,
+    }));
 
     return NextResponse.json(servers);
   } catch (error: any) {

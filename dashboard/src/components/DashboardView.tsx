@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, memo } from "react";
 import { ServerStatus } from "@/types";
 import {
   Server, CheckCircle2, XCircle, Clock, Search, AlertTriangle,
-  Mail, Filter, X,
+  Mail, Filter, X, AlertCircle
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -142,6 +142,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [chartsMounted, setChartsMounted] = useState(false);
   const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedError, setSelectedError] = useState<string | null>(null);
 
   useEffect(() => { setChartsMounted(true); }, []);
 
@@ -686,27 +687,27 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           <table className="w-full text-xs text-left">
             <thead className="text-zinc-400 uppercase">
               <tr>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Servidor</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Grupo</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Ambiente</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Analista</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Instancia</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Versión</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Upd</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Fecha Ventana</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Comentarios</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Snap</th>
-                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Confirmado</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Servidor</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Grupo</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Ambiente</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Dominio</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">IP</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Estado</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Analista</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">OS</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Versión SO</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Instancia</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Versión</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Upd</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Fecha Ventana</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">KBs</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Instalación</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Running Time</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Espacio en Disco</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Error</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Comentarios</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Snap</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Confirmado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -714,7 +715,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 const bankColor = TYPE_COLORS[server.info?.type ?? "Sin clasificar"] ?? "#71717a";
                 return (
                   <tr key={server.id} className="hover:bg-white/[0.025] transition-colors">
-                    <td className="px-3 py-2.5 font-medium text-zinc-100 min-w-[160px]">
+                    <td className="px-3 py-2.5 font-medium text-zinc-100 min-w-[160px] max-w-[160px] truncate">
                       <div className="flex flex-col gap-0.5">
                         <span className="truncate" title={server.serverName}>{server.serverName}</span>
                         {server.info && (
@@ -725,46 +726,52 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate">
                       {server.grupo ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{server.grupo}</span>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate">
                       {server.ambiente ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{server.ambiente}</span>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.domain ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.ip ?? "N/A"}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={server.status} /></td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.analista ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px]">
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.domain ?? ""}>{server.domain ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.ip ?? ""}>{server.ip ?? "N/A"}</td>
+                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate"><StatusBadge status={server.status} /></td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.analista ?? ""}>{server.analista ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
                       <span className="block truncate" title={server.os ?? ""}>{server.os ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.osVersion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlInstancia ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlVersion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlUltimaActualizacion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.fechaVentana ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.osVersion ?? ""}>{server.osVersion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlInstancia ?? ""}>{server.sqlInstancia ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlVersion ?? ""}>{server.sqlVersion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlUltimaActualizacion ?? ""}>{server.sqlUltimaActualizacion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.fechaVentana ?? ""}>{server.fechaVentana ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
                       <span className="block truncate" title={server.installedKBs ?? ""}>{server.installedKBs ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.installDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.runningTime ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.installDate ?? ""}>{server.installDate ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.runningTime ?? ""}>{server.runningTime ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
                       <span className="block truncate" title={server.diskSpace ?? ""}>{server.diskSpace ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-rose-400/80 min-w-[180px]">
+                    <td className="px-3 py-2.5 text-rose-400/80 min-w-[160px] max-w-[160px]">
                       {server.isError ? (
-                        <span className="block text-[10px] whitespace-normal truncate" title={server.errorDescription ?? ""}>{server.errorDescription}</span>
+                        <button 
+                          onClick={() => setSelectedError(server.errorDescription ?? "")}
+                          className="w-full text-left block text-[10px] truncate hover:text-rose-300 transition-colors"
+                          title="Ver error completo"
+                        >
+                          {server.errorDescription}
+                        </button>
                       ) : <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
                       <span className="block truncate" title={server.comentarios ?? ""}>{server.comentarios ?? "—"}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.snap ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.confirmado ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.snap ?? ""}>{server.snap ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.confirmado ?? ""}>{server.confirmado ?? "—"}</td>
                   </tr>
                 );
               })}
@@ -785,6 +792,34 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         onClose={() => setEmailPayload(null)}
         payload={emailPayload}
       />
+
+      {/* Modal de Error */}
+      {selectedError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border border-rose-500/20">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
+              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Detalle del Error
+              </h3>
+              <button onClick={() => setSelectedError(null)} className="text-zinc-400 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 overflow-auto text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+              {selectedError}
+            </div>
+            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
+              <button
+                onClick={() => setSelectedError(null)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

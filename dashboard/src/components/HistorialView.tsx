@@ -92,6 +92,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [recordSearch, setRecordSearch] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
+  const [selectedError, setSelectedError] = useState<string | null>(null);
   const [readSyncIds, setReadSyncIds] = useState<Set<string>>(new Set());
 
   const filteredRuns = useMemo(() => {
@@ -540,50 +541,50 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                 <table className="w-full text-xs text-left">
                                   <thead className="text-zinc-400 uppercase">
                                     <tr>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Servidor</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Grupo</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Ambiente</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Analista</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Instancia</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Versión</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Upd</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Fecha Ventana</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Espacio en Disco</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Error</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Comentarios</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Snap</th>
-                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Confirmado</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Servidor</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Grupo</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Ambiente</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Dominio</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">IP</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Estado</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Analista</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">OS</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Versión SO</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Instancia</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Versión</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">SQL Upd</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Fecha Ventana</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">KBs</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Instalación</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Running Time</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Espacio en Disco</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Error</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Comentarios</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Snap</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap min-w-[160px]">Confirmado</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-zinc-800/40">
                                     {records.map((r) => (
                                       <tr key={r.id} className="hover:bg-white/[0.02]">
-                                        <td className="px-3 py-2 font-medium text-zinc-200 whitespace-nowrap">{r.serverName}</td>
-                                        <td className="px-3 py-2">
+                                        <td className="px-3 py-2 font-medium text-zinc-200 min-w-[160px] max-w-[160px] truncate" title={r.serverName}>{r.serverName}</td>
+                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
                                           {r.grupo ? (
                                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                                               {r.grupo}
                                             </span>
                                           ) : "—"}
                                         </td>
-                                        <td className="px-3 py-2">
+                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
                                           {r.ambiente ? (
                                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">
                                               {r.ambiente}
                                             </span>
                                           ) : "—"}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.domain ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.ip ?? "—"}</td>
-                                        <td className="px-3 py-2">
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.domain ?? ""}>{r.domain ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.ip ?? ""}>{r.ip ?? "—"}</td>
+                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
                                           {r.status === "ok" ? (
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
                                           ) : r.status === "error" ? (
@@ -592,21 +593,31 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
                                           )}
                                         </td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.analista ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.osVersion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlInstancia ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlVersion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlUltimaActualizacion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.fechaVentana ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.installDate ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.runningTime ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.diskSpace ?? ""}>{r.diskSpace ?? "—"}</td>
-                                        <td className="px-3 py-2 text-rose-400/80 text-[10px] min-w-[180px] truncate" title={r.errorDescription ?? ""}>{r.errorDescription ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.comentarios ?? ""}>{r.comentarios ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.snap ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.confirmado ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.analista ?? ""}>{r.analista ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.osVersion ?? ""}>{r.osVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlInstancia ?? ""}>{r.sqlInstancia ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlVersion ?? ""}>{r.sqlVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlUltimaActualizacion ?? ""}>{r.sqlUltimaActualizacion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.fechaVentana ?? ""}>{r.fechaVentana ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.installDate ?? ""}>{r.installDate ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.runningTime ?? ""}>{r.runningTime ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.diskSpace ?? ""}>{r.diskSpace ?? "—"}</td>
+                                        <td className="px-3 py-2 text-rose-400/80 min-w-[160px] max-w-[160px]">
+                                          {r.errorDescription ? (
+                                            <button 
+                                              onClick={() => setSelectedError(r.errorDescription ?? "")}
+                                              className="w-full text-left block text-[10px] truncate hover:text-rose-300 transition-colors"
+                                              title="Ver error completo"
+                                            >
+                                              {r.errorDescription}
+                                            </button>
+                                          ) : <span className="text-zinc-700">—</span>}
+                                        </td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.comentarios ?? ""}>{r.comentarios ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.snap ?? ""}>{r.snap ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.confirmado ?? ""}>{r.confirmado ?? "—"}</td>
                                       </tr>
                                     ))}
                                     {records.length === 0 && (
@@ -636,6 +647,34 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         onClose={() => setEmailPayload(null)}
         payload={emailPayload}
       />
+
+      {/* Modal de Error */}
+      {selectedError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border border-rose-500/20">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
+              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Detalle del Error
+              </h3>
+              <button onClick={() => setSelectedError(null)} className="text-zinc-400 hover:text-white transition-colors">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 overflow-auto text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+              {selectedError}
+            </div>
+            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
+              <button
+                onClick={() => setSelectedError(null)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

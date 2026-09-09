@@ -26,9 +26,14 @@ export async function sendEmail({ to, subject, htmlBody, pdfBase64, pdfFilename 
   const accessToken = tokenData.access_token;
 
   // 2. Preparar destinatarios (Graph API espera array de objetos)
-  const recipientList = to.split(',').map((email: string) => ({
-    emailAddress: { address: email.trim() }
-  }));
+  const recipientList = to.split(/[,;]+/).map((emailStr: string) => {
+    let address = emailStr.trim();
+    const match = address.match(/<([^>]+)>/);
+    if (match) {
+      address = match[1].trim();
+    }
+    return { emailAddress: { address } };
+  }).filter((r) => r.emailAddress.address.length > 0);
 
   const requestBody: any = {
     message: {

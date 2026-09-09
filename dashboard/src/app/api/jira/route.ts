@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
     const fields: Record<string, any> = {
       project: { key: projectKey },
       issuetype: { name: "Actividad" },
-      summary: errorMessage,
+      summary: errorMessage.length > 255 ? errorMessage.substring(0, 252) + "..." : errorMessage,
       description: descriptionADF,
     };
 
