@@ -16,6 +16,11 @@ model ServerStatus {
   ip               String?
   os               String?
   osVersion        String?
+  analista         String?
+  sqlInstancia     String?
+  sqlVersion       String?
+  sqlUltimaActualizacion String?
+  fechaVentana     String?
   installDate      String?
   installedKBs     String?
   rebootDate       String?
@@ -51,6 +56,11 @@ model SyncHistory {
   ip               String?
   os               String?
   osVersion        String?
+  analista         String?
+  sqlInstancia     String?
+  sqlVersion       String?
+  sqlUltimaActualizacion String?
+  fechaVentana     String?
   installDate      String?
   installedKBs     String?
   rebootDate       String?
@@ -95,4 +105,37 @@ model User {
   mustChangePassword Boolean   @default(true)
   passwordExpiry     DateTime?
   createdAt          DateTime  @default(now())
+}
+
+model MonthlyServerStatus {
+  id               String   @id @default(uuid())
+  month            String   // Format: YYYY-MM
+  serverName       String
+  grupo            String?
+  ambiente         String?
+  domain           String?
+  ip               String?
+  os               String?
+  osVersion        String?
+  analista         String?
+  sqlInstancia     String?
+  sqlVersion       String?
+  sqlUltimaActualizacion String?
+  fechaVentana     String?
+  installDate      String?
+  installedKBs     String?
+  rebootDate       String?
+  runningTime      String?
+  diskSpace        String?
+  errorDescription String?
+  comentarios      String?
+  snap             String?
+  confirmado       String?
+  status           String
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  @@unique([month, serverName])
+  @@index([month])
+  @@index([serverName])
 }

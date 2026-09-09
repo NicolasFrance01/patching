@@ -7,6 +7,11 @@ export interface ServerStatus {
   ip: string | null;
   os: string | null;
   osVersion?: string | null;
+  analista?: string | null;
+  sqlInstancia?: string | null;
+  sqlVersion?: string | null;
+  sqlUltimaActualizacion?: string | null;
+  fechaVentana?: string | null;
   installDate: string | null;
   installedKBs: string | null;
   rebootDate?: string | null;

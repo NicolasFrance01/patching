@@ -15,6 +15,11 @@ interface SyncRecord {
   ip: string | null;
   os: string | null;
   osVersion: string | null;
+  analista: string | null;
+  sqlInstancia: string | null;
+  sqlVersion: string | null;
+  sqlUltimaActualizacion: string | null;
+  fechaVentana: string | null;
   status: string;
   errorDescription: string | null;
   installDate: string | null;
@@ -275,7 +280,12 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                     ip: r.ip || "—",
                     tipo: info?.type || "Sin clasificar",
                     ambiente: r.ambiente || "—",
+                    analista: r.analista || "—",
                     os: r.os || "—",
+                    sqlInstancia: r.sqlInstancia || "—",
+                    sqlVersion: r.sqlVersion || "—",
+                    sqlUpd: r.sqlUltimaActualizacion || "—",
+                    fechaVentana: r.fechaVentana || "—",
                     fechaInstalacion: r.installDate || "—",
                     kbsInstaladas: r.installedKBs || "—",
                     fechaReinicio: r.runningTime || "—",
@@ -461,7 +471,12 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                       ip: r.ip || "—",
                                       tipo: info?.type || "Sin clasificar",
                                       ambiente: r.ambiente || "—",
+                                      analista: r.analista || "—",
                                       os: r.os || "—",
+                                      sqlInstancia: r.sqlInstancia || "—",
+                                      sqlVersion: r.sqlVersion || "—",
+                                      sqlUpd: r.sqlUltimaActualizacion || "—",
+                                      fechaVentana: r.fechaVentana || "—",
                                       fechaInstalacion: r.installDate || "—",
                                       kbsInstaladas: r.installedKBs || "—",
                                       fechaReinicio: r.runningTime || "—",
@@ -531,8 +546,13 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Analista</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Instancia</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Versión</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Upd</th>
+                                      <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Fecha Ventana</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
                                       <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
@@ -572,8 +592,13 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
                                           )}
                                         </td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.analista ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 min-w-[160px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.osVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlInstancia ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlVersion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.sqlUltimaActualizacion ?? "—"}</td>
+                                        <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.fechaVentana ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 min-w-[140px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.installDate ?? "—"}</td>
                                         <td className="px-3 py-2 text-zinc-400 whitespace-nowrap">{r.runningTime ?? "—"}</td>

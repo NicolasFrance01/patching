@@ -89,11 +89,16 @@ public class GroupItem : INotifyPropertyChanged
 // Fila del reporte (se rellena completa por servidor; columnas exactas pedidas)
 public class ReportRow
 {
+    public string Analista {get;set;}
     public string Dominio {get;set;}
     public string Servidor {get;set;}
     public string IP {get;set;}
     public string Sistema_Operativo {get;set;}
     public string Version_Sistema_Operativo {get;set;}
+    public string SQL_Instancia {get;set;}
+    public string SQL_Version {get;set;}
+    public string SQL_Ultima_Actualizacion {get;set;}
+    public string Fecha_Ventana {get;set;}
     public string Fecha_Instalacion {get;set;}
     public string KBs_Instaladas {get;set;}
     public string Fecha_Reinicio {get;set;}
@@ -383,22 +388,19 @@ public class FixPackagePickItem : INotifyPropertyChanged
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Servidor"      Binding="{Binding Servidor}"    Width="150"/>
-        <DataGridTextColumn Header="IP"            Binding="{Binding IP}"          Width="120"/>
-        <DataGridTextColumn Header="Servidor WSUS" Binding="{Binding Wsus}"        Width="150"/>
-        <DataGridTextColumn Header="Available"     Binding="{Binding Available}"   Width="80"/>
-        <DataGridTextColumn Header="Downloaded"    Binding="{Binding Downloaded}"  Width="90"/>
-        <DataGridTextColumn Header="Download %"    Binding="{Binding DownloadPct}" Width="90"/>
-        <DataGridTextColumn Header="Error"         Binding="{Binding Error}"       Width="180"/>
-        <DataGridTextColumn Header="Comentarios"   Binding="{Binding Comentarios}" Width="220"/>
+        <DataGridTextColumn Header="Servidor"      Binding="{Binding Servidor}"    Width="180"/>
+        <DataGridTextColumn Header="IP"            Binding="{Binding IP}"          Width="130"/>
+        <DataGridTextColumn Header="Servidor WSUS" Binding="{Binding Wsus}"        Width="180"/>
+        <DataGridTextColumn Header="Available"     Binding="{Binding Available}"   Width="90"/>
+        <DataGridTextColumn Header="Download %"    Binding="{Binding DownloadPct}" Width="100"/>
+        <DataGridTextColumn Header="Error"         Binding="{Binding Error}"       Width="220"/>
         <DataGridTextColumn Header="Status"        Binding="{Binding Status}"      Width="*"/>
-        <DataGridTextColumn Header="Running Time"  Binding="{Binding RunningTime}" Width="110"/>
       </DataGrid.Columns>
     </DataGrid>
 
     <!-- ===== Fila 3: Botones ===== -->
     <DockPanel Grid.Row="3" Margin="0,12,0,0" LastChildFill="False">
-      <Button x:Name="btnSelectAll" Content="Seleccionar todos" Style="{StaticResource Btn}" Background="#FF22C55E" Margin="0,0,8,0"/>
+      <Button x:Name="btnConsultar" Content="Consultar"          Style="{StaticResource Btn}" Background="#FF0D9488" Margin="0,0,8,0"/>
       <Button x:Name="btnClear"     Content="Limpiar seleccion"   Style="{StaticResource Btn}" Background="#FF64748B" Margin="0,0,8,0"/>
       <Button x:Name="btnAdd"       Content="Agregar"             Style="{StaticResource Btn}" Background="#FF0284C7" Margin="0,0,8,0"/>
       <Button x:Name="btnReport"    Content="Reporte"             Style="{StaticResource Btn}" Background="#FF0EA5E9" Margin="0,0,8,0"/>
@@ -426,7 +428,7 @@ $script:lblSearchHint  = $Window.FindName('lblSearchHint')
 $script:popSearch      = $Window.FindName('popSearch')
 $script:lbSearch       = $Window.FindName('lbSearch')
 $script:lblAnalyst     = $Window.FindName('lblAnalyst')
-$btnSelectAll     = $Window.FindName('btnSelectAll')
+$btnConsultar     = $Window.FindName('btnConsultar')
 $btnClear         = $Window.FindName('btnClear')
 $btnAdd           = $Window.FindName('btnAdd')
 $btnReport        = $Window.FindName('btnReport')
@@ -891,6 +893,16 @@ $script:LocalReportWorker = Join-Path $env:TEMP 'WUU_report.ps1'
 $script:RepBag            = $null
 $script:RepPool           = @()
 $script:RepTimer          = $null
+$script:ReportRunning     = $false
+$script:RepComment        = ''
+$script:RepWindowDate     = ''
+
+$script:LocalConsultWorker = Join-Path $env:TEMP 'WUU_consult.ps1'
+$script:ConsultBag         = $null
+$script:ConsultPool        = @()
+$script:ConsultTimer       = $null
+$script:ConsultRunning     = $false
+$script:ConsultMeta        = @{}
 
 # Script de consulta que corre en cada servidor (escribe report.json). Usa los
 # comandos pedidos. Es texto literal; corre tal cual en el servidor.
@@ -906,6 +918,7 @@ New-Item -ItemType Directory -Path $base -Force | Out-Null
 
 $o = [ordered]@{
   Dominio=""; Servidor=""; IP=""; Sistema_Operativo=""; Version_Sistema_Operativo="";
+  SQL_Instancia="No SQL"; SQL_Version="No SQL"; SQL_Ultima_Actualizacion="No SQL";
   Fecha_Instalacion=""; KBs_Instaladas=""; Fecha_Reinicio=""; Running_Time=""; Descripcion_Error=""; Disk_Space=""
 }
 function Get-WuWsusErrors([string]$SearchError) {
@@ -996,6 +1009,135 @@ try {
   $o.Disk_Space = ($parts -join ' | ')
 } catch {}
 try {
+  function Get-SqlProductName([string]$build) {
+    if ([string]::IsNullOrWhiteSpace($build)) { return 'SQL Server' }
+    $parts = $build.Split('.')
+    $maj = 0; $min = 0
+    [void][int]::TryParse($parts[0], [ref]$maj)
+    if ($parts.Count -gt 1) { [void][int]::TryParse($parts[1], [ref]$min) }
+    switch ($maj) {
+      16 { return 'SQL Server 2022' }
+      15 { return 'SQL Server 2019' }
+      14 { return 'SQL Server 2017' }
+      13 { return 'SQL Server 2016' }
+      12 { return 'SQL Server 2014' }
+      11 { return 'SQL Server 2012' }
+      10 { if ($min -ge 50) { return 'SQL Server 2008 R2' } else { return 'SQL Server 2008' } }
+      9  { return 'SQL Server 2005' }
+      default { return "SQL Server $maj" }
+    }
+  }
+  function Get-SqlSetup([string]$instanceId) {
+    foreach ($root in @(
+      "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$instanceId\Setup",
+      "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Microsoft SQL Server\$instanceId\Setup"
+    )) {
+      if (Test-Path $root) { return Get-ItemProperty -Path $root -ErrorAction SilentlyContinue }
+    }
+    return $null
+  }
+  function Get-SqlServerProperties([string]$instanceName) {
+    $dataSource = if ($instanceName -eq 'MSSQLSERVER') { 'localhost' } else { "localhost\$instanceName" }
+    $cs = "Data Source=$dataSource;Integrated Security=True;Connect Timeout=2;Encrypt=False;TrustServerCertificate=True;Application Name=WUU-Report"
+    $conn = $null
+    try {
+      $conn = New-Object System.Data.SqlClient.SqlConnection $cs
+      $conn.Open()
+      $cmd = $conn.CreateCommand()
+      $cmd.CommandTimeout = 5
+      $cmd.CommandText = 'SELECT CAST(SERVERPROPERTY(''ProductVersion'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductLevel'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductUpdateLevel'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductUpdateReference'') AS nvarchar(128)), CAST(SERVERPROPERTY(''Edition'') AS nvarchar(128))'
+      $r = $cmd.ExecuteReader()
+      if ($r.Read()) {
+        return @{
+          ProductVersion         = [string]$r.GetValue(0)
+          ProductLevel           = [string]$r.GetValue(1)
+          ProductUpdateLevel     = [string]$r.GetValue(2)
+          ProductUpdateReference = [string]$r.GetValue(3)
+          Edition                = [string]$r.GetValue(4)
+        }
+      }
+    } catch {
+    } finally {
+      if ($conn) { try { $conn.Close(); $conn.Dispose() } catch {} }
+    }
+    return $null
+  }
+
+  $instanceMap = [ordered]@{}
+  foreach ($namesKey in @(
+    'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL',
+    'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Microsoft SQL Server\Instance Names\SQL'
+  )) {
+    if (-not (Test-Path $namesKey)) { continue }
+    $item = Get-ItemProperty -Path $namesKey -ErrorAction SilentlyContinue
+    if (-not $item) { continue }
+    foreach ($p in $item.PSObject.Properties) {
+      if ($p.Name -match '^PS' -or [string]::IsNullOrWhiteSpace([string]$p.Value)) { continue }
+      if ($instanceMap.Keys -notcontains $p.Name) { $instanceMap[$p.Name] = [string]$p.Value }
+    }
+  }
+
+  if ($instanceMap.Count -eq 0) {
+    $o.SQL_Instancia = 'No SQL'
+    $o.SQL_Version = 'No SQL'
+    $o.SQL_Ultima_Actualizacion = 'No SQL'
+  } else {
+    $instParts = @(); $verParts = @(); $updParts = @()
+    $many = $instanceMap.Count -gt 1
+    foreach ($instName in @($instanceMap.Keys)) {
+      $setup = Get-SqlSetup $instanceMap[$instName]
+      $build = ''
+      $edition = ''
+      $fileDate = ''
+      if ($setup) {
+        if ($setup.PatchLevel) { $build = [string]$setup.PatchLevel }
+        elseif ($setup.Version) { $build = [string]$setup.Version }
+        if ($setup.Edition) { $edition = ([string]$setup.Edition).Trim() }
+        $sqlPath = [string]$setup.SQLPath
+        if ($sqlPath) {
+          $exe = Join-Path $sqlPath 'Binn\sqlservr.exe'
+          if (Test-Path $exe) { $fileDate = (Get-Item $exe).LastWriteTime.ToString('yyyy-MM-dd') }
+        }
+      }
+      $live = Get-SqlServerProperties $instName
+      if ($live) {
+        if ($live.ProductVersion) { $build = [string]$live.ProductVersion }
+        if ($live.Edition) { $edition = ([string]$live.Edition).Trim() }
+      }
+      $product = Get-SqlProductName $build
+      $verTxt = ($product, $build, $(if ($edition) { $edition } else { $null }) | Where-Object { $_ }) -join ' | '
+      if (-not $verTxt) { $verTxt = 'sin datos de version' }
+      $updBits = @()
+      if ($live) {
+        $lvl = @()
+        if ($live.ProductLevel -and $live.ProductLevel -ne 'RTM') { $lvl += [string]$live.ProductLevel }
+        if ($live.ProductUpdateLevel) { $lvl += [string]$live.ProductUpdateLevel }
+        if ($lvl.Count) { $updBits += ($lvl -join ' ') }
+        if ($live.ProductUpdateReference) { $updBits += [string]$live.ProductUpdateReference }
+      }
+      if ($build) { $updBits += $build }
+      if ($fileDate) { $updBits += $fileDate }
+      $updTxt = if ($updBits.Count) { ($updBits | Select-Object -Unique) -join ' | ' } else { 'sin datos' }
+      if ($many) {
+        $instParts += $instName
+        $verParts += "${instName}: $verTxt"
+        $updParts += "${instName}: $updTxt"
+      } else {
+        $instParts += $instName
+        $verParts += $verTxt
+        $updParts += $updTxt
+      }
+    }
+    $o.SQL_Instancia = ($instParts -join ' | ')
+    $o.SQL_Version = ($verParts -join ' | ')
+    $o.SQL_Ultima_Actualizacion = ($updParts -join ' | ')
+  }
+} catch {
+  $o.SQL_Instancia = 'No SQL'
+  $o.SQL_Version = 'No SQL'
+  $o.SQL_Ultima_Actualizacion = 'No SQL'
+}
+try {
   $searchErr = ""
   try {
     $s = New-Object -ComObject Microsoft.Update.Session
@@ -1008,6 +1150,209 @@ try {
 '@
 Set-Content -Path $script:LocalReportWorker -Value $script:ReportWorker -Encoding UTF8
 $script:ReportWorker = $null
+
+# Consulta de KBs pendientes (no instala). Escribe consult.json en el destino.
+$script:ConsultWorker = @'
+param([string]$CheckKBs = "")
+$ErrorActionPreference = "SilentlyContinue"
+$base = "C:\Windows\Temp\WUU"
+New-Item -ItemType Directory -Path $base -Force | Out-Null
+$o = [ordered]@{
+  Servidor=""; IP="";
+  SQL_Instancia=""; SQL_Version=""; SQL_Ultima_Actualizacion="";
+  KBs_Disponibles=""; Cantidad_KBs="0";
+  Fecha_Ultima_Actualizacion=""; Fecha_Ultimo_Reinicio="";
+  KBs_Consultadas=""; KBs_Presentes=""; KBs_Ausentes=""; KBs_Estado=""; Error=""
+}
+try { $o.Servidor = [System.Net.Dns]::GetHostName() } catch {}
+try {
+  $o.IP = (Get-NetIPAddress -AddressFamily IPv4 |
+           Where-Object { $_.IPAddress -notmatch "^(127\.|169\.254\.)" } |
+           Select-Object -First 1 -ExpandProperty IPAddress)
+} catch {}
+try {
+  $latest = @(Get-HotFix | Where-Object { $_.InstalledOn } | Sort-Object InstalledOn -Descending | Select-Object -First 1)
+  if ($latest) { $o.Fecha_Ultima_Actualizacion = ([datetime]$latest.InstalledOn).ToString("yyyy-MM-dd") }
+} catch {}
+try {
+  $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+  $o.Fecha_Ultimo_Reinicio = $boot.ToString("yyyy-MM-dd HH:mm:ss")
+} catch {}
+try {
+  function Get-SqlProductName([string]$build) {
+    if ([string]::IsNullOrWhiteSpace($build)) { return 'SQL Server' }
+    $parts = $build.Split('.')
+    $maj = 0; $min = 0
+    [void][int]::TryParse($parts[0], [ref]$maj)
+    if ($parts.Count -gt 1) { [void][int]::TryParse($parts[1], [ref]$min) }
+    switch ($maj) {
+      16 { return 'SQL Server 2022' }
+      15 { return 'SQL Server 2019' }
+      14 { return 'SQL Server 2017' }
+      13 { return 'SQL Server 2016' }
+      12 { return 'SQL Server 2014' }
+      11 { return 'SQL Server 2012' }
+      10 { if ($min -ge 50) { return 'SQL Server 2008 R2' } else { return 'SQL Server 2008' } }
+      9  { return 'SQL Server 2005' }
+      default { return "SQL Server $maj" }
+    }
+  }
+  function Get-SqlSetup([string]$instanceId) {
+    foreach ($root in @(
+      "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$instanceId\Setup",
+      "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Microsoft SQL Server\$instanceId\Setup"
+    )) {
+      if (Test-Path $root) { return Get-ItemProperty -Path $root -ErrorAction SilentlyContinue }
+    }
+    return $null
+  }
+  function Get-SqlServerProperties([string]$instanceName) {
+    $dataSource = if ($instanceName -eq 'MSSQLSERVER') { 'localhost' } else { "localhost\$instanceName" }
+    $cs = "Data Source=$dataSource;Integrated Security=True;Connect Timeout=2;Encrypt=False;TrustServerCertificate=True;Application Name=WUU-Consult"
+    $conn = $null
+    try {
+      $conn = New-Object System.Data.SqlClient.SqlConnection $cs
+      $conn.Open()
+      $cmd = $conn.CreateCommand()
+      $cmd.CommandTimeout = 5
+      $cmd.CommandText = 'SELECT CAST(SERVERPROPERTY(''ProductVersion'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductLevel'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductUpdateLevel'') AS nvarchar(128)), CAST(SERVERPROPERTY(''ProductUpdateReference'') AS nvarchar(128)), CAST(SERVERPROPERTY(''Edition'') AS nvarchar(128))'
+      $r = $cmd.ExecuteReader()
+      if ($r.Read()) {
+        return @{
+          ProductVersion         = [string]$r.GetValue(0)
+          ProductLevel           = [string]$r.GetValue(1)
+          ProductUpdateLevel     = [string]$r.GetValue(2)
+          ProductUpdateReference = [string]$r.GetValue(3)
+          Edition                = [string]$r.GetValue(4)
+        }
+      }
+    } catch {
+    } finally {
+      if ($conn) { try { $conn.Close(); $conn.Dispose() } catch {} }
+    }
+    return $null
+  }
+  $instanceMap = [ordered]@{}
+  foreach ($namesKey in @(
+    'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL',
+    'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Microsoft SQL Server\Instance Names\SQL'
+  )) {
+    if (-not (Test-Path $namesKey)) { continue }
+    $item = Get-ItemProperty -Path $namesKey -ErrorAction SilentlyContinue
+    if (-not $item) { continue }
+    foreach ($p in $item.PSObject.Properties) {
+      if ($p.Name -match '^PS' -or [string]::IsNullOrWhiteSpace([string]$p.Value)) { continue }
+      if ($instanceMap.Keys -notcontains $p.Name) { $instanceMap[$p.Name] = [string]$p.Value }
+    }
+  }
+  if ($instanceMap.Count -gt 0) {
+    $instParts = @(); $verParts = @(); $updParts = @()
+    $many = $instanceMap.Count -gt 1
+    foreach ($instName in @($instanceMap.Keys)) {
+      $setup = Get-SqlSetup $instanceMap[$instName]
+      $build = ''; $edition = ''; $fileDate = ''
+      if ($setup) {
+        if ($setup.PatchLevel) { $build = [string]$setup.PatchLevel }
+        elseif ($setup.Version) { $build = [string]$setup.Version }
+        if ($setup.Edition) { $edition = ([string]$setup.Edition).Trim() }
+        $sqlPath = [string]$setup.SQLPath
+        if ($sqlPath) {
+          $exe = Join-Path $sqlPath 'Binn\sqlservr.exe'
+          if (Test-Path $exe) { $fileDate = (Get-Item $exe).LastWriteTime.ToString('yyyy-MM-dd') }
+        }
+      }
+      $live = Get-SqlServerProperties $instName
+      if ($live) {
+        if ($live.ProductVersion) { $build = [string]$live.ProductVersion }
+        if ($live.Edition) { $edition = ([string]$live.Edition).Trim() }
+      }
+      $product = Get-SqlProductName $build
+      $verTxt = ($product, $build, $(if ($edition) { $edition } else { $null }) | Where-Object { $_ }) -join ' | '
+      if (-not $verTxt) { $verTxt = 'sin datos de version' }
+      $updBits = @()
+      if ($live) {
+        $lvl = @()
+        if ($live.ProductLevel -and $live.ProductLevel -ne 'RTM') { $lvl += [string]$live.ProductLevel }
+        if ($live.ProductUpdateLevel) { $lvl += [string]$live.ProductUpdateLevel }
+        if ($lvl.Count) { $updBits += ($lvl -join ' ') }
+        if ($live.ProductUpdateReference) { $updBits += [string]$live.ProductUpdateReference }
+      }
+      if ($build) { $updBits += $build }
+      if ($fileDate) { $updBits += $fileDate }
+      $updTxt = if ($updBits.Count) { ($updBits | Select-Object -Unique) -join ' | ' } else { 'sin datos' }
+      if ($many) {
+        $instParts += $instName
+        $verParts += "${instName}: $verTxt"
+        $updParts += "${instName}: $updTxt"
+      } else {
+        $instParts += $instName
+        $verParts += $verTxt
+        $updParts += $updTxt
+      }
+    }
+    $o.SQL_Instancia = ($instParts -join ' | ')
+    $o.SQL_Version = ($verParts -join ' | ')
+    $o.SQL_Ultima_Actualizacion = ($updParts -join ' | ')
+  }
+} catch {}
+try {
+  $requested = @()
+  foreach ($part in @("$CheckKBs" -split '[,;]+')) {
+    $t = "$part".Trim().ToUpper()
+    if (-not $t) { continue }
+    $t = $t -replace '^KB',''
+    if ($t -match '^\d+$') {
+      $id = "KB$t"
+      if ($requested -notcontains $id) { $requested += $id }
+    }
+  }
+  if ($requested.Count -gt 0) {
+    $installedIds = @()
+    foreach ($hf in @(Get-HotFix)) {
+      $hid = "$($hf.HotFixID)".Trim().ToUpper()
+      if ($hid -and $installedIds -notcontains $hid) { $installedIds += $hid }
+    }
+    $presentes = @(); $ausentes = @(); $estado = @()
+    foreach ($id in $requested) {
+      if ($installedIds -contains $id) {
+        $presentes += $id
+        $estado += "${id}: SI"
+      } else {
+        $ausentes += $id
+        $estado += "${id}: NO"
+      }
+    }
+    $o.KBs_Consultadas = ($requested -join ", ")
+    $o.KBs_Presentes = ($presentes -join ", ")
+    $o.KBs_Ausentes = ($ausentes -join ", ")
+    $o.KBs_Estado = ($estado -join " | ")
+  }
+} catch {}
+try {
+  $session = New-Object -ComObject Microsoft.Update.Session
+  $searcher = $session.CreateUpdateSearcher()
+  $result = $searcher.Search("IsInstalled=0 and IsHidden=0")
+  $kbList = @()
+  foreach ($u in @($result.Updates)) {
+    $ids = @()
+    try { $ids = @($u.KBArticleIDs | ForEach-Object { if ($_) { "KB$_" } }) } catch {}
+    if ($ids.Count -gt 0) {
+      foreach ($id in $ids) { if ($id -and $kbList -notcontains $id) { $kbList += $id } }
+    } else {
+      $t = "$($u.Title)".Trim()
+      if ($t -and $kbList -notcontains $t) { $kbList += $t }
+    }
+  }
+  $o.KBs_Disponibles = ($kbList -join ", ")
+  $o.Cantidad_KBs = [string]$kbList.Count
+} catch {
+  $o.Error = $_.Exception.Message
+  if (-not $o.Error) { $o.Error = "No se pudo consultar Windows Update" }
+}
+($o | ConvertTo-Json -Compress) | Set-Content -Path "$base\consult.json" -Encoding UTF8
+'@
+Set-Content -Path $script:LocalConsultWorker -Value $script:ConsultWorker -Encoding UTF8
+$script:ConsultWorker = $null
 
 #------------------------------------------------------------------------------
 #  CONSULTAS DEL MENU CONTEXTUAL (historial de updates y log WU)
@@ -1175,9 +1520,9 @@ function Update-GroupButtonText {
 function Update-ButtonStates {
   $hasRows = $script:Servers.Count -gt 0
   $btnReload.IsEnabled    = $hasRows
-  $btnSelectAll.IsEnabled = $hasRows
+  $btnConsultar.IsEnabled = -not [bool]$script:ConsultRunning
   $btnClear.IsEnabled     = $hasRows
-  $btnReport.IsEnabled    = $hasRows
+  $btnReport.IsEnabled    = -not [bool]$script:ReportRunning
   $hasFix = $false
   try {
     $fixDir = Join-Path $script:ScriptDir 'Fix'
@@ -1638,11 +1983,16 @@ function Sync-ToDashboard($rows, $lbl) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $servers = @($rows | ForEach-Object {
       [ordered]@{
+        Analista                  = $_.Analista
         Dominio                   = $_.Dominio
         Servidor                  = $_.Servidor
         IP                        = $_.IP
         Sistema_Operativo         = $_.Sistema_Operativo
         Version_Sistema_Operativo = $_.Version_Sistema_Operativo
+        SQL_Instancia             = $_.SQL_Instancia
+        SQL_Version               = $_.SQL_Version
+        SQL_Ultima_Actualizacion  = $_.SQL_Ultima_Actualizacion
+        Fecha_Ventana             = $_.Fecha_Ventana
         Fecha_Instalacion         = $_.Fecha_Instalacion
         KBs_Instaladas            = $_.KBs_Instaladas
         Fecha_Reinicio            = $_.Fecha_Reinicio
@@ -1696,11 +2046,16 @@ function Save-ReportCsv($rows) {
     # Proyectamos a objetos ordenados para fijar el orden y los nombres de columna
     $export = $rows | ForEach-Object {
       [pscustomobject][ordered]@{
+        Analista                  = $_.Analista
         Dominio                   = $_.Dominio
         Servidor                  = $_.Servidor
         IP                        = $_.IP
         Sistema_Operativo         = $_.Sistema_Operativo
         Version_Sistema_Operativo = $_.Version_Sistema_Operativo
+        SQL_Instancia             = $_.SQL_Instancia
+        SQL_Version               = $_.SQL_Version
+        SQL_Ultima_Actualizacion  = $_.SQL_Ultima_Actualizacion
+        Fecha_Ventana             = $_.Fecha_Ventana
         Fecha_Instalacion         = $_.Fecha_Instalacion
         KBs_Instaladas            = $_.KBs_Instaladas
         Fecha_Reinicio            = $_.Fecha_Reinicio
@@ -1739,12 +2094,17 @@ function Show-ReportWindow($rows, $savedPath) {
               RowHeaderWidth="0" Background="White" BorderBrush="#FFE2E8F0"
               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
       <DataGrid.Columns>
+        <DataGridTextColumn Header="Analista"          Binding="{Binding Analista}"                   Width="140"/>
         <DataGridTextColumn Header="Dominio"           Binding="{Binding Dominio}"                   Width="120"/>
         <DataGridTextColumn Header="Servidor"          Binding="{Binding Servidor}"                  Width="130"/>
         <DataGridTextColumn Header="IP"                Binding="{Binding IP}"                        Width="110"/>
         <DataGridTextColumn Header="Sistema Operativo" Binding="{Binding Sistema_Operativo}"         Width="170"/>
         <DataGridTextColumn Header="Version SO"        Binding="{Binding Version_Sistema_Operativo}" Width="120"/>
-        <DataGridTextColumn Header="Fecha Instalacion" Binding="{Binding Fecha_Instalacion}"         Width="120"/>
+        <DataGridTextColumn Header="SQL Instancia"     Binding="{Binding SQL_Instancia}"             Width="130"/>
+        <DataGridTextColumn Header="SQL Version"       Binding="{Binding SQL_Version}"               Width="220"/>
+        <DataGridTextColumn Header="SQL Ult. Act."     Binding="{Binding SQL_Ultima_Actualizacion}"  Width="200"/>
+        <DataGridTextColumn Header="Fecha Ventana"     Binding="{Binding Fecha_Ventana}"             Width="120"/>
+        <DataGridTextColumn Header="Fecha Instalacion" Binding="{Binding Fecha_Instalacion}"         Width="130"/>
         <DataGridTextColumn Header="KBs Instaladas"    Binding="{Binding KBs_Instaladas}"            Width="200"/>
         <DataGridTextColumn Header="Fecha Reinicio"    Binding="{Binding Fecha_Reinicio}"            Width="150"/>
         <DataGridTextColumn Header="Running Time"      Binding="{Binding Running_Time}"              Width="110"/>
@@ -1792,22 +2152,132 @@ function Show-ReportWindow($rows, $savedPath) {
   $win.ShowDialog() | Out-Null
 }
 
-# Recolecta el reporte de TODOS los servidores de la grilla (en paralelo)
+# Recolecta el reporte: grilla visible, o grupo + fecha + motivo si la grilla esta vacia
+function Show-ReportScopeDialog {
+  $groupNames = @($script:Csv | ForEach-Object { "$($_.Grupo)".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+  if ($groupNames.Count -eq 0) {
+    [System.Windows.MessageBox]::Show('No hay grupos en el inventario CSV.','WUU','OK','Information') | Out-Null
+    return $null
+  }
+  [xml]$sx = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WUU - Reporte por grupo" Height="340" Width="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock Grid.Row="0" Text="No hay servidores en la grilla. Elegi grupo, fecha de ventana y motivo."
+               TextWrapping="Wrap" Margin="0,0,0,14"/>
+    <Grid Grid.Row="1" Margin="0,0,0,8">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="Grupo:" VerticalAlignment="Center"/>
+      <ComboBox x:Name="cmbGroup" Grid.Column="1" Padding="4,3"/>
+    </Grid>
+    <Grid Grid.Row="2" Margin="0,0,0,8">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="Fecha ventana:" VerticalAlignment="Center"/>
+      <TextBox x:Name="txtDate" Grid.Column="1" Padding="4,3"
+               ToolTip="dd/mm/aaaa. Se escribe en Fecha_Ventana y filtra las KB instaladas ese dia."/>
+    </Grid>
+    <Grid Grid.Row="3" Margin="0,0,0,8">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="Motivo:" VerticalAlignment="Top" Margin="0,6,0,0"/>
+      <TextBox x:Name="txtMotivo" Grid.Column="1" Padding="4,3" Height="70" TextWrapping="Wrap"
+               AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+    </Grid>
+    <TextBlock x:Name="lblErr" Grid.Row="4" Foreground="#FFDC2626" TextWrapping="Wrap"/>
+    <DockPanel Grid.Row="5" LastChildFill="False" HorizontalAlignment="Right" Margin="0,10,0,0">
+      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" Margin="0,0,8,0" IsCancel="True"/>
+      <Button x:Name="btnOk" Content="Generar reporte" Padding="14,7" IsDefault="True"/>
+    </DockPanel>
+  </Grid>
+</Window>
+'@
+  $rdr = New-Object System.Xml.XmlNodeReader $sx
+  $win = [Windows.Markup.XamlReader]::Load($rdr)
+  $cmb = $win.FindName('cmbGroup')
+  $txtDate = $win.FindName('txtDate')
+  $txtMotivo = $win.FindName('txtMotivo')
+  $lblErr = $win.FindName('lblErr')
+  $cmb.ItemsSource = $groupNames
+  $cmb.SelectedIndex = 0
+  $txtDate.Text = (Get-Date).ToString('dd/MM/yyyy')
+  $box = @{ Result = $null }
+  $fnParseDate = ${function:Parse-ScheduledDateDMY}
+  $csvRef = @($script:Csv)
+  $win.FindName('btnOk').Add_Click({
+    try {
+      $group = "$($cmb.SelectedItem)".Trim()
+      if (-not $group) { throw 'Selecciona un grupo.' }
+      $motivo = "$($txtMotivo.Text)".Trim()
+      if (-not $motivo) { throw 'Ingresa el motivo del reporte.' }
+      $parsed = & $fnParseDate $txtDate.Text.Trim() 0 0
+      $servers = @($csvRef | Where-Object { "$($_.Grupo)".Trim() -ieq $group } |
+        ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+      if ($servers.Count -eq 0) { throw "El grupo '$group' no contiene servidores validos." }
+      $box.Result = [pscustomobject]@{
+        Group = $group
+        Date = $parsed
+        Motivo = $motivo
+        Servers = $servers
+      }
+      $win.DialogResult = $true
+      $win.Close()
+    } catch {
+      $lblErr.Text = $_.Exception.Message
+    }
+  }.GetNewClosure())
+  $win.FindName('btnCancel').Add_Click({
+    $box.Result = $null
+    $win.DialogResult = $false
+    $win.Close()
+  }.GetNewClosure())
+  try { $win.Owner = $Window } catch {}
+  [void]$win.ShowDialog()
+  return $box.Result
+}
+
 function Show-Report {
-  if ($script:Servers.Count -eq 0) { return }
-  if (-not $btnReport.IsEnabled) { return }   # ya hay un reporte en curso
+  if ([bool]$script:ReportRunning) { return }
+  $targets = @()
+  $periodMode = 'CurrentMonth'
+  $specificDate = ''
+  $script:RepComment = ''
+  $script:RepWindowDate = (Get-Date).ToString('yyyy-MM-dd')
+
+  if ($script:Servers.Count -gt 0) {
+    $targets = @($script:Servers | ForEach-Object { $_.Servidor } | Where-Object { $_ } | Sort-Object -Unique)
+  } else {
+    $scope = Show-ReportScopeDialog
+    if (-not $scope) { return }
+    $targets = @($scope.Servers)
+    $periodMode = 'SpecificDate'
+    $specificDate = ([datetime]$scope.Date).ToString('yyyy-MM-dd')
+    $script:RepWindowDate = $specificDate
+    $script:RepComment = "$($scope.Motivo)".Trim()
+    Write-Log 'INFO' "Reporte por grupo '$($scope.Group)' | fecha ventana=$specificDate | servidores=$($targets.Count) | motivo=$($script:RepComment)"
+  }
+  if ($targets.Count -eq 0) { return }
+
   if (-not (Test-Path $script:PsExecPath)) {
     [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
     return
   }
-  # Cancelar reporte anterior si aun hubiera runspaces colgados
   foreach ($j in $script:RepPool) {
     try { $j.ps.Stop() } catch {}
     try { $j.ps.Dispose() } catch {}
     try { $j.rs.Close(); $j.rs.Dispose() } catch {}
   }
-  $targets = @($script:Servers | ForEach-Object { $_.Servidor })
 
+  $script:ReportRunning  = $true
   $btnReport.IsEnabled   = $false
   $script:RepOrig        = $btnReport.Content
   $script:RepBag         = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
@@ -1815,18 +2285,17 @@ function Show-Report {
   $script:RepDeadline    = (Get-Date).AddMinutes(10)
   $script:RepPool        = @()
 
-  # Trabajo por servidor: copia el script de consulta, lo ejecuta y lee su JSON
   $rjob = {
-    param($server, $psexec, $worker, $rel, $bag)
+    param($server, $psexec, $worker, $rel, $periodMode, $specificDate, $bag)
     $obj = $null
     try {
       $remoteDir = "\\$server\C`$\$rel"
       New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
       Remove-Item "$remoteDir\report.json" -ErrorAction SilentlyContinue
       Copy-Item -Path $worker -Destination "$remoteDir\report.ps1" -Force -ErrorAction Stop
-      $null = & $psexec "\\$server" -accepteula -nobanner -s `
-                powershell.exe -ExecutionPolicy Bypass -NonInteractive `
-                -File "C:\$rel\report.ps1" 2>&1
+      $reportArgs = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\report.ps1",'-PeriodMode',$periodMode)
+      if ($periodMode -eq 'SpecificDate' -and $specificDate) { $reportArgs += @('-SpecificDate',$specificDate) }
+      $null = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @reportArgs 2>&1
       if (Test-Path "$remoteDir\report.json") {
         $raw = Get-Content "$remoteDir\report.json" -Raw
         if ($raw) { $obj = $raw | ConvertFrom-Json }
@@ -1848,6 +2317,7 @@ function Show-Report {
     $ps.AddScript($rjob.ToString()).
         AddArgument($server).AddArgument($script:PsExecPath).
         AddArgument($script:LocalReportWorker).AddArgument($script:RemoteRel).
+        AddArgument($periodMode).AddArgument($specificDate).
         AddArgument($script:RepBag) | Out-Null
     $script:RepPool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
   }
@@ -1873,8 +2343,10 @@ function On-ReportTick {
       try { $j.rs.Close(); $j.rs.Dispose() } catch {}
     }
     $script:RepPool = @()
+    $script:ReportRunning = $false
     $btnReport.Content   = $script:RepOrig
     $btnReport.IsEnabled = $true
+    Update-ButtonStates
 
     # Construye las filas tipadas y ordenadas por servidor (sin duplicados)
     $rows = New-Object System.Collections.ObjectModel.ObservableCollection[object]
@@ -1885,18 +2357,29 @@ function On-ReportTick {
     }
     foreach ($o in @($byServer.Values | Sort-Object { "$($_.Servidor)" })) {
       $rr = New-Object ReportRow
+      $rr.Analista                  = "$($script:AnalistaAsignado)".Trim()
       $rr.Dominio                   = "$($o.Dominio)"
       $rr.Servidor                  = "$($o.Servidor)"
       $rr.IP                        = "$($o.IP)"
       $rr.Sistema_Operativo         = "$($o.Sistema_Operativo)"
       $rr.Version_Sistema_Operativo = "$($o.Version_Sistema_Operativo)"
+      $rr.SQL_Instancia             = "$($o.SQL_Instancia)"
+      $rr.SQL_Version               = "$($o.SQL_Version)"
+      $rr.SQL_Ultima_Actualizacion  = "$($o.SQL_Ultima_Actualizacion)"
+      $rr.Fecha_Ventana             = "$($script:RepWindowDate)"
       $rr.Fecha_Instalacion         = "$($o.Fecha_Instalacion)"
       $rr.KBs_Instaladas            = "$($o.KBs_Instaladas)"
       $rr.Fecha_Reinicio            = "$($o.Fecha_Reinicio)"
       $rr.Running_Time              = "$($o.Running_Time)"
       $rr.Descripcion_Error         = "$($o.Descripcion_Error)"
       $gridRow = $script:Servers | Where-Object { "$($_.Servidor)".Trim() -ieq "$($o.Servidor)".Trim() } | Select-Object -First 1
-      $rr.Comentarios               = if ($gridRow) { "$($gridRow.Comentarios)" } else { "$($o.Comentarios)" }
+      $gridComment = if ($gridRow) { "$($gridRow.Comentarios)".Trim() } else { '' }
+      $motivo = "$($script:RepComment)".Trim()
+      if ($gridComment -and $motivo) {
+        $rr.Comentarios = if ($gridComment -match [regex]::Escape($motivo)) { $gridComment } else { "$gridComment | $motivo" }
+      } elseif ($motivo) { $rr.Comentarios = $motivo }
+      elseif ($gridComment) { $rr.Comentarios = $gridComment }
+      else { $rr.Comentarios = "$($o.Comentarios)" }
       $rr.Disk_Space                = "$($o.Disk_Space)"
       $rr.Snap                      = Get-SnapReportText $(if ($gridRow) { [bool]$gridRow.Snap } else { $false })
       $rr.Confirmado                = Get-ConfirmadoReportText $(if ($gridRow) { [bool]$gridRow.Confirmado } else { $false })
@@ -1912,6 +2395,302 @@ function On-ReportTick {
     }) -Type 'ReporteManual'
 
     Show-ReportWindow $rows $savedPath
+  }
+}
+
+function Show-ConsultServersDialog {
+  $groupNames = @($script:Csv | ForEach-Object { "$($_.Grupo)".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+  [xml]$sx = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WUU - Consultar servidores" Height="580" Width="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="150"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock Grid.Row="0" Text="Consultar KBs pendientes" FontSize="15"
+               FontWeight="SemiBold" Margin="0,0,0,8"/>
+    <TextBlock Grid.Row="1" TextWrapping="Wrap" Foreground="#FF475569" Margin="0,0,0,8"
+               Text="Marca uno o varios grupos y/o pega nombres de servidor. Opcionalmente indica KBs para ver si estan instaladas. No se instala nada."/>
+    <DockPanel Grid.Row="2" Margin="0,0,0,4">
+      <TextBlock Text="Grupos:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      <Button x:Name="btnNoneGroups" Content="Ninguno" Padding="10,3" DockPanel.Dock="Right" Margin="6,0,0,0"/>
+      <Button x:Name="btnAllGroups" Content="Todos" Padding="10,3" DockPanel.Dock="Right"/>
+    </DockPanel>
+    <Border Grid.Row="3" Background="White" BorderBrush="#FFCBD5E1" BorderThickness="1" CornerRadius="4" Padding="4">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl x:Name="icGroups">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <CheckBox Content="{Binding Name}" Margin="6,4"
+                        IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+    <Grid Grid.Row="4" Margin="0,10,0,8">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="KBs:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+      <TextBox x:Name="txtKbs" Grid.Column="1" Padding="6,5"
+               ToolTip="Uno o varios numeros: KB5005565, 5005566. Separadores: coma, punto y coma o espacio."/>
+    </Grid>
+    <TextBlock Grid.Row="5" Text="Servidores adicionales (opcional si hay grupos). Separadores: linea, coma o punto y coma."
+               TextWrapping="Wrap" Foreground="#FF475569" Margin="0,0,0,6"/>
+    <TextBox x:Name="txtServers" Grid.Row="6" AcceptsReturn="True" TextWrapping="NoWrap"
+             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+             Padding="8" FontFamily="Consolas"/>
+    <TextBlock x:Name="lblErr" Grid.Row="7" Foreground="#FFDC2626" Margin="0,8,0,0"
+               Text="" TextWrapping="Wrap"/>
+    <DockPanel Grid.Row="8" LastChildFill="False" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" Margin="0,0,8,0" IsCancel="True"/>
+      <Button x:Name="btnOk" Content="Consultar" Padding="14,7" IsDefault="True"/>
+    </DockPanel>
+  </Grid>
+</Window>
+'@
+  $rdr = New-Object System.Xml.XmlNodeReader $sx
+  $win = [Windows.Markup.XamlReader]::Load($rdr)
+  $ic = $win.FindName('icGroups')
+  $txt = $win.FindName('txtServers')
+  $txtKbs = $win.FindName('txtKbs')
+  $lbl = $win.FindName('lblErr')
+  $consultGroups = New-Object System.Collections.ObjectModel.ObservableCollection[object]
+  foreach ($g in $groupNames) {
+    $gi = New-Object GroupItem
+    $gi.Name = $g
+    $gi.IsChecked = $false
+    $consultGroups.Add($gi)
+  }
+  $ic.ItemsSource = $consultGroups
+  $box = @{ Result = $null }
+  $csvRef = @($script:Csv)
+  $win.FindName('btnAllGroups').Add_Click({
+    foreach ($g in $consultGroups) { $g.IsChecked = $true }
+  }.GetNewClosure())
+  $win.FindName('btnNoneGroups').Add_Click({
+    foreach ($g in $consultGroups) { $g.IsChecked = $false }
+  }.GetNewClosure())
+  $win.FindName('btnOk').Add_Click({
+    $selected = @($consultGroups | Where-Object { $_.IsChecked } | ForEach-Object { "$($_.Name)".Trim() } | Where-Object { $_ })
+    $fromGroup = @()
+    if ($selected.Count -gt 0) {
+      $fromGroup = @($csvRef | Where-Object {
+          $gname = "$($_.Grupo)".Trim()
+          @($selected | Where-Object { $_ -ieq $gname }).Count -gt 0
+        } |
+        ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+      if ($fromGroup.Count -eq 0) {
+        $lbl.Text = 'Los grupos seleccionados no contienen servidores validos.'
+        return
+      }
+    }
+    $typed = @("$($txt.Text)" -split '[,;\r\n]+' |
+      ForEach-Object { "$_".Trim() } |
+      Where-Object { $_ })
+    $names = @($fromGroup + $typed | Select-Object -Unique)
+    if ($names.Count -eq 0) {
+      $lbl.Text = 'Selecciona al menos un grupo o ingresa un nombre de servidor.'
+      return
+    }
+    $kbList = @()
+    foreach ($part in @("$($txtKbs.Text)" -split '[,;\s]+')) {
+      $t = "$part".Trim()
+      if (-not $t) { continue }
+      $u = $t.ToUpper()
+      $num = $null
+      if ($u -match '^KB(\d+)$') { $num = $Matches[1] }
+      elseif ($u -match '^(\d+)$') { $num = $Matches[1] }
+      else {
+        $lbl.Text = "KB invalida: $t. Usa 5005565 o KB5005565."
+        return
+      }
+      $id = "KB$num"
+      if ($kbList -notcontains $id) { $kbList += $id }
+    }
+    $box.Result = [pscustomobject]@{
+      Names = $names
+      KBs = ($kbList -join ',')
+    }
+    $win.DialogResult = $true
+    $win.Close()
+  }.GetNewClosure())
+  $win.FindName('btnCancel').Add_Click({
+    $box.Result = $null
+    $win.DialogResult = $false
+    $win.Close()
+  }.GetNewClosure())
+  try { $win.Owner = $Window } catch {}
+  [void]$win.ShowDialog()
+  return $box.Result
+}
+
+function Start-Consult {
+  if ([bool]$script:ConsultRunning) { return }
+  $scope = Show-ConsultServersDialog
+  if (-not $scope) { return }
+  $names = @($scope.Names)
+  $checkKbs = "$($scope.KBs)".Trim()
+  if ($names.Count -eq 0) { return }
+  if (-not (Test-Path $script:PsExecPath)) {
+    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
+    return
+  }
+
+  $targets = @()
+  $script:ConsultMeta = @{}
+  foreach ($requested in $names) {
+    $name = "$requested".Trim()
+    if (-not $name) { continue }
+    $inCsv = $null -ne ($script:Csv | Where-Object { "$($_.Servidor)".Trim() -ieq $name } | Select-Object -First 1)
+    if (-not $script:ConsultMeta.ContainsKey($name)) {
+      $script:ConsultMeta[$name] = $(if ($inCsv) { 'SI' } else { 'NO' })
+      $targets += $name
+    }
+  }
+  if ($targets.Count -eq 0) { return }
+
+  foreach ($j in $script:ConsultPool) {
+    try { $j.ps.Stop() } catch {}
+    try { $j.ps.Dispose() } catch {}
+    try { $j.rs.Close(); $j.rs.Dispose() } catch {}
+  }
+
+  $script:ConsultRunning = $true
+  $btnConsultar.IsEnabled = $false
+  $script:ConsultOrig = $btnConsultar.Content
+  $script:ConsultBag = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
+  $script:ConsultTotal = $targets.Count
+  $script:ConsultDeadline = (Get-Date).AddMinutes(15)
+  $script:ConsultPool = @()
+  Write-Log 'INFO' "Consulta iniciada: $($targets.Count) servidor(es)$(if ($checkKbs) { " | KBs=$checkKbs" } else { '' })."
+
+  $cjob = {
+    param($server, $psexec, $worker, $rel, $checkKbs, $bag)
+    $obj = $null
+    try {
+      $remoteDir = "\\$server\C`$\$rel"
+      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+      Remove-Item "$remoteDir\consult.json" -ErrorAction SilentlyContinue
+      Copy-Item -Path $worker -Destination "$remoteDir\consult.ps1" -Force -ErrorAction Stop
+      $consultArgs = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\consult.ps1")
+      if ("$checkKbs".Trim()) { $consultArgs += @('-CheckKBs', "$checkKbs") }
+      $null = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @consultArgs 2>&1
+      if (Test-Path "$remoteDir\consult.json") {
+        $raw = Get-Content "$remoteDir\consult.json" -Raw
+        if ($raw) { $obj = $raw | ConvertFrom-Json }
+      }
+    } catch {}
+    if (-not $obj) {
+      $obj = [pscustomobject]@{
+        Servidor=$server; IP='';
+        SQL_Instancia=''; SQL_Version=''; SQL_Ultima_Actualizacion='';
+        KBs_Disponibles=''; Cantidad_KBs='';
+        Fecha_Ultima_Actualizacion=''; Fecha_Ultimo_Reinicio='';
+        KBs_Consultadas=''; KBs_Presentes=''; KBs_Ausentes=''; KBs_Estado='';
+        Error='Sin conexion o sin datos'
+      }
+    } else {
+      $obj.Servidor = $server
+    }
+    [void]$bag.Add($obj)
+  }
+
+  foreach ($server in $targets) {
+    $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState='MTA'; $rs.Open()
+    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $ps.AddScript($cjob.ToString()).
+        AddArgument($server).AddArgument($script:PsExecPath).
+        AddArgument($script:LocalConsultWorker).AddArgument($script:RemoteRel).
+        AddArgument($checkKbs).AddArgument($script:ConsultBag) | Out-Null
+    $script:ConsultPool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
+  }
+
+  if (-not $script:ConsultTimer) {
+    $script:ConsultTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:ConsultTimer.Interval = [TimeSpan]::FromMilliseconds(400)
+    $script:ConsultTimer.add_Tick({ On-ConsultTick })
+  }
+  $script:ConsultTimer.Start()
+}
+
+function On-ConsultTick {
+  $done = $script:ConsultBag.Count
+  $btnConsultar.Content = "Consultando $done/$($script:ConsultTotal)..."
+
+  if ($done -ge $script:ConsultTotal -or (Get-Date) -gt $script:ConsultDeadline) {
+    $script:ConsultTimer.Stop()
+    foreach ($j in $script:ConsultPool) {
+      try { if ($j.handle.IsCompleted) { $j.ps.EndInvoke($j.handle) } } catch {}
+      try { $j.ps.Dispose() } catch {}
+      try { $j.rs.Close(); $j.rs.Dispose() } catch {}
+    }
+    $script:ConsultPool = @()
+    $script:ConsultRunning = $false
+    $btnConsultar.Content = $script:ConsultOrig
+    $btnConsultar.IsEnabled = $true
+    Update-ButtonStates
+
+    $byServer = [ordered]@{}
+    foreach ($o in @($script:ConsultBag)) {
+      $name = "$($o.Servidor)".Trim()
+      if ($name) { $byServer[$name] = $o }
+    }
+    $anySql = @($byServer.Values | Where-Object { "$($_.SQL_Instancia)".Trim() }).Count -gt 0
+    $export = @($byServer.Values | Sort-Object { "$($_.Servidor)" } | ForEach-Object {
+      $name = "$($_.Servidor)".Trim()
+      $inInv = 'NO'
+      if ($script:ConsultMeta.ContainsKey($name)) { $inInv = $script:ConsultMeta[$name] }
+      $row = [ordered]@{
+        Servidor      = $name
+        En_Inventario = $inInv
+        IP            = $_.IP
+      }
+      if ($anySql) {
+        $row['SQL_Instancia']            = "$($_.SQL_Instancia)"
+        $row['SQL_Version']              = "$($_.SQL_Version)"
+        $row['SQL_Ultima_Actualizacion'] = "$($_.SQL_Ultima_Actualizacion)"
+      }
+      $row['KBs_Disponibles']            = $_.KBs_Disponibles
+      $row['Cantidad_KBs']               = $_.Cantidad_KBs
+      $row['Fecha_Ultima_Actualizacion'] = $_.Fecha_Ultima_Actualizacion
+      $row['Fecha_Ultimo_Reinicio']      = $_.Fecha_Ultimo_Reinicio
+      $row['KBs_Consultadas']            = $_.KBs_Consultadas
+      $row['KBs_Presentes']              = $_.KBs_Presentes
+      $row['KBs_Ausentes']               = $_.KBs_Ausentes
+      $row['KBs_Estado']                 = $_.KBs_Estado
+      $row['Error']                      = $_.Error
+      [pscustomobject]$row
+    })
+
+    $savedPath = $null
+    try {
+      $dir = Join-Path $script:ScriptDir 'Consultas'
+      if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+      $savedPath = Join-Path $dir ("Consulta_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'))
+      $export | Export-Csv -Path $savedPath -NoTypeInformation -Delimiter ';' -Encoding UTF8
+    } catch {
+      Write-Log 'ERROR' "No se pudo guardar la consulta: $($_.Exception.Message)"
+    }
+
+    $ok = @($export | Where-Object { -not "$($_.Error)".Trim() }).Count
+    $fail = $export.Count - $ok
+    $fuera = @($export | Where-Object { $_.En_Inventario -eq 'NO' }).Count
+    Write-Log 'INFO' "Consulta finalizada: $($export.Count) servidor(es), $ok ok, $fail con error, $fuera fuera de inventario. CSV: $savedPath"
+    $msg = "Servidores consultados: $($export.Count)`nSin error: $ok`nCon error: $fail`nFuera del inventario: $fuera"
+    if ($savedPath) { $msg += "`n`nCSV guardado en:`n$savedPath" }
+    else { $msg += "`n`nNo se pudo guardar el CSV." }
+    [System.Windows.MessageBox]::Show($msg, 'WUU - Consultar', 'OK', 'Information') | Out-Null
   }
 }
 
@@ -3732,17 +4511,10 @@ $script:btnGroups.Add_Checked({
   }
 })
 
-# Seleccionar todos: marca Sel en todas las filas visibles (inicia parcheo en cada una)
-$btnSelectAll.Add_Click({
-  if (-not (Ensure-AnalystAssigned 'Seleccionar todos')) { return }
-  if ($script:Servers.Count -eq 0) { return }
-  $n = 0
-  foreach ($s in $script:Servers) {
-    if (-not $s.Sel) { $s.Sel = $true; $n++ }
-    elseif (-not $script:Jobs.ContainsKey($s.Servidor)) { Start-ServerJob $s }
-  }
-  if ($n -gt 0) { Write-Log 'INFO' "Seleccionar todos: $n servidor(es) marcados ($($script:Servers.Count) en grilla)" }
-  Update-ButtonStates
+# Consultar: pide servidores (con o sin inventario), consulta KBs pendientes y guarda CSV
+$btnConsultar.Add_Click({
+  if (-not (Ensure-AnalystAssigned 'Consultar servidores')) { return }
+  Start-Consult
 })
 
 # Limpiar seleccion: desmarca todos los checkbox
@@ -4217,8 +4989,11 @@ if ($ScheduledPatch) {
   # Guardar CSV + JSON del reporte
   $rows = @($bag | Sort-Object Servidor | ForEach-Object {
     [pscustomobject][ordered]@{
+      Analista="$($script:AnalistaAsignado)".Trim()
       Dominio=$_.Dominio;Servidor=$_.Servidor;IP=$_.IP
       Sistema_Operativo=$_.Sistema_Operativo;Version_Sistema_Operativo=$_.Version_Sistema_Operativo
+      SQL_Instancia=$_.SQL_Instancia;SQL_Version=$_.SQL_Version;SQL_Ultima_Actualizacion=$_.SQL_Ultima_Actualizacion
+      Fecha_Ventana=(Get-Date).ToString('yyyy-MM-dd')
       Fecha_Instalacion=$_.Fecha_Instalacion;KBs_Instaladas=$_.KBs_Instaladas
       Fecha_Reinicio=$_.Fecha_Reinicio;Running_Time=$_.Running_Time;Descripcion_Error=$_.Descripcion_Error
       Comentarios='';Disk_Space=$_.Disk_Space
@@ -4237,8 +5012,11 @@ if ($ScheduledPatch) {
       [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
       $vServers = @($bag | ForEach-Object {
         [ordered]@{
+          Analista="$($script:AnalistaAsignado)".Trim()
           Dominio=$_.Dominio; Servidor=$_.Servidor; IP=$_.IP
           Sistema_Operativo=$_.Sistema_Operativo; Version_Sistema_Operativo=$_.Version_Sistema_Operativo
+          SQL_Instancia=$_.SQL_Instancia; SQL_Version=$_.SQL_Version; SQL_Ultima_Actualizacion=$_.SQL_Ultima_Actualizacion
+          Fecha_Ventana=(Get-Date).ToString('yyyy-MM-dd')
           Fecha_Instalacion=$_.Fecha_Instalacion; KBs_Instaladas=$_.KBs_Instaladas
           Fecha_Reinicio=$_.Fecha_Reinicio; Running_Time=$_.Running_Time; Descripcion_Error=$_.Descripcion_Error
           Comentarios=''; Disk_Space=$_.Disk_Space

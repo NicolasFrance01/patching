@@ -41,6 +41,11 @@ export async function POST(req: Request) {
         ip: item.IP ? String(item.IP) : null,
         os: item.Sistema_Operativo ? String(item.Sistema_Operativo) : null,
         osVersion: item.Version_Sistema_Operativo ? String(item.Version_Sistema_Operativo) : null,
+        analista: item.Analista ? String(item.Analista) : null,
+        sqlInstancia: item.SQL_Instancia ? String(item.SQL_Instancia) : null,
+        sqlVersion: item.SQL_Version ? String(item.SQL_Version) : null,
+        sqlUltimaActualizacion: item.SQL_Ultima_Actualizacion ? String(item.SQL_Ultima_Actualizacion) : null,
+        fechaVentana: item.Fecha_Ventana ? String(item.Fecha_Ventana) : null,
         installDate: item.Fecha_Instalacion ? String(item.Fecha_Instalacion) : null,
         installedKBs: item.KBs_Instaladas ? String(item.KBs_Instaladas) : null,
         rebootDate: item.Fecha_Reinicio ? String(item.Fecha_Reinicio) : null,
@@ -66,6 +71,11 @@ export async function POST(req: Request) {
         ip: item.ip,
         os: item.os,
         osVersion: item.osVersion,
+        analista: item.analista,
+        sqlInstancia: item.sqlInstancia,
+        sqlVersion: item.sqlVersion,
+        sqlUltimaActualizacion: item.sqlUltimaActualizacion,
+        fechaVentana: item.fechaVentana,
         installDate: item.installDate,
         installedKBs: item.installedKBs,
         rebootDate: item.rebootDate,
@@ -82,6 +92,23 @@ export async function POST(req: Request) {
         update: payload,
         create: { serverName: item.serverName, ...payload },
       });
+
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      await prisma.monthlyServerStatus.upsert({
+        where: {
+          month_serverName: {
+            month: currentMonth,
+            serverName: item.serverName,
+          },
+        },
+        update: { ...payload, status: item.status },
+        create: {
+          month: currentMonth,
+          serverName: item.serverName,
+          ...payload,
+          status: item.status,
+        },
+      });
     }
 
     if (items.length > 0) {
@@ -95,6 +122,11 @@ export async function POST(req: Request) {
           ip: item.ip,
           os: item.os,
           osVersion: item.osVersion,
+          analista: item.analista,
+          sqlInstancia: item.sqlInstancia,
+          sqlVersion: item.sqlVersion,
+          sqlUltimaActualizacion: item.sqlUltimaActualizacion,
+          fechaVentana: item.fechaVentana,
           installDate: item.installDate,
           installedKBs: item.installedKBs,
           rebootDate: item.rebootDate,

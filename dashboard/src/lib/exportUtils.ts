@@ -8,7 +8,12 @@ export interface ExportRow {
   ip: string;
   tipo: string;
   ambiente: string;
+  analista: string;
   os: string;
+  sqlInstancia: string;
+  sqlVersion: string;
+  sqlUpd: string;
+  fechaVentana: string;
   fechaInstalacion: string;
   kbsInstaladas: string;
   fechaReinicio: string;
@@ -69,15 +74,17 @@ const BANK_RGB: Record<string, [number, number, number]> = {
 };
 
 const HEADERS = [
-  "Servidor", "Dominio", "IP", "Tipo", "Ambiente",
-  "OS", "Fecha Instalación", "KBs Instaladas", "Fecha Reinicio", "Estado", "Error",
+  "Servidor", "Dominio", "IP", "Tipo", "Ambiente", "Analista",
+  "OS", "SQL Inst", "SQL Vers", "SQL Upd", "Fecha Ventana",
+  "Fecha Instalación", "KBs Instaladas", "Fecha Reinicio", "Estado", "Error",
   "Comentarios", "Snap", "Confirmado"
 ];
 
 function toRow(r: ExportRow): string[] {
   return [
-    r.servidor, r.dominio, r.ip, r.tipo, r.ambiente,
-    r.os, r.fechaInstalacion, r.kbsInstaladas, r.fechaReinicio, r.estado, r.error,
+    r.servidor, r.dominio, r.ip, r.tipo, r.ambiente, r.analista,
+    r.os, r.sqlInstancia, r.sqlVersion, r.sqlUpd, r.fechaVentana,
+    r.fechaInstalacion, r.kbsInstaladas, r.fechaReinicio, r.estado, r.error,
     r.comentarios, r.snap, r.confirmado
   ];
 }
@@ -137,20 +144,25 @@ export function generatePDFDoc(rows: ExportRow[], title: string) {
     alternateRowStyles: { fillColor: [245, 245, 250] },
     margin: { top: 46, bottom: 42, left: 14, right: 14 },
     columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: 15 },
-      2: { cellWidth: 15 },
-      3: { cellWidth: 12 },
-      4: { cellWidth: 15 },
-      5: { cellWidth: 18 },
-      6: { cellWidth: 15 },
-      7: { cellWidth: 18 },
-      8: { cellWidth: 15 },
-      9: { cellWidth: 12 },
-      10: { cellWidth: 30 },
-      11: { cellWidth: 25 },
-      12: { cellWidth: 10 },
-      13: { cellWidth: 15 },
+      0: { cellWidth: 15 }, // Servidor
+      1: { cellWidth: 12 }, // Dominio
+      2: { cellWidth: 12 }, // IP
+      3: { cellWidth: 10 }, // Tipo
+      4: { cellWidth: 12 }, // Ambiente
+      5: { cellWidth: 12 }, // Analista
+      6: { cellWidth: 12 }, // OS
+      7: { cellWidth: 10 }, // SQL Inst
+      8: { cellWidth: 10 }, // SQL Vers
+      9: { cellWidth: 12 }, // SQL Upd
+      10: { cellWidth: 12 }, // Fecha Ventana
+      11: { cellWidth: 12 }, // Fecha Instalación
+      12: { cellWidth: 12 }, // KBs Instaladas
+      13: { cellWidth: 12 }, // Fecha Reinicio
+      14: { cellWidth: 10 }, // Estado
+      15: { cellWidth: 20 }, // Error
+      16: { cellWidth: 15 }, // Comentarios
+      17: { cellWidth: 8 },  // Snap
+      18: { cellWidth: 10 }, // Confirmado
     },
     didDrawPage: () => drawPageHeaderAndFooter(),
   });

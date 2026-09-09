@@ -140,12 +140,41 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [showFilterBar, setShowFilterBar] = useState(false);
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [chartsMounted, setChartsMounted] = useState(false);
+  const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => { setChartsMounted(true); }, []);
 
+  // Fetch server data when the selected month changes
+  useEffect(() => {
+    async function fetchData() {
+      if (timeFilter !== "mes" || !selectedMonth) {
+        // If not using month filter, we might want to default to initialData or a specific behavior.
+        // For now, if they choose custom time range, we will just use whatever data is loaded,
+        // or we could fetch the latest. 
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/servers?month=${selectedMonth}`);
+        if (res.ok) {
+          const data = await res.json();
+          setServerData(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch server data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, [timeFilter, selectedMonth]);
+
   // ── Enriched servers ────────────────────────────────────────────────────────
   const enriched = useMemo(() =>
-    initialData.map((s) => {
+    serverData.map((s) => {
       const info = getServerInfo(s.serverName, s.ip ?? undefined);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
@@ -328,7 +357,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 ip: s.ip || "—",
                 tipo: s.info?.type || "Sin clasificar",
                 ambiente: s.ambiente || "—",
+                analista: s.analista || "—",
                 os: s.os || "—",
+                sqlInstancia: s.sqlInstancia || "—",
+                sqlVersion: s.sqlVersion || "—",
+                sqlUpd: s.sqlUltimaActualizacion || "—",
+                fechaVentana: s.fechaVentana || "—",
                 fechaInstalacion: s.installDate || "—",
                 kbsInstaladas: s.installedKBs || "—",
                 fechaReinicio: s.runningTime || "—",
@@ -658,8 +692,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Dominio</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">IP</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Estado</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Analista</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">OS</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Versión SO</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Instancia</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Versión</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">SQL Upd</th>
+                <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Fecha Ventana</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">KBs</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Instalación</th>
                 <th className="sticky top-0 z-10 bg-zinc-950 px-3 py-2 font-medium border-b border-zinc-800 whitespace-nowrap">Running Time</th>
@@ -699,10 +738,15 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                     <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.domain ?? "—"}</td>
                     <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.ip ?? "N/A"}</td>
                     <td className="px-3 py-2.5"><StatusBadge status={server.status} /></td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.analista ?? "—"}</td>
                     <td className="px-3 py-2.5 text-zinc-400 min-w-[160px]">
                       <span className="block truncate" title={server.os ?? ""}>{server.os ?? "—"}</span>
                     </td>
                     <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.osVersion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlInstancia ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlVersion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.sqlUltimaActualizacion ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-zinc-400 whitespace-nowrap">{server.fechaVentana ?? "—"}</td>
                     <td className="px-3 py-2.5 text-zinc-400 min-w-[140px]">
                       <span className="block truncate" title={server.installedKBs ?? ""}>{server.installedKBs ?? "—"}</span>
                     </td>
