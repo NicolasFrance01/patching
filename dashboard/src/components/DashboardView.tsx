@@ -126,6 +126,32 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+
+
+function TruncatedCell({ 
+  content, title, onClick, isError = false, children, extraClasses = ""
+}: { 
+  content: string | null | undefined;
+  title: string;
+  onClick: (detail: { title: string; content: string; isError?: boolean }) => void;
+  isError?: boolean;
+  children?: React.ReactNode;
+  extraClasses?: string;
+}) {
+  const display = content ?? "—";
+  
+  return (
+    <td className={`px-3 py-2 min-w-[160px] max-w-[160px] ${isError ? "text-rose-400/80" : "text-zinc-400"} ${extraClasses}`}>
+      <button 
+        onClick={() => onClick({ title, content: display, isError })}
+        className={`w-full text-left block text-[10px] truncate transition-colors ${isError ? "hover:text-rose-300" : "hover:text-zinc-200"}`}
+        title={`Ver ${title} completo`}
+      >
+        {children ? children : (!content || content === "—" || content === "N/A" ? <span className="text-zinc-700">—</span> : display)}
+      </button>
+    </td>
+  );
+}
 export default function DashboardView({ initialData, syncRuns = [], creatorUsername }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "reportes" | "historial" | "jira" | "mis-tickets">("dashboard");
   const [search, setSearch] = useState("");
@@ -142,7 +168,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [chartsMounted, setChartsMounted] = useState(false);
   const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedError, setSelectedError] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
 
   useEffect(() => { setChartsMounted(true); }, []);
 
@@ -715,9 +741,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 const bankColor = TYPE_COLORS[server.info?.type ?? "Sin clasificar"] ?? "#71717a";
                 return (
                   <tr key={server.id} className="hover:bg-white/[0.025] transition-colors">
-                    <td className="px-3 py-2.5 font-medium text-zinc-100 min-w-[160px] max-w-[160px] truncate">
+                    <TruncatedCell title="Servidor" content={server.serverName} onClick={setSelectedDetail} extraClasses="text-zinc-200 font-medium">
                       <div className="flex flex-col gap-0.5">
-                        <span className="truncate" title={server.serverName}>{server.serverName}</span>
+                        <span className="truncate">{server.serverName}</span>
                         {server.info && (
                           <span className="text-[9px] font-bold px-1 py-0.5 rounded w-fit"
                             style={{ color: bankColor, backgroundColor: bankColor + "18", border: `1px solid ${bankColor}33` }}>
@@ -725,53 +751,27 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate">
-                      {server.grupo ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{server.grupo}</span>
-                      ) : <span className="text-zinc-700">—</span>}
-                    </td>
-                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate">
-                      {server.ambiente ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{server.ambiente}</span>
-                      ) : <span className="text-zinc-700">—</span>}
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.domain ?? ""}>{server.domain ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.ip ?? ""}>{server.ip ?? "N/A"}</td>
-                    <td className="px-3 py-2.5 min-w-[160px] max-w-[160px] truncate"><StatusBadge status={server.status} /></td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.analista ?? ""}>{server.analista ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
-                      <span className="block truncate" title={server.os ?? ""}>{server.os ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.osVersion ?? ""}>{server.osVersion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlInstancia ?? ""}>{server.sqlInstancia ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlVersion ?? ""}>{server.sqlVersion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.sqlUltimaActualizacion ?? ""}>{server.sqlUltimaActualizacion ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.fechaVentana ?? ""}>{server.fechaVentana ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
-                      <span className="block truncate" title={server.installedKBs ?? ""}>{server.installedKBs ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.installDate ?? ""}>{server.installDate ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.runningTime ?? ""}>{server.runningTime ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
-                      <span className="block truncate" title={server.diskSpace ?? ""}>{server.diskSpace ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-rose-400/80 min-w-[160px] max-w-[160px]">
-                      {server.isError ? (
-                        <button 
-                          onClick={() => setSelectedError(server.errorDescription ?? "")}
-                          className="w-full text-left block text-[10px] truncate hover:text-rose-300 transition-colors"
-                          title="Ver error completo"
-                        >
-                          {server.errorDescription}
-                        </button>
-                      ) : <span className="text-zinc-700">—</span>}
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px]">
-                      <span className="block truncate" title={server.comentarios ?? ""}>{server.comentarios ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.snap ?? ""}>{server.snap ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={server.confirmado ?? ""}>{server.confirmado ?? "—"}</td>
+                    </TruncatedCell>
+                    <TruncatedCell title="Grupo" content={server.grupo} onClick={setSelectedDetail}>{server.grupo ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{server.grupo}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
+                    <TruncatedCell title="Ambiente" content={server.ambiente} onClick={setSelectedDetail}>{server.ambiente ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{server.ambiente}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
+                    <TruncatedCell title="Dominio" content={server.domain} onClick={setSelectedDetail} />
+                    <TruncatedCell title="IP" content={server.ip} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Estado" content={server.status === "ok" ? "OK" : server.status === "error" ? "Error" : "Sin datos"} onClick={setSelectedDetail}><StatusBadge status={server.status} /></TruncatedCell>
+                    <TruncatedCell title="Analista" content={server.analista} onClick={setSelectedDetail} />
+                    <TruncatedCell title="OS" content={server.os} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Versión SO" content={server.osVersion} onClick={setSelectedDetail} />
+                    <TruncatedCell title="SQL Instancia" content={server.sqlInstancia} onClick={setSelectedDetail} />
+                    <TruncatedCell title="SQL Versión" content={server.sqlVersion} onClick={setSelectedDetail} />
+                    <TruncatedCell title="SQL Última Actualización" content={server.sqlUltimaActualizacion} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Fecha Ventana" content={server.fechaVentana} onClick={setSelectedDetail} />
+                    <TruncatedCell title="KBs Instaladas" content={server.installedKBs} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Fecha de Instalación" content={server.installDate} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Running Time" content={server.runningTime} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Espacio en Disco" content={server.diskSpace} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Detalle del Error" content={server.errorDescription} isError={server.status === "error"} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Comentarios" content={server.comentarios} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Snap" content={server.snap} onClick={setSelectedDetail} />
+                    <TruncatedCell title="Confirmado" content={server.confirmado} onClick={setSelectedDetail} />
                   </tr>
                 );
               })}
@@ -793,25 +793,25 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         payload={emailPayload}
       />
 
-      {/* Modal de Error */}
-      {selectedError && (
+      {/* Modal de Detalles */}
+      {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border border-rose-500/20">
+          <div className={`glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border ${selectedDetail.isError ? 'border-rose-500/20' : 'border-zinc-700/50'}`}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
-              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Detalle del Error
+              <h3 className={`text-sm font-semibold flex items-center gap-2 ${selectedDetail.isError ? 'text-rose-400' : 'text-zinc-200'}`}>
+                {selectedDetail.isError && <AlertCircle className="w-4 h-4" />}
+                {selectedDetail.title}
               </h3>
-              <button onClick={() => setSelectedError(null)} className="text-zinc-400 hover:text-white transition-colors">
+              <button onClick={() => setSelectedDetail(null)} className="text-zinc-400 hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-5 overflow-auto text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-              {selectedError}
+              {selectedDetail.content}
             </div>
             <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
               <button
-                onClick={() => setSelectedError(null)}
+                onClick={() => setSelectedDetail(null)}
                 className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
               >
                 Cerrar

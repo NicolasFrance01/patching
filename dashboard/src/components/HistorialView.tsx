@@ -77,6 +77,32 @@ function formatDayHeader(dayKey: string): string {
   });
 }
 
+
+
+function TruncatedCell({ 
+  content, title, onClick, isError = false, children, extraClasses = ""
+}: { 
+  content: string | null | undefined;
+  title: string;
+  onClick: (detail: { title: string; content: string; isError?: boolean }) => void;
+  isError?: boolean;
+  children?: React.ReactNode;
+  extraClasses?: string;
+}) {
+  const display = content ?? "—";
+  
+  return (
+    <td className={`px-3 py-2 min-w-[160px] max-w-[160px] ${isError ? "text-rose-400/80" : "text-zinc-400"} ${extraClasses}`}>
+      <button 
+        onClick={() => onClick({ title, content: display, isError })}
+        className={`w-full text-left block text-[10px] truncate transition-colors ${isError ? "hover:text-rose-300" : "hover:text-zinc-200"}`}
+        title={`Ver ${title} completo`}
+      >
+        {children ? children : (!content || content === "—" || content === "N/A" ? <span className="text-zinc-700">—</span> : display)}
+      </button>
+    </td>
+  );
+}
 export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
@@ -92,7 +118,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [recordSearch, setRecordSearch] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
-  const [selectedError, setSelectedError] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
   const [readSyncIds, setReadSyncIds] = useState<Set<string>>(new Set());
 
   const filteredRuns = useMemo(() => {
@@ -567,24 +593,12 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                   <tbody className="divide-y divide-zinc-800/40">
                                     {records.map((r) => (
                                       <tr key={r.id} className="hover:bg-white/[0.02]">
-                                        <td className="px-3 py-2 font-medium text-zinc-200 min-w-[160px] max-w-[160px] truncate" title={r.serverName}>{r.serverName}</td>
-                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
-                                          {r.grupo ? (
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                                              {r.grupo}
-                                            </span>
-                                          ) : "—"}
-                                        </td>
-                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
-                                          {r.ambiente ? (
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">
-                                              {r.ambiente}
-                                            </span>
-                                          ) : "—"}
-                                        </td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.domain ?? ""}>{r.domain ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.ip ?? ""}>{r.ip ?? "—"}</td>
-                                        <td className="px-3 py-2 min-w-[160px] max-w-[160px] truncate">
+                                        <TruncatedCell title="Servidor" content={r.serverName} onClick={setSelectedDetail} extraClasses="text-zinc-200 font-medium" />
+                                        <TruncatedCell title="Grupo" content={r.grupo} onClick={setSelectedDetail}>{r.grupo ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{r.grupo}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
+                                        <TruncatedCell title="Ambiente" content={r.ambiente} onClick={setSelectedDetail}>{r.ambiente ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{r.ambiente}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
+                                        <TruncatedCell title="Dominio" content={r.domain} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="IP" content={r.ip} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Estado" content={r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin datos"} onClick={setSelectedDetail}>
                                           {r.status === "ok" ? (
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
                                           ) : r.status === "error" ? (
@@ -592,32 +606,22 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                           ) : (
                                             <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
                                           )}
-                                        </td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.analista ?? ""}>{r.analista ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.os ?? ""}>{r.os ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.osVersion ?? ""}>{r.osVersion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlInstancia ?? ""}>{r.sqlInstancia ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlVersion ?? ""}>{r.sqlVersion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.sqlUltimaActualizacion ?? ""}>{r.sqlUltimaActualizacion ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.fechaVentana ?? ""}>{r.fechaVentana ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.installedKBs ?? ""}>{r.installedKBs ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.installDate ?? ""}>{r.installDate ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.runningTime ?? ""}>{r.runningTime ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.diskSpace ?? ""}>{r.diskSpace ?? "—"}</td>
-                                        <td className="px-3 py-2 text-rose-400/80 min-w-[160px] max-w-[160px]">
-                                          {r.errorDescription ? (
-                                            <button 
-                                              onClick={() => setSelectedError(r.errorDescription ?? "")}
-                                              className="w-full text-left block text-[10px] truncate hover:text-rose-300 transition-colors"
-                                              title="Ver error completo"
-                                            >
-                                              {r.errorDescription}
-                                            </button>
-                                          ) : <span className="text-zinc-700">—</span>}
-                                        </td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.comentarios ?? ""}>{r.comentarios ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.snap ?? ""}>{r.snap ?? "—"}</td>
-                                        <td className="px-3 py-2 text-zinc-400 min-w-[160px] max-w-[160px] truncate" title={r.confirmado ?? ""}>{r.confirmado ?? "—"}</td>
+                                        </TruncatedCell>
+                                        <TruncatedCell title="Analista" content={r.analista} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="OS" content={r.os} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Versión SO" content={r.osVersion} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="SQL Instancia" content={r.sqlInstancia} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="SQL Versión" content={r.sqlVersion} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="SQL Última Actualización" content={r.sqlUltimaActualizacion} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Fecha Ventana" content={r.fechaVentana} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="KBs Instaladas" content={r.installedKBs} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Fecha de Instalación" content={r.installDate} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Running Time" content={r.runningTime} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Espacio en Disco" content={r.diskSpace} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Detalle del Error" content={r.errorDescription} isError={r.status === "error"} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Comentarios" content={r.comentarios} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Snap" content={r.snap} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Confirmado" content={r.confirmado} onClick={setSelectedDetail} />
                                       </tr>
                                     ))}
                                     {records.length === 0 && (
@@ -649,24 +653,25 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
       />
 
       {/* Modal de Error */}
-      {selectedError && (
+      {/* Modal de Detalles */}
+      {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border border-rose-500/20">
+          <div className={`glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden border ${selectedDetail.isError ? 'border-rose-500/20' : 'border-zinc-700/50'}`}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
-              <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Detalle del Error
+              <h3 className={`text-sm font-semibold flex items-center gap-2 ${selectedDetail.isError ? 'text-rose-400' : 'text-zinc-200'}`}>
+                {selectedDetail.isError && <AlertCircle className="w-4 h-4" />}
+                {selectedDetail.title}
               </h3>
-              <button onClick={() => setSelectedError(null)} className="text-zinc-400 hover:text-white transition-colors">
+              <button onClick={() => setSelectedDetail(null)} className="text-zinc-400 hover:text-white transition-colors">
                 <XCircle className="w-4 h-4" />
               </button>
             </div>
             <div className="p-5 overflow-auto text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-              {selectedError}
+              {selectedDetail.content}
             </div>
             <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
               <button
-                onClick={() => setSelectedError(null)}
+                onClick={() => setSelectedDetail(null)}
                 className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
               >
                 Cerrar

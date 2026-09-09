@@ -25,11 +25,23 @@ export async function POST(req: Request) {
       return true;
     });
 
+    const now = new Date();
+    const currentMonthStr = `M${String(now.getMonth() + 1).padStart(2, "0")} ${now.getFullYear()}`;
+
     let success = 0, errors = 0, noData = 0;
     const items = validItems.map((item: any) => {
-      const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
-      const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
-      const status = isError ? "error" : isNoData ? "nodata" : "ok";
+      const fechaVentana = String(item.Fecha_Ventana || "");
+      const isCurrentMonth = fechaVentana.includes(currentMonthStr) || fechaVentana === "N/A" || !fechaVentana; // if N/A, we don't know, maybe we just use the raw error
+      
+      let status = "ok";
+      if (!isCurrentMonth) {
+        status = "nodata";
+      } else {
+        const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
+        const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
+        status = isError ? "error" : isNoData ? "nodata" : "ok";
+      }
+
       if (status === "ok") success++;
       else if (status === "error") errors++;
       else noData++;
