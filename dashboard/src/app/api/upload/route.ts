@@ -26,12 +26,21 @@ export async function POST(req: Request) {
     });
 
     const now = new Date();
-    const currentMonthStr = `M${String(now.getMonth() + 1).padStart(2, "0")} ${now.getFullYear()}`;
+    const currentYear = String(now.getFullYear());
+    const currentMonthNum = String(now.getMonth() + 1).padStart(2, "0");
+    const currentMonthStr = `M${currentMonthNum} ${currentYear}`;
 
     let success = 0, errors = 0, noData = 0;
     const items = validItems.map((item: any) => {
-      const fechaVentana = String(item.Fecha_Ventana || "");
-      const isCurrentMonth = fechaVentana.includes(currentMonthStr) || fechaVentana === "N/A" || !fechaVentana; // if N/A, we don't know, maybe we just use the raw error
+      let fechaVentana = String(item.Fecha_Ventana || "").trim();
+      if (fechaVentana === "null" || fechaVentana === "undefined") fechaVentana = "";
+      
+      const isCurrentMonth = 
+        !fechaVentana || 
+        fechaVentana === "N/A" || 
+        fechaVentana.includes(currentMonthStr) ||
+        fechaVentana.includes(`/${currentMonthNum}/${currentYear}`) ||
+        fechaVentana.includes(`${currentYear}-${currentMonthNum}-`);
       
       let status = "ok";
       if (!isCurrentMonth) {

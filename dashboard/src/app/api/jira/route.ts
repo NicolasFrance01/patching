@@ -114,6 +114,7 @@ async function findTempoAccountViaJQL(projectKey: string, accountName: string, a
   } catch (e) { console.warn("[Jira] JQL fallback error:", e); }
   // Hardcoded fallbacks based on project just in case JQL fails
   if (projectKey === "ASJ") return 608; // ASJ | SEC | Abono
+  if (accountName === "GP | InO | Abono") return 27; // GP | InO | Abono
   return 609; // GP | SEC | Abono
 }
 
@@ -278,10 +279,11 @@ export async function GET(req: NextRequest) {
     if (mapping.accountField) {
       const accObj = data.fields?.[mapping.accountField];
       accountValue = accObj?.name || accObj?.value;
-      if (typeof accObj === "number") {
-          if (accObj === 608) accountValue = "ASJ | SEC | Abono";
-          else if (accObj === 609) accountValue = "GP | SEC | Abono";
-          else accountValue = "GP | InO | Abono";
+      if (typeof accObj === "number" || typeof accObj?.id === "number") {
+          const id = typeof accObj === "number" ? accObj : accObj.id;
+          if (id === 608) accountValue = "ASJ | SEC | Abono";
+          else if (id === 609) accountValue = "GP | SEC | Abono";
+          else if (id === 27) accountValue = "GP | InO | Abono";
       }
     }
 
