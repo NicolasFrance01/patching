@@ -603,10 +603,10 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUs
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
                   <FieldRow label="Start Date" value={new Date().toLocaleDateString("es-AR")} />
-                  <FieldRow label="Area" value="SEC" />
+                  <FieldRow label="Area" value={["BSC", "BSJ", "Corp", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "INO" : "SEC"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
-                  <FieldRow label="Account" value={jiraConfig?.projectKey === "ASJ" ? "ASJ | SEC | Abono" : "GP | SEC | Abono"} accent />
+                  <FieldRow label="Account" value={jiraConfig?.projectKey === "ASJ" ? "ASJ | SEC | Abono" : (["BSC", "BSJ", "Corp", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "GP | InO | Abono" : "GP | SEC | Abono")} accent />
                   <FieldRow label="Organización GP" value={jiraConfig?.orgLabel ?? "—"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">

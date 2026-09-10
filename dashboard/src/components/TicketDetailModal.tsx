@@ -15,12 +15,18 @@ interface TicketDetail {
   statusCategory: string;
   description: any;
   comments: any[];
+  area?: string;
+  account?: string;
 }
 
 export default function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<TicketDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingArea, setEditingArea] = useState<string>("");
+  const [editingAccount, setEditingAccount] = useState<string>("");
+  const [isSavingFields, setIsSavingFields] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && ticket) {
@@ -34,6 +40,8 @@ export default function TicketDetailModal({ isOpen, onClose, ticket }: TicketDet
         .then(data => {
           if (data.error) throw new Error(data.error);
           setDetail(data);
+          setEditingArea(data.area || "SEC");
+          setEditingAccount(data.account || "GP | SEC | Abono");
         })
         .catch(err => setError(err.message))
         .finally(() => setLoading(false));
@@ -44,6 +52,33 @@ export default function TicketDetailModal({ isOpen, onClose, ticket }: TicketDet
   }, [isOpen, ticket]);
 
   if (!isOpen || !ticket) return null;
+
+  const handleSaveFields = async () => {
+    setIsSavingFields(true);
+    setSaveSuccess(false);
+    setError(null);
+    try {
+      const res = await fetch("/api/jira", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-fields",
+          issueKey: ticket.ticketKey,
+          area: editingArea,
+          account: editingAccount,
+        })
+      });
+      if (!res.ok) throw new Error("Error al guardar cambios en Jira");
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      setDetail(prev => prev ? { ...prev, area: editingArea, account: editingAccount } : null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSavingFields(false);
+    }
+  };
 
   const renderDescription = () => {
     if (!detail?.description) return <p className="text-sm text-zinc-400 italic">No hay descripción disponible.</p>;
@@ -167,6 +202,44 @@ export default function TicketDetailModal({ isOpen, onClose, ticket }: TicketDet
                     <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-2">Organización</h3>
                     <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
                       <p className="text-sm font-medium text-zinc-200">{ticket.bank}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-2">Área y Cuenta (Jira)</h3>
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 space-y-3">
+                      <div>
+                        <label className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider block mb-1">Área</label>
+                        <select
+                          value={editingArea}
+                          onChange={(e) => setEditingArea(e.target.value)}
+                          className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="SEC">SEC</option>
+                          <option value="INO">INO</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider block mb-1">Account</label>
+                        <select
+                          value={editingAccount}
+                          onChange={(e) => setEditingAccount(e.target.value)}
+                          className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="GP | SEC | Abono">GP | SEC | Abono</option>
+                          <option value="GP | InO | Abono">GP | InO | Abono</option>
+                          <option value="ASJ | SEC | Abono">ASJ | SEC | Abono</option>
+                        </select>
+                      </div>
+                      
+                      <button
+                        onClick={handleSaveFields}
+                        disabled={isSavingFields || (detail.area === editingArea && detail.account === editingAccount)}
+                        className="w-full mt-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        {isSavingFields ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        {isSavingFields ? "Guardando..." : "Guardar Cambios"}
+                      </button>
+                      {saveSuccess && <p className="text-[11px] text-emerald-400 font-medium text-center mt-1">¡Cambios guardados exitosamente!</p>}
                     </div>
                   </div>
                 </div>

@@ -228,6 +228,24 @@ export async function GET(req: NextRequest) {
       const tickets = await prisma.jiraTicket.findMany({
         orderBy: { createdAt: "desc" }
       });
+      const withStatus = searchParams.get("withStatus");
+      if (withStatus === "true") {
+         const limit = parseInt(searchParams.get("limit") || "25");
+         const keys = tickets.slice(0, limit).map(t => t.ticketKey);
+         if (keys.length > 0) {
+            const jql = `issueKey in (${keys.join(",")})`;
+            const jRes = await jiraFetch(`/rest/api/3/search/jql`, {
+               method: "POST",
+               body: JSON.stringify({ jql, fields: ["status"], maxResults: limit })
+            });
+            if (jRes.ok) {
+               const jData = await jRes.json();
+               const statuses = Object.fromEntries((jData.issues ?? []).map((i: any) => [i.key, i.fields?.status?.name]));
+               const mapped = tickets.map(t => ({ ...t, liveStatus: statuses[t.ticketKey] || "Desconocido" }));
+               return NextResponse.json(mapped);
+            }
+         }
+      }
       return NextResponse.json(tickets);
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 });
@@ -238,15 +256,42 @@ export async function GET(req: NextRequest) {
     const issueKey = searchParams.get("issueKey");
     if (!issueKey) return NextResponse.json({ error: "Missing issueKey" }, { status: 400 });
     
-    const res = await jiraFetch(`/rest/api/3/issue/${issueKey}?fields=status,description,comment`);
+    const project = issueKey.split("-")[0];
+    const { mapping } = await discoverFields(project);
+    
+    const fieldsToFetch = ["status","description","comment"];
+    if (mapping.areaField) fieldsToFetch.push(mapping.areaField);
+    if (mapping.accountField) fieldsToFetch.push(mapping.accountField);
+
+    const res = await jiraFetch(`/rest/api/3/issue/${issueKey}?fields=${fieldsToFetch.join(",")}`);
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: res.status });
     
     const data = await res.json();
+
+    let areaValue = null;
+    if (mapping.areaField) {
+      const areaObj = data.fields?.[mapping.areaField];
+      areaValue = areaObj?.value || areaObj?.name || areaObj;
+    }
+
+    let accountValue = null;
+    if (mapping.accountField) {
+      const accObj = data.fields?.[mapping.accountField];
+      accountValue = accObj?.name || accObj?.value;
+      if (typeof accObj === "number") {
+          if (accObj === 608) accountValue = "ASJ | SEC | Abono";
+          else if (accObj === 609) accountValue = "GP | SEC | Abono";
+          else accountValue = "GP | InO | Abono";
+      }
+    }
+
     return NextResponse.json({
       status: data.fields?.status?.name,
       statusCategory: data.fields?.status?.statusCategory?.colorName,
       description: data.fields?.description,
-      comments: data.fields?.comment?.comments || []
+      comments: data.fields?.comment?.comments || [],
+      area: areaValue,
+      account: accountValue,
     });
   }
 
@@ -327,8 +372,11 @@ export async function POST(req: NextRequest) {
     if (startDateField) fields[startDateField] = today;
 
     // Area — select, resolve by allowedValues
+    const isINO = ["BSC", "BSJ", "Corp", "NBERSA", "NBSF"].includes(bankCode);
+    const targetArea = isINO ? "INO" : "SEC";
+
     if (areaField) {
-      fields[areaField] = resolveValue(fieldMeta.areaField, "SEC");
+      fields[areaField] = resolveValue(fieldMeta.areaField, targetArea);
     }
 
     // Organización GP — select, resolve by allowedValues
@@ -358,7 +406,7 @@ export async function POST(req: NextRequest) {
 
     // Tempo Account — needs numeric ID from Tempo API
     if (accountField) {
-      const targetAccount = projectKey === "ASJ" ? "ASJ | SEC | Abono" : "GP | SEC | Abono";
+      const targetAccount = projectKey === "ASJ" ? "ASJ | SEC | Abono" : (isINO ? "GP | InO | Abono" : "GP | SEC | Abono");
       
       if (fieldMeta[accountField] && fieldMeta[accountField].allowedValues.length > 0) {
         // Sometimes it's just a normal select field
@@ -615,6 +663,49 @@ export async function PATCH(request: NextRequest) {
           reassignedBy: session.user?.name || "admin"
         }
       });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "update-fields" && body.issueKey) {
+      const { issueKey, area, account } = body;
+      const projectKey = issueKey.split("-")[0];
+      const { mapping, fieldMeta } = await discoverFields(projectKey);
+
+      const updateFields: any = {};
+      
+      if (area && mapping.areaField) {
+        updateFields[mapping.areaField] = resolveValue(fieldMeta[mapping.areaField], area);
+      }
+      
+      if (account && mapping.accountField) {
+        const meta = fieldMeta[mapping.accountField];
+        if (meta && meta.allowedValues.length > 0) {
+          updateFields[mapping.accountField] = resolveValue(meta, account);
+        } else {
+          let tempoId = await findTempoAccountId(account);
+          if (tempoId === null) {
+            tempoId = await findTempoAccountViaJQL(projectKey, account, mapping.accountField);
+          }
+          if (tempoId !== null) {
+            updateFields[mapping.accountField] = tempoId;
+          } else {
+            updateFields[mapping.accountField] = { name: account };
+          }
+        }
+      }
+
+      if (Object.keys(updateFields).length > 0) {
+        const putRes = await jiraFetch(`/rest/api/3/issue/${issueKey}`, {
+          method: "PUT",
+          body: JSON.stringify({ fields: updateFields })
+        });
+        
+        if (!putRes.ok) {
+          console.error(`[Jira] Failed to update fields for ${issueKey}: ${await putRes.text()}`);
+          return NextResponse.json({ error: "Failed to update Jira issue" }, { status: putRes.status });
+        }
+      }
+      
       return NextResponse.json({ success: true });
     }
 

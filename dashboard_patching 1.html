@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard de Patching</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f8f9fa;--border:#e2e8f0;
+  --text:#1a202c;--text2:#4a5568;--text3:#718096;
+  --accent:#2a78d6;--green:#1baf7a;--amber:#eda100;--red:#e53e3e;--gray:#a0aec0;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  --r:10px;
+  --c0:#2a78d6;--c1:#eb6834;--c2:#1baf7a;--c3:#eda100;--c4:#e87ba4;--c5:#008300;--c6:#4a3aa7;--c7:#00b4d8;--c8:#c76b26;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5}
+
+/* HEADER */
+.hdr{background:var(--accent);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hdr h1{font-size:19px;font-weight:700}
+.hdr-sub{font-size:12px;opacity:.8;margin-top:2px}
+.hdr-meta{font-size:12px;opacity:.85;text-align:right}
+
+/* LAYOUT */
+.main{max-width:1400px;margin:0 auto;padding:18px}
+
+/* FILTER BAR */
+.fbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.fbar-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+
+/* MULTI SELECT */
+.ms{position:relative}
+.ms-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;cursor:pointer;min-width:190px;font-size:13px;color:var(--text);user-select:none;transition:border-color .15s}
+.ms-trigger:hover,.ms-trigger.open{border-color:var(--accent)}
+.ms-trigger .arr{font-size:10px;opacity:.6;transition:transform .2s;flex-shrink:0}
+.ms-trigger.open .arr{transform:rotate(180deg)}
+.ms-dd{position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);z-index:200;min-width:210px;max-height:280px;overflow-y:auto;display:none}
+.ms-dd.open{display:block}
+.ms-search{padding:8px 10px;border-bottom:1px solid var(--border)}
+.ms-search input{width:100%;border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;outline:none;color:var(--text)}
+.ms-acts{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border)}
+.ms-acts button{flex:1;font-size:11px;padding:4px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);cursor:pointer;color:var(--text2);transition:all .15s}
+.ms-acts button:hover{border-color:var(--accent);color:var(--accent)}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13px}
+.ms-opt:hover{background:var(--bg)}
+.ms-opt input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.factions{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn-pri{background:var(--accent);color:#fff}.btn-pri:hover{background:#1e6abf}
+.btn-sec{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:580px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-total::before{background:var(--accent)}
+.kpi-act::before{background:var(--green)}
+.kpi-noact::before{background:var(--red)}
+.kpi-porAct::before{background:var(--amber)}
+.kpi-pct::before{background:var(--accent)}
+.kpi-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-act .kpi-val{color:var(--green)}
+.kpi-noact .kpi-val{color:var(--red)}
+.kpi-porAct .kpi-val{color:var(--amber)}
+.kpi-pct .kpi-val{color:var(--accent)}
+
+/* CHARTS */
+.ch-row{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px}
+@media(max-width:820px){.ch-row{grid-template-columns:1fr}}
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.ch-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px}
+.ch-wrap{position:relative;height:230px}
+.ch-wide{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);margin-bottom:12px}
+.ch-wrap-wide{position:relative;height:250px}
+
+/* TABLE */
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.thdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.thdr h3{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface2);color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{background:#edf2ff;color:var(--accent)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-g{background:#f0fff4;color:#276749}
+.b-r{background:#fff5f5;color:#c53030}
+.b-a{background:#fffbeb;color:#92400e}
+.b-gr{background:#f7fafc;color:#718096}
+.pbar-wrap{display:inline-block;background:#e2e8f0;border-radius:4px;height:6px;width:80px;vertical-align:middle;margin-left:6px}
+.pbar-fill{height:100%;border-radius:4px}
+
+/* PAGINATION */
+.pgn{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px}
+.pgn-info{font-size:12px;color:var(--text3)}
+.pgn-btns{display:flex;gap:3px}
+.pg-btn{border:1px solid var(--border);background:var(--surface);border-radius:5px;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--text2)}
+.pg-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.pg-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pg-btn:disabled{opacity:.4;cursor:default}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;overflow-y:auto;padding:30px 16px}
+.modal-box{background:#fff;max-width:860px;margin:0 auto;border-radius:12px;padding:28px;position:relative}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:#718096;line-height:1}
+.modal-footer{margin-top:20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #e2e8f0;padding-top:14px}
+
+@media print{
+  .hdr{background:var(--accent)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .fbar,.factions,.thdr .btn,.pgn{display:none!important}
+  .main{padding:0;max-width:100%}
+  body{background:#fff}
+}
+
+/* ── CLI TABLE ──────────────────────────────────── */
+#cliTable table{width:100%;border-collapse:collapse;font-size:12px}
+#cliTable th{background:var(--surface2);color:var(--text2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap}
+#cliTable th:first-child{text-align:left}
+#cliTable td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text);vertical-align:middle}
+#cliTable td:first-child{text-align:left;font-weight:600;color:var(--text)}
+#cliTable tr:last-child td{border-bottom:none;font-weight:700;background:var(--surface2)}
+#cliTable tr:hover td{background:var(--bg)}
+#cliTable .pct-act{color:var(--green);font-weight:600}
+#cliTable .pct-no{color:var(--red);font-weight:600}
+#cliTable .pct-por{color:var(--amber);font-weight:600}
+#cliTable .mini-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:3px;min-width:60px}
+#cliTable .mb-act{background:var(--green)}
+#cliTable .mb-no{background:var(--red)}
+#cliTable .mb-por{background:var(--amber)}
+
+/* ── NEW SECTIONS ──────────────────────────────── */
+.sec2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:900px){.sec2{grid-template-columns:1fr}}
+.sec3{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:900px){.sec3{grid-template-columns:1fr}}
+.sec-note{font-size:10px;color:var(--text3);font-weight:400;margin-left:8px}
+.sec-note a{color:var(--accent);text-decoration:none}
+.sec-note a:hover{text-decoration:underline}
+.causas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:4px 0}
+.causa-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.causa-card-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.causa-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.causa-bar-bg{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.causa-bar-fill{height:100%;background:var(--red);border-radius:3px;transition:width .4s}
+.causa-lbl{font-size:11px;color:var(--text2);margin-bottom:2px;line-height:1.35}
+.causa-cnt{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap}
+.causa-empty{font-size:12px;color:var(--text3);padding:8px 0}
+.kb-note{font-size:10px;color:var(--text3);margin-top:8px;font-style:italic}
+
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>📊 Dashboard de Patching</h1>
+    <div class="hdr-sub">Gestión de servidores · Cumplimiento de actualizaciones</div>
+  </div>
+  <div class="hdr-meta" id="hdrMeta"></div>
+</div>
+
+<div class="main">
+
+  <!-- FILTROS -->
+  <div class="fbar">
+    <div class="fbar-title">Filtros</div>
+    <div class="frow">
+      <div class="fg">
+        <label>Clientes</label>
+        <div class="ms" id="msCli">
+          <div class="ms-trigger" id="msCliTrig" onclick="toggleMs('msCli')">
+            <span id="msCliLbl">Todos los clientes</span><span class="arr">▼</span>
+          </div>
+          <div class="ms-dd" id="msCliDd">
+            <div class="ms-search"><input type="text" placeholder="Buscar…" oninput="filterMs('msCli',this.value)"></div>
+            <div class="ms-acts">
+              <button onclick="msAll('msCli')">Todos</button>
+              <button onclick="msClear('msCli')">Limpiar</button>
+            </div>
+            <div id="msCliOpts"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Meses</label>
+        <div class="ms" id="msMes">
+          <div class="ms-trigger" id="msMesTrig" onclick="toggleMs('msMes')">
+            <span id="msMesLbl">Todos los meses</span><span class="arr">▼</span>
+          </div>
+          <div class="ms-dd" id="msMesDd">
+            <div class="ms-acts">
+              <button onclick="msAll('msMes')">Todos</button>
+              <button onclick="msClear('msMes')">Limpiar</button>
+            </div>
+            <div id="msMesOpts"></div>
+          </div>
+        </div>
+      </div>
+      <div class="factions">
+        <button class="btn btn-sec" onclick="resetFilters()">↺ Resetear</button>
+        <button class="btn btn-pri" onclick="genReport('cliente')">📄 Informe por Cliente</button>
+        <button class="btn btn-pri" onclick="genReport('global')">🌐 Informe Global</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi kpi-total"><div class="kpi-lbl">Total Servidores</div><div class="kpi-val" id="kTotal">–</div><div class="kpi-sub" id="kTotalSub"></div></div>
+    <div class="kpi kpi-act"><div class="kpi-lbl">Actualizados</div><div class="kpi-val" id="kAct">–</div><div class="kpi-sub" id="kActSub"></div></div>
+    <div class="kpi kpi-noact"><div class="kpi-lbl">No Actualizados</div><div class="kpi-val" id="kNoAct">–</div><div class="kpi-sub" id="kNoActSub"></div></div>
+    <div class="kpi kpi-porAct"><div class="kpi-lbl">Por Actualizar</div><div class="kpi-val" id="kPorAct">–</div><div class="kpi-sub" id="kPorActSub"></div></div>
+    <div class="kpi kpi-pct"><div class="kpi-lbl">% Cumplimiento</div><div class="kpi-val" id="kPct">–</div><div class="kpi-sub" id="kPctSub"></div></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="ch-row">
+    <div class="ch-card">
+      <div class="ch-title">Distribución de Status</div>
+      <div class="ch-wrap"><canvas id="cDonut"></canvas></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-title">Cumplimiento por Cliente</div>
+      <div id="cliTable" style="overflow-x:auto;margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="ch-wide">
+    <div class="ch-title">Servidores por Mes y Estado · % Cumplimiento</div>
+    <div class="ch-wrap-wide"><canvas id="cTrend"></canvas></div>
+  </div>
+
+
+  <!-- RIESGO + KBs -->
+  <div class="sec2">
+    <div class="ch-card">
+      <div class="ch-title">Clientes con Mayor Riesgo por Falta de Actualizaciones</div>
+      <div class="ch-wrap" style="height:240px"><canvas id="cRisk"></canvas></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-title">Top 10 KBs Instalados
+        <span class="sec-note">* CVE data no disponible en el origen &mdash; consultar <a href="https://msrc.microsoft.com/update-guide" target="_blank">MSRC</a></span>
+      </div>
+      <div class="ch-wrap" style="height:240px"><canvas id="cKb"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CAUSAS + GRUPOS -->
+  <div class="sec3">
+    <div class="ch-card" style="grid-column:span 1">
+      <div class="ch-title">Top Causas de No Actualización por Cliente</div>
+      <div id="causasContainer" class="causas-grid"></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-title">Top 10 Entornos / Grupos más Afectados</div>
+      <div class="ch-wrap" style="height:320px"><canvas id="cGrupos"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tcard">
+    <div class="thdr">
+      <h3>Resumen por Cliente y Mes</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;width:200px;outline:none" type="text" placeholder="🔍 Buscar…" oninput="tSearch(this.value)">
+        <select id="tRPP" onchange="tChangeRPP()" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none">
+          <option value="20">20 filas</option><option value="50">50 filas</option><option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <div class="twrap">
+      <table>
+        <thead><tr>
+          <th onclick="tSort(0)">Cliente ↕</th>
+          <th onclick="tSort(1)">Mes ↕</th>
+          <th onclick="tSort(2)" style="text-align:right">Total ↕</th>
+          <th onclick="tSort(3)" style="text-align:right">Actualizados ↕</th>
+          <th onclick="tSort(4)" style="text-align:right">No Act. ↕</th>
+          <th onclick="tSort(5)" style="text-align:right">Por Act. ↕</th>
+          <th onclick="tSort(6)">% Cumplimiento ↕</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+    <div class="pgn">
+      <div class="pgn-info" id="pgnInfo"></div>
+      <div class="pgn-btns" id="pgnBtns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INFORME -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-sec" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-pri" onclick="printReport()">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATOS ────────────────────────────────────────────────────────────────
+const D = {"clientes":["ASJ","BSC","BSJ","CGL","Corporativo","NBERSA","NBSF","PCR","QUALIA"],"meses":[[1,"Enero"],[2,"Febrero"],[3,"Marzo"],[4,"Abril"],[5,"Mayo"],[6,"Junio"],[7,"Julio"],[8,"Agosto"],[9,"Septiembre"],[10,"Octubre"],[11,"Noviembre"],[12,"Diciembre"]],"statuses":["-","Actualizado","Cancelado","No actualizado","Por actualizar"],"agg":[[0,7,4,635],[0,8,4,635],[0,9,4,635],[0,10,4,635],[0,11,4,635],[0,12,4,635],[2,4,4,373],[2,8,4,373],[2,9,4,373],[2,10,4,373],[2,11,4,373],[2,12,4,373],[2,5,4,373],[4,8,4,656],[4,9,4,656],[4,10,4,656],[4,11,4,656],[4,12,4,724],[6,5,4,68],[6,8,4,350],[6,9,4,350],[6,10,4,350],[6,11,4,350],[6,12,4,350],[3,6,4,4],[3,7,4,56],[3,8,4,56],[3,9,4,56],[3,10,4,56],[3,11,4,56],[3,12,4,56],[7,6,4,6],[7,12,4,64],[7,11,4,64],[7,10,4,64],[7,9,4,64],[7,8,4,64],[7,7,4,64],[8,7,4,69],[8,8,4,69],[8,9,4,69],[8,10,4,69],[8,11,4,69],[8,12,4,69],[1,8,4,382],[1,9,4,382],[1,10,4,382],[1,11,4,382],[1,12,4,382],[1,5,4,174],[4,5,4,116],[2,2,3,13],[3,2,4,4],[5,8,4,305],[5,9,4,305],[5,10,4,305],[5,11,4,305],[5,12,4,305],[4,3,0,22],[6,4,3,246],[1,6,3,375],[1,4,3,293],[4,4,3,255],[1,1,3,362],[7,3,1,62],[2,2,4,362],[4,1,3,527],[5,1,3,276],[5,2,4,47],[6,1,3,240],[5,4,3,194],[4,3,1,74],[2,1,3,349],[2,3,4,340],[0,5,4,451],[0,6,4,460],[0,3,3,460],[0,2,3,434],[0,1,3,455],[0,4,3,479],[1,1,1,39],[1,4,1,89],[1,5,1,75],[1,6,1,104],[4,6,1,432],[6,5,1,95],[6,6,1,286],[0,2,1,200],[0,3,1,175],[1,3,4,29],[5,1,2,11],[5,4,2,1],[1,2,1,104],[1,3,1,1],[5,1,1,105],[5,6,1,121],[6,1,1,36],[6,3,1,40],[8,2,1,35],[8,3,1,31],[8,4,1,36],[8,5,1,38],[8,6,1,60],[5,2,1,96],[5,3,1,53],[5,4,1,38],[5,5,1,45],[0,1,1,174],[0,4,1,155],[0,5,1,169],[0,6,1,158],[2,1,1,26],[2,3,1,27],[2,3,3,7],[0,5,3,18],[0,6,3,21],[3,1,3,8],[3,2,3,9],[3,3,3,10],[3,4,3,7],[3,5,3,6],[3,6,3,7],[1,2,3,278],[2,6,3,526],[5,2,3,256],[5,3,3,345],[5,6,3,184],[6,3,3,236],[6,6,3,64],[4,2,3,509],[4,6,3,292],[6,5,3,59],[1,3,3,352],[1,5,3,14],[8,3,3,38],[8,4,3,33],[8,5,3,59],[8,6,3,37],[5,5,3,188],[4,3,3,572],[4,5,3,405],[4,5,1,188],[4,4,1,438],[4,1,1,129],[4,2,1,113],[6,4,1,30],[6,2,4,149],[6,2,3,106],[6,2,1,21],[7,1,3,2],[7,1,1,62],[7,2,3,2],[7,2,1,62],[7,3,3,2],[7,4,3,2],[7,4,1,62],[7,5,3,1],[7,5,1,63],[7,6,3,2],[7,6,1,56],[8,1,1,35],[8,1,3,35],[8,2,3,34],[2,6,1,30],[4,8,0,68],[4,9,0,68],[4,10,0,68],[4,11,0,68],[3,1,1,47],[3,5,1,50],[3,2,1,47],[3,3,1,46],[3,4,1,49],[3,6,1,45],[2,2,1,1],[1,7,1,237],[1,7,3,233],[2,7,3,373],[4,7,1,487],[4,7,3,234],[5,7,1,15],[5,7,3,290],[6,7,1,14],[6,7,3,477]]};
+const CLI = D.clientes;
+const MES = D.meses; // [[num, nombre]]
+const STA = D.statuses;
+const AGG = D.agg;   // [cliIdx, mesNum, staIdx, count]
+
+// ─── EXTRA DATA (KBs / Causas / Grupos) ──────────────────────────────────────
+const TOP_KBS  = [["KB5087545", 407], ["KB5089140", 400], ["KB5087068", 288], ["KB5094147", 261], ["KB5094128", 252], ["KB5075906", 243], ["KB5075905", 238], ["KB5075903", 235], ["KB5094123", 233], ["KB5082118", 212]];   // [[kb, count], ...]
+const CAUSAS = {"0":{"1":[["No se agregaron a ninguna ventana de actualizacion.",436],["Equipo Linux, no corresponde aplicar actualizaciones.",12],["No es posible establecer conexion con el servidor.",2],["No permite el inicio de sesion en el equipo. Ticket ASJ-14154.",1]],"2":[["No se agregaron a ninguna ventana de actualizacion.",408],["Equipo Linux, no corresponde aplicar actualizaciones.",15],["Credenciales no permiten establecer conexion.",1],["No se encuentra en Beyond Trust",1]],"3":[["No se agregaron a ninguna ventana de actualizacion.",439],["Equipo Linux, no corresponde aplicar actualizaciones.",12],["Credenciales no permiten establecer conexion.",2],["Error al descargar las actualizaciones. Precisa Windows 11.",2]],"4":[["No se agregaron a ninguna ventana de actualizacion.",463],["Equipo Linux, no corresponde aplicar actualizaciones.",12],["Error en Windows Update. Codigo 0x80073712. ASJ-15250",1],["Alerta \"End of support\". Ticket: ASJ-13086",1]],"5":[["No fue incluido en ninguna ventana de mantenimiento.",451],["Equipo Linux, no corresponde aplicar actualizaciones.",13],["Se recibio solicitud de no intervenir este servidor durante la ventana de manten",1],["No fue posible reconectar posterior al reinicio. ASJ-15824",1]],"6":[["No fue incluido en ninguna ventana de mantenimiento.",460],["Se solicito no avanzar con este servidor.",8],["Equipo Linux, no corresponde aplicar actualizaciones.",6],["No se encuentra registrado en BeyondTrust. ASJ-16135",1]]},"1":{"1":[["No se recibio confirmacion de Snapshots para ejecutar la instalacion de los upda",195],["Servidor no encontrado en Beyond Trust",39],["No se encuentra en Beyond Trust.",25],["No se recibio Snapshot.",21]],"2":[["No se recibio confirmacion de Snapshot.",154],["No se recibio confirmacion de Snapshot",27],["No se recibio confirmacion para ejecutar actualizaciones.",15],["No se encuentra el Jump server en BeyondTrust",12]],"3":[["No se recibio confirmacion de Snapshot",319],["Problema de credenciales en el Confluence para el dominio \"santacruz.net\"",17],["Error 0x800b0109 - Ticket GP-11980",7],["Las instalaciones no se completan - Ticket GP-11982",3]],"4":[["No se recibio confirmacion de Snapshot",265],["El servidor no se encuentra cargado en BeyondTrust",19],["El servidor no se encuentra en BeyondTrust",7],["El servidor no se encuentra en BeyondTrust.",1]],"5":[["El servidor no se encuentra en BeyondTrust",7],["No se recibio confirmacion de Snapshot",7]],"6":[["No se recibio confirmacion de Snapshot",337],["Acceso no disponible. No fue posible establecer conexion con el servidor.",9],["No se completan las descargas - Ticket GP-12618",6],["Problema de accesos al servidor desde BeyondTrust y el JumpServer",5]]},"2":{"1":[["No se agrego a ninguna ventana de actualizacion.",345],["sin acceso",2],["Falta de Snapshot",1]],"2":[["No se agrego a ninguna ventana de actualizacion.",362],["Error Wupdate 0x80244022. Se realiza reinicio sanitario",10],["Error Wupdate 0x8072EE2. Se realiza reinicio sanitario",2]],"3":[["No se agrego a ninguna ventana de actualizacion.",340],["No cuenta con Snapshot",3],["Error 80244022. Se realizo reinicio sanitario",2],["Es un Windows Servers 2008",1]],"6":[["No se programaron ventanas con el servidor",523],["Error Wsus",1],["No es posible establecer conexion con el servidor.",1],["No se recibio confirmacion de Snapshot",1]]},"3":{"1":[["Inaccesible / No responde a solicitudes ICMP",7],["Inaccesible / Fallo en autenticacion NLA",1]],"2":[["Inaccesible / No responde a solicitudes ICMP",6],["Inaccesible / Fallo en autenticacion NLA",1],["Inaccesible / Falla de autenticacion RDP",1],["Inaccesible / Credenciales invalidas",1]],"3":[["Inaccesible / No responde a solicitudes ICMP",8],["Inaccesible / Falla de autenticacion RDP",1],["Inaccesible / Credenciales invalidas",1]],"4":[["Inaccesible / No responde a solicitudes ICMP",5],["Inaccesible / Falla de autenticacion RDP",1],["Inaccesible / Credenciales invalidas",1]],"5":[["Inaccesible, no responde Ping",4],["Inaccesible / No responde a solicitudes ICMP",1],["Inaccesible / Credenciales invalidas",1]],"6":[["Inaccesible / No responde a solicitudes ICMP",6],["Inaccesible / Credenciales invalidas",1]]},"4":{"1":[["Se suspenden las tareas de actualizaciones por activacion de freeze mensual.",181],["No puede ser actualizado. Ventana de backup en VBR. Se debe actualizar en horari",129],["No se encuentra en Beyond Trust",51],["No fue posible la conexion con el servidor",21]],"2":[["No se recibio confirmacion de Snapshot",350],["No se encuentra en Beyond Trust",70],["Error al intentar conectarse con el WSUS",28],["Error Wupdate se adjunta captura. Ultima actualizacion 14/12/2025. Se realiza re",12]],"3":[["No se recibio confirmacion de Snapshot",248],["No se recibio confirmacion para ejecutar las actualizaciones",124],["Error al intentar autenticar en Beyond Trust",114],["Se suspenden las tareas de actualizaciones por activacion de freeze mensual.",27]],"4":[["No se recibio confirmacion de Snapshot",227],["No se encuentra en Beyond Trust.",7],["No se encuentra el servidor cargado en BeyondTrust",6],["No se encuentra en el Beyond Trust, no responde ping",4]],"5":[["No se recibio confirmacion de Snapshot",323],["No se recibio mail de Snapshot",56],["No se completan las descargas",12],["no se procedio con la ventana por las credenciales bloqueadas",11]],"6":[["Installation Failure: Windows failed to install the following update with error ",115],["No se recibio confirmacion de Snapshot",53],["Sin conexion o sin datos",27],["Se queda descargando los updates. Ticket GP-12616",13]]},"5":{"1":[["No se recibio confirmacion para ejecutar la instalacion de los updates.",91],["No se recibio confirmacion para ejecutar las actualizaciones.",46],["No se encuentra en Beyond Trust.",36],["Error W update",14]],"2":[["no se recibio confirmacion para instalar actualizaciones",250],["Error de conexion en Beyond Trust",24],["No se encuentra en Beyond Trust",24],["Error Wupdate 0x80244017. Se realiza reinicio sanitario",3]],"3":[["no se recibio confirmacion para instalar actualizaciones",292],["Inconvenientes de autenticacion con el Beyond Trust",30],["No se encuentra en Beyond Trust",14],["Error de conexion en Beyond Trust",2]],"4":[["no se recibio confirmacion para instalar actualizaciones",155],["No se encuentra en Beyond Trust",21],["Error de conexion en Beyond Trust",12],["Error Conectividad en Beyond Trust",5]],"5":[["Credenciales bloqueadas",93],["no se recibio confirmacion para instalar actualizaciones",71],["No se encuentra en Beyond Trust",17],["Error de conexion en Beyond Trust",4]],"6":[["no se recibio confirmacion para instalar actualizaciones",156],["No se encuentra en Beyond Trust",18],["Error de conexion en Beyond Trust",5],["Error Wsus",3]]},"6":{"1":[["Se suspenden las tareas de actualizaciones por activacion de freeze mensual.",86],["No se recibio mail de Snapshot.",86],["No se encuentra en Beyond Trust.",32],["No es posible acceder al servidor. Error de autenticacion.",10]],"2":[["Por actualizar",149],["No se recibio confirmacion de Snapshot.",63],["Se suspenden las tareas de actualizaciones por activacion de freeze mensual.",35],["Servidor no encontrado en Access Console",5]],"3":[["No se recibio confirmacion de Snapshot.",162],["Se suspenden las tareas de actualizaciones por activacion de freeze mensual.",33],["Error al intentar autenticarse en el Beyond Trust",12],["Las instalaciones no se completan - Ticket GP-11927",5]],"4":[["No se recibio confirmacion de Snapshot",234],["No se encuentra el servidor en BeyondTrust",2],["No se completan las descargas - Ticket GP-12177",2],["Error al intentar conectar con el servicio de actualizacion",2]],"5":[["No se recibio confirmacion de Snapshot",44],["SERVIDOR PRODUCTIVO",3],["Equipo apagado",2],["Es una VM",2]],"6":[["No se recibio confirmacion de Snapshot",52],["Sin conexion o sin datos - Ticket GP-12673",9],["Error Wupdate",1],["No hay conectividad WinRM ni acceso administrativo - Ticket GP-12627",1]]},"7":{"1":[["Failed to install on ‎21/‎01/‎2026 - 0x800f0831",2]],"2":[["Failed to install on ‎20/‎02/‎2026 - 0x800f0831",2]],"3":[["Failed to install on ‎20/‎03/‎2026 - 0x800f0831",2]],"4":[["Failed to install on ‎23/‎04/‎2026 - 0x800f0831",2]],"5":[["No es posible establecer conexion con el servidor",1]],"6":[["Failed to install on ‎18/‎06/‎2026 - 0x800f0831",2]]},"8":{"1":[["Falla requisitos minimos Windows 11",32],["Error WU 0x80073701",1],["Solo se debe realizar reinicio sanitario, no se actualiza",1],["Inaccesible, se adjunta captura",1]],"2":[["Error al descargar las actualizaciones. Precisa Windows 11. Se realiza reinicio ",34]],"3":[["Error al descargar las actualizaciones. Precisa Windows 11. Se realiza reinicio ",30],["No se autorizo para proceder con la ventana",8]],"4":[["Error al descargar las actualizaciones. Precisa Windows 11. Se realiza reinicio ",33]],"5":[["No se agrego a ninguna ventana",35],["Error al descargar las actualizaciones. Precisa Windows 11. Se realiza reinicio ",18],["Apagado",2],["no tocar, se esta migrando",1]],"6":[["Error al descargar las actualizaciones. Precisa Windows 11. Se realiza reinicio ",33],["Error Wsus 0x80070005 ticket QUAL-2964",1],["Apagado no encender",1],["no se puede conectar",1]]}};   // {cliIdx: {mesNum: [[causa,count],...]}, ...}    // {cliIdx: [[causa, count], ...], ...}
+const GRUPOS   = [{"name": "Produccion2", "total": 1810, "unpatched": 1662, "pct": 91.8}, {"name": "Produccion4", "total": 1806, "unpatched": 1654, "pct": 91.6}, {"name": "Produccion1", "total": 1140, "unpatched": 1012, "pct": 88.8}, {"name": "Produccion3", "total": 1091, "unpatched": 998, "pct": 91.5}, {"name": "Testing2", "total": 1184, "unpatched": 960, "pct": 81.1}, {"name": "Testing1", "total": 1194, "unpatched": 944, "pct": 79.1}, {"name": "Produccion5", "total": 725, "unpatched": 679, "pct": 93.7}, {"name": "Testing3", "total": 954, "unpatched": 628, "pct": 65.8}];    // [{name, total, unpatched, pct}, ...]
+
+
+const CLI_COLORS = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#4a3aa7','#00b4d8','#c76b26'];
+const STA_COLOR  = {'-':'#a0aec0','Actualizado':'#1baf7a','No actualizado':'#e53e3e','Por actualizar':'#eda100','Cancelado':'#718096'};
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────
+let selCli = new Set(CLI);
+let selMes = new Set(MES.map(m=>m[0]));
+let tSearchQ = '';
+let tSortState = {col:-1,dir:1};
+let tPage = 1;
+let tRPP = 20;
+let tFiltered = [];
+
+// ─── HEADER ───────────────────────────────────────────────────────────────
+document.getElementById('hdrMeta').innerHTML =
+  `Actualizado: ${new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})}<br>` +
+  `<span id="hdrCount">${AGG.reduce((a,r)=>a+r[3],0).toLocaleString('es-AR')} registros · ${CLI.length} clientes</span>`;
+
+// ─── INIT MULTI-SELECT ────────────────────────────────────────────────────
+function buildMs(id, items, colorFn) {
+  const cont = document.getElementById(id+'Opts');
+  items.forEach((item,i) => {
+    const [val,lbl] = Array.isArray(item) ? [item[0], item[1]] : [item, item];
+    const d = document.createElement('div');
+    d.className = 'ms-opt'; d.dataset.val = val; d.dataset.lbl = String(lbl).toLowerCase();
+    // Build DOM elements to avoid HTML-attribute quote conflicts with string values
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true; cb.value = String(val);
+    cb.addEventListener('change', function(){ msChange(id, val, this.checked); });
+    d.appendChild(cb);
+    if (colorFn) { const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = colorFn(i); d.appendChild(dot); }
+    const lbEl = document.createElement('span'); lbEl.textContent = lbl; d.appendChild(lbEl);
+    cont.appendChild(d);
+  });
+}
+buildMs('msCli', CLI, i => CLI_COLORS[i%CLI_COLORS.length]);
+buildMs('msMes', MES.map(([n,nm]) => [n, nm]));
+
+function toggleMs(id) {
+  const dd = document.getElementById(id+'Dd');
+  const tr = document.getElementById(id+'Trig');
+  const isOpen = dd.classList.toggle('open');
+  tr.classList.toggle('open', isOpen);
+  if (isOpen) {
+    const handler = e => { if (!document.getElementById(id).contains(e.target)) { dd.classList.remove('open'); tr.classList.remove('open'); document.removeEventListener('click', handler); } };
+    setTimeout(() => document.addEventListener('click', handler), 10);
+  }
+}
+function msChange(id, val, checked) {
+  const sel = id === 'msCli' ? selCli : selMes;
+  checked ? sel.add(val) : sel.delete(val);
+  updateMsLbl(id); refresh();
+}
+function updateMsLbl(id) {
+  const items = id === 'msCli' ? CLI : MES.map(m=>m[0]);
+  const sel   = id === 'msCli' ? selCli : selMes;
+  const el = document.getElementById(id==='msCli'?'msCliLbl':'msMesLbl');
+  if (sel.size === 0) el.textContent = 'Ninguno';
+  else if (sel.size === items.length) el.textContent = id === 'msCli' ? 'Todos los clientes' : 'Todos los meses';
+  else if (sel.size <= 3) {
+    if (id === 'msCli') el.textContent = [...sel].join(', ');
+    else el.textContent = MES.filter(m=>sel.has(m[0])).map(m=>m[1]).join(', ');
+  } else el.textContent = `${sel.size} seleccionados`;
+}
+function msAll(id) {
+  const items = id === 'msCli' ? CLI : MES.map(m=>m[0]);
+  const sel   = id === 'msCli' ? selCli : selMes;
+  items.forEach(it => sel.add(it));
+  document.querySelectorAll(`#${id}Opts input`).forEach(cb => cb.checked = true);
+  updateMsLbl(id); refresh();
+}
+function msClear(id) {
+  const sel = id === 'msCli' ? selCli : selMes;
+  sel.clear();
+  document.querySelectorAll(`#${id}Opts input`).forEach(cb => cb.checked = false);
+  updateMsLbl(id); refresh();
+}
+function filterMs(id, q) {
+  document.querySelectorAll(`#${id}Opts .ms-opt`).forEach(o => o.style.display = o.dataset.lbl.includes(q.toLowerCase()) ? '' : 'none');
+}
+function resetFilters() { msAll('msCli'); msAll('msMes'); }
+
+// ─── DATOS FILTRADOS ──────────────────────────────────────────────────────
+function getFilt() {
+  return AGG.filter(r => selCli.has(CLI[r[0]]) && selMes.has(r[1]));
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────────────────
+function updateKPIs(filt) {
+  let total=0, act=0, noAct=0, porAct=0;
+  filt.forEach(r => {
+    const s = STA[r[2]];
+    total += r[3];
+    if (s==='Actualizado') act += r[3];
+    else if (s==='No actualizado') noAct += r[3];
+    else if (s==='Por actualizar') porAct += r[3];
+  });
+  const pct = total > 0 ? (act/total*100).toFixed(1) : 0;
+  document.getElementById('kTotal').textContent = total.toLocaleString('es-AR');
+  document.getElementById('kAct').textContent = act.toLocaleString('es-AR');
+  document.getElementById('kActSub').textContent = total > 0 ? `${(act/total*100).toFixed(1)}% del total` : '';
+  document.getElementById('kNoAct').textContent = noAct.toLocaleString('es-AR');
+  document.getElementById('kNoActSub').textContent = total > 0 ? `${(noAct/total*100).toFixed(1)}% del total` : '';
+  document.getElementById('kPorAct').textContent = porAct.toLocaleString('es-AR');
+  document.getElementById('kPorActSub').textContent = total > 0 ? `${(porAct/total*100).toFixed(1)}% del total` : '';
+  document.getElementById('kPct').textContent = pct + '%';
+  document.getElementById('kPctSub').textContent = +pct >= 80 ? '✅ Buen nivel' : +pct >= 60 ? '⚠️ Nivel medio' : '🔴 Bajo cumplimiento';
+  document.getElementById('hdrCount').textContent = `${total.toLocaleString('es-AR')} registros · ${selCli.size} clientes`;
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────
+let cDonut, cTrend;
+
+function updateCharts(filt) {
+  // Aggregates
+  const staCount = {};
+  STA.forEach(s => { if (s!=='-') staCount[s] = 0; });
+  const cliAgg = {}; // cli -> {act, noAct, porAct, canc, total}
+  const trendAgg = {}; // cli -> mesNum -> {act, total}
+  CLI.forEach((c,i) => { if(selCli.has(c)){ cliAgg[c]={act:0,noAct:0,porAct:0,canc:0,total:0,color:CLI_COLORS[i%CLI_COLORS.length]}; trendAgg[c]={}; } });
+
+  filt.forEach(r => {
+    const s = STA[r[2]]; const c = CLI[r[0]]; const m = r[1]; const cnt = r[3];
+    if (s!=='-') staCount[s] = (staCount[s]||0) + cnt;
+    if (cliAgg[c]) {
+      cliAgg[c].total += cnt;
+      if (s==='Actualizado')    { cliAgg[c].act    += cnt; }
+      if (s==='No actualizado') { cliAgg[c].noAct  += cnt; }
+      if (s==='Por actualizar') { cliAgg[c].porAct += cnt; }
+      if (s==='Cancelado')      { cliAgg[c].canc   += cnt; }
+      if (!trendAgg[c][m]) trendAgg[c][m] = {act:0,total:0};
+      trendAgg[c][m].total += cnt;
+      if (s==='Actualizado') trendAgg[c][m].act += cnt;
+    }
+  });
+
+  // Donut
+  const dLbls = Object.keys(staCount).filter(s => staCount[s]>0);
+  const dData = dLbls.map(s => staCount[s]);
+  const dColors = dLbls.map(s => STA_COLOR[s]||'#a0aec0');
+  const dTotal = dData.reduce((a,b)=>a+b,0);
+  if (cDonut) cDonut.destroy();
+  cDonut = new Chart(document.getElementById('cDonut'), {
+    type:'doughnut',
+    data:{labels:dLbls, datasets:[{data:dData, backgroundColor:dColors, borderWidth:2, borderColor:'#fff', hoverOffset:4}]},
+    options:{
+      plugins:{
+        legend:{position:'bottom', labels:{font:{size:10},padding:10,usePointStyle:true,pointStyleWidth:8}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.toLocaleString('es-AR')} (${dTotal>0?(ctx.parsed/dTotal*100).toFixed(1):0}%)`}}
+      },
+      cutout:'65%', maintainAspectRatio:false
+    }
+  });
+
+  // Tabla de cumplimiento por cliente
+  const cLbls = [...selCli].filter(c => cliAgg[c] && cliAgg[c].total > 0);
+  cLbls.sort((a,b) => {
+    const pa = cliAgg[a].total ? cliAgg[a].act/cliAgg[a].total : 0;
+    const pb = cliAgg[b].total ? cliAgg[b].act/cliAgg[b].total : 0;
+    return pb - pa;
+  });
+  const p2 = (n,t) => t ? (n/t*100).toFixed(2)+' %' : '–';
+  const f  = n => n > 0 ? n.toLocaleString('es-AR') : '–';
+  // Totales
+  const tot = {act:0,noAct:0,porAct:0,canc:0,total:0};
+  cLbls.forEach(c => { const d=cliAgg[c]; tot.act+=d.act; tot.noAct+=d.noAct; tot.porAct+=d.porAct; tot.canc+=d.canc; tot.total+=d.total; });
+  const rows = cLbls.map(c => {
+    const d = cliAgg[c]; const t = d.total;
+    const pAct = t ? d.act/t : 0; const pNo = t ? d.noAct/t : 0; const pPor = t ? d.porAct/t : 0;
+    return `<tr>
+      <td>${c}</td>
+      <td>${f(t)}</td>
+      <td style="color:var(--green)">${f(d.act)}</td>
+      <td style="color:var(--red)">${f(d.noAct)}</td>
+      <td style="color:var(--amber)">${f(d.porAct)}</td>
+      <td>${d.canc > 0 ? f(d.canc) : '–'}</td>
+      <td class="pct-act">${p2(d.act,t)}</td>
+      <td class="pct-no">${p2(d.noAct,t)}</td>
+      <td class="pct-por">${p2(d.porAct,t)}</td>
+    </tr>`;
+  }).join('');
+  const tRow = `<tr>
+    <td>Total general</td>
+    <td>${f(tot.total)}</td>
+    <td style="color:var(--green);font-weight:700">${f(tot.act)}</td>
+    <td style="color:var(--red);font-weight:700">${f(tot.noAct)}</td>
+    <td style="color:var(--amber);font-weight:700">${f(tot.porAct)}</td>
+    <td>${tot.canc > 0 ? f(tot.canc) : '–'}</td>
+    <td class="pct-act">${p2(tot.act,tot.total)}</td>
+    <td class="pct-no">${p2(tot.noAct,tot.total)}</td>
+    <td class="pct-por">${p2(tot.porAct,tot.total)}</td>
+  </tr>`;
+  document.getElementById('cliTable').innerHTML = `<table>
+    <thead><tr>
+      <th>Cliente</th><th>Servidores</th>
+      <th style="color:var(--green)">Actualizados</th>
+      <th style="color:var(--red)">No actualizados</th>
+      <th style="color:var(--amber)">Por actualizar</th>
+      <th>Cancelado</th>
+      <th style="color:var(--green)">% Actualizado</th>
+      <th style="color:var(--red)">% No actualizado</th>
+      <th style="color:var(--amber)">% Por actualizar</th>
+    </tr></thead>
+    <tbody>${rows}${tRow}</tbody>
+  </table>`;
+
+  // Combo chart: stacked bars by status + line % compliance (global for selected clients)
+  const activeMes = MES.filter(([n])=>selMes.has(n));
+  const mesLabels = activeMes.map(([,n])=>n);
+
+  // Monthly totals per status (across all selected clients)
+  const mesAgg = {}; // mesNum -> {act, noAct, porAct, total}
+  activeMes.forEach(([n])=>{ mesAgg[n]={act:0,noAct:0,porAct:0,total:0}; });
+  filt.forEach(r=>{
+    const s=STA[r[2]]; const m=r[1]; const cnt=r[3];
+    if (!mesAgg[m]) return;
+    mesAgg[m].total+=cnt;
+    if(s==='Actualizado') mesAgg[m].act+=cnt;
+    else if(s==='No actualizado') mesAgg[m].noAct+=cnt;
+    else if(s==='Por actualizar') mesAgg[m].porAct+=cnt;
+  });
+
+  const comboDatasets = [
+    {
+      type:'bar', label:'Actualizados', yAxisID:'yCount',
+      data:activeMes.map(([n])=>mesAgg[n]?.act||0),
+      backgroundColor:'#1baf7a88', borderColor:'#1baf7a', borderWidth:1, borderRadius:2, stack:'s1',
+      order:2
+    },
+    {
+      type:'bar', label:'No actualizados', yAxisID:'yCount',
+      data:activeMes.map(([n])=>mesAgg[n]?.noAct||0),
+      backgroundColor:'#e53e3e88', borderColor:'#e53e3e', borderWidth:1, borderRadius:2, stack:'s1',
+      order:2
+    },
+    {
+      type:'bar', label:'Por actualizar', yAxisID:'yCount',
+      data:activeMes.map(([n])=>mesAgg[n]?.porAct||0),
+      backgroundColor:'#eda10088', borderColor:'#eda100', borderWidth:1, borderRadius:2, stack:'s1',
+      order:2
+    },
+    {
+      type:'line', label:'% Cumplimiento', yAxisID:'yPct',
+      data:activeMes.map(([n])=>mesAgg[n]&&mesAgg[n].total>0 ? +(mesAgg[n].act/mesAgg[n].total*100).toFixed(1) : null),
+      borderColor:'#2a78d6', backgroundColor:'#2a78d622',
+      pointBackgroundColor:'#2a78d6', borderWidth:2.5,
+      pointRadius:5, pointHoverRadius:7,
+      tension:.3, spanGaps:true, order:1, fill:false
+    }
+  ];
+
+  if (cTrend) cTrend.destroy();
+  cTrend = new Chart(document.getElementById('cTrend'), {
+    type:'bar',
+    data:{labels:mesLabels, datasets:comboDatasets},
+    options:{
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},padding:10,usePointStyle:true,pointStyleWidth:8}},
+        tooltip:{
+          mode:'index',intersect:false,
+          callbacks:{
+            label:ctx=>{
+              if(ctx.dataset.label==='% Cumplimiento') return ` % Cumplimiento: ${ctx.parsed.y!==null?ctx.parsed.y+'%':'–'}`;
+              return ` ${ctx.dataset.label}: ${(ctx.parsed.y||0).toLocaleString('es-AR')}`;
+            }
+          }
+        }
+      },
+      scales:{
+        yCount:{position:'left',ticks:{font:{size:11}},grid:{color:'#f0f2f5'},title:{display:true,text:'Servidores',font:{size:10},color:'#718096'}},
+        yPct:{position:'right',min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{display:false},title:{display:true,text:'% Cumplimiento',font:{size:10},color:'#2a78d6'}},
+        x:{ticks:{font:{size:11}},grid:{display:false}}
+      },
+      interaction:{mode:'index',intersect:false},
+      maintainAspectRatio:false
+    }
+  });
+}
+
+// ─── TABLE ────────────────────────────────────────────────────────────────
+function buildTableRows(filt) {
+  // Aggregate per (cliente, mes)
+  const agg = {};
+  filt.forEach(r => {
+    const c = CLI[r[0]]; const m = r[1]; const s = STA[r[2]]; const cnt = r[3];
+    const key = c+'|'+m;
+    if (!agg[key]) agg[key] = {cli:c, mesNum:m, mesNm:MES.find(x=>x[0]===m)?.[1]||m, act:0, noAct:0, porAct:0, total:0};
+    agg[key].total += cnt;
+    if (s==='Actualizado') agg[key].act += cnt;
+    else if (s==='No actualizado') agg[key].noAct += cnt;
+    else if (s==='Por actualizar') agg[key].porAct += cnt;
+  });
+  let rows = Object.values(agg);
+  if (tSearchQ) {
+    const q = tSearchQ.toLowerCase();
+    rows = rows.filter(r => r.cli.toLowerCase().includes(q) || String(r.mesNm).toLowerCase().includes(q));
+  }
+  if (tSortState.col >= 0) {
+    const col = tSortState.col;
+    const getV = r => [r.cli, r.mesNum, r.total, r.act, r.noAct, r.porAct, r.total>0?r.act/r.total:0][col];
+    rows.sort((a,b) => tSortState.dir * (getV(a)<getV(b)?-1:getV(a)>getV(b)?1:0));
+  }
+  return rows;
+}
+
+function statusBadge(s) {
+  if (s==='Actualizado') return `<span class="badge b-g">✓ ${s}</span>`;
+  if (s==='No actualizado') return `<span class="badge b-r">✗ ${s}</span>`;
+  if (s==='Por actualizar') return `<span class="badge b-a">⏳ ${s}</span>`;
+  return `<span class="badge b-gr">${s}</span>`;
+}
+
+function pctBadge(act, total) {
+  if (total === 0) return '–';
+  const pct = (act/total*100).toFixed(1);
+  const c = pct>=80?'#1baf7a':pct>=60?'#eda100':'#e53e3e';
+  return `<span style="font-weight:700;color:${c}">${pct}%</span><span class="pbar-wrap"><span class="pbar-fill" style="width:${pct}%;background:${c}"></span></span>`;
+}
+
+function renderTable(filt) {
+  tFiltered = buildTableRows(filt);
+  const total = tFiltered.length;
+  const pages = Math.max(1, Math.ceil(total/tRPP));
+  if (tPage > pages) tPage = 1;
+  const start = (tPage-1)*tRPP;
+  const slice = tFiltered.slice(start, start+tRPP);
+  const cliColors = {};
+  CLI.forEach((c,i) => cliColors[c] = CLI_COLORS[i%CLI_COLORS.length]);
+
+  document.getElementById('tBody').innerHTML = slice.map(r => `<tr>
+    <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cliColors[r.cli]};margin-right:6px"></span>${r.cli}</td>
+    <td>${r.mesNm}</td>
+    <td style="text-align:right">${r.total.toLocaleString('es-AR')}</td>
+    <td style="text-align:right;color:var(--green);font-weight:600">${r.act.toLocaleString('es-AR')}</td>
+    <td style="text-align:right;color:var(--red);font-weight:600">${r.noAct.toLocaleString('es-AR')}</td>
+    <td style="text-align:right;color:var(--amber);font-weight:600">${r.porAct.toLocaleString('es-AR')}</td>
+    <td>${pctBadge(r.act, r.total)}</td>
+    <td>${r.total>0?(r.act/r.total>=.8?'<span class="badge b-g">✅ Bueno</span>':r.act/r.total>=.6?'<span class="badge b-a">⚠️ Medio</span>':'<span class="badge b-r">🔴 Bajo</span>'):'–'}</td>
+  </tr>`).join('');
+
+  document.getElementById('pgnInfo').textContent = total===0?'Sin resultados':`Mostrando ${start+1}–${Math.min(start+tRPP,total)} de ${total} filas`;
+  renderPgn(pages);
+}
+
+function renderPgn(pages) {
+  const cont = document.getElementById('pgnBtns');
+  const btns = [];
+  btns.push(`<button class="pg-btn" onclick="tGoPage(${tPage-1})" ${tPage===1?'disabled':''}>‹</button>`);
+  let s=Math.max(1,tPage-2), e=Math.min(pages,tPage+2);
+  if(s>1) btns.push(`<button class="pg-btn" onclick="tGoPage(1)">1</button>${s>2?'<span style="padding:4px;color:var(--text3)">…</span>':''}`);
+  for(let i=s;i<=e;i++) btns.push(`<button class="pg-btn${i===tPage?' active':''}" onclick="tGoPage(${i})">${i}</button>`);
+  if(e<pages) btns.push(`${e<pages-1?'<span style="padding:4px;color:var(--text3)">…</span>':''}<button class="pg-btn" onclick="tGoPage(${pages})">${pages}</button>`);
+  btns.push(`<button class="pg-btn" onclick="tGoPage(${tPage+1})" ${tPage===pages?'disabled':''}>›</button>`);
+  cont.innerHTML = btns.join('');
+}
+function tGoPage(p){tPage=p;renderTable(getFilt())}
+function tSearch(q){tSearchQ=q;tPage=1;renderTable(getFilt())}
+function tChangeRPP(){tRPP=+document.getElementById('tRPP').value;tPage=1;renderTable(getFilt())}
+function tSort(col){tSortState.col===col?tSortState.dir*=-1:(tSortState={col,dir:1});renderTable(getFilt())}
+
+// ─── REFRESH ──────────────────────────────────────────────────────────────
+function refresh() {
+  const filt = getFilt();
+  updateKPIs(filt);
+  updateCharts(filt);
+  tPage = 1;
+  renderTable(filt);
+  renderRisk();
+  renderCausas(filt);
+  renderKbs();
+  renderGrupos();
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────────────────
+function getCliStats() {
+  const filt = getFilt();
+  const stats = {};
+  CLI.forEach((c,i) => { if(selCli.has(c)) stats[c]={act:0,noAct:0,porAct:0,total:0,color:CLI_COLORS[i%CLI_COLORS.length]}; });
+  filt.forEach(r => {
+    const c=CLI[r[0]]; const s=STA[r[2]]; const cnt=r[3];
+    if(!stats[c]) return;
+    stats[c].total+=cnt;
+    if(s==='Actualizado') stats[c].act+=cnt;
+    else if(s==='No actualizado') stats[c].noAct+=cnt;
+    else if(s==='Por actualizar') stats[c].porAct+=cnt;
+  });
+  return stats;
+}
+function fmt(n){return n.toLocaleString('es-AR')}
+function pct(a,t){return t>0?(a/t*100).toFixed(1):0}
+function pctColor(p){return +p>=80?'#1baf7a':+p>=60?'#eda100':'#e53e3e'}
+function getMesRange(){
+  const nums=[...selMes].sort((a,b)=>a-b);
+  if(!nums.length) return '–';
+  const nms=nums.map(n=>MES.find(m=>m[0]===n)?.[1]||n);
+  return nms.length===1?nms[0]:`${nms[0]} – ${nms[nms.length-1]}`;
+}
+function barHtml(p){const c=pctColor(p);return `<div style="display:inline-block;width:90px;height:8px;background:#e2e8f0;border-radius:4px;vertical-align:middle;margin-left:8px;overflow:hidden"><div style="width:${p}%;height:100%;background:${c};border-radius:4px"></div></div>`}
+
+function genReport(type) {
+  const filt = getFilt();
+  const stats = getCliStats();
+  const clientes = Object.keys(stats).filter(c=>stats[c].total>0);
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const periodo = getMesRange();
+  const totals = clientes.reduce((a,c)=>({act:a.act+stats[c].act,noAct:a.noAct+stats[c].noAct,porAct:a.porAct+stats[c].porAct,total:a.total+stats[c].total}),{act:0,noAct:0,porAct:0,total:0});
+  const globalPct = pct(totals.act,totals.total);
+
+  if (type==='global') {
+    const gColor = pctColor(globalPct);
+    document.getElementById('modalContent').innerHTML = `
+      <div style="border-bottom:3px solid #2a78d6;padding-bottom:14px;margin-bottom:20px">
+        <h1 style="font-size:20px;font-weight:700;color:#1a202c">🌐 Informe Global de Patching</h1>
+        <p style="color:#718096;margin-top:4px;font-size:13px">Generado: ${fecha} &nbsp;·&nbsp; Período: ${periodo} &nbsp;·&nbsp; ${selCli.size} clientes</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+        <div style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:10px;font-weight:700;color:#2a78d6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total</div>
+          <div style="font-size:24px;font-weight:700;color:#1a202c">${fmt(totals.total)}</div>
+        </div>
+        <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:10px;font-weight:700;color:#1baf7a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Actualizados</div>
+          <div style="font-size:24px;font-weight:700;color:#1baf7a">${fmt(totals.act)}</div>
+          <div style="font-size:12px;color:#276749">${pct(totals.act,totals.total)}%</div>
+        </div>
+        <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:10px;font-weight:700;color:#e53e3e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">No Actualizados</div>
+          <div style="font-size:24px;font-weight:700;color:#e53e3e">${fmt(totals.noAct)}</div>
+          <div style="font-size:12px;color:#c53030">${pct(totals.noAct,totals.total)}%</div>
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:10px;font-weight:700;color:#eda100;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Por Actualizar</div>
+          <div style="font-size:24px;font-weight:700;color:#eda100">${fmt(totals.porAct)}</div>
+          <div style="font-size:12px;color:#92400e">${pct(totals.porAct,totals.total)}%</div>
+        </div>
+      </div>
+      <div style="background:#f8faff;border:1px solid #c3d1ef;border-radius:8px;padding:14px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#2a78d6;text-transform:uppercase;letter-spacing:.5px">% Cumplimiento Global</div>
+          <div style="font-size:32px;font-weight:700;color:${gColor};line-height:1.1">${globalPct}%</div>
+        </div>
+        <div style="flex:1;background:#e2e8f0;border-radius:6px;height:14px;overflow:hidden">
+          <div style="width:${globalPct}%;height:100%;background:${gColor};border-radius:6px"></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:${gColor}">${+globalPct>=80?'✅ Buen nivel':+globalPct>=60?'⚠️ Nivel medio':'🔴 Bajo cumplimiento'}</div>
+      </div>
+      <h3 style="font-size:12px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Detalle por Cliente</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#f8f9fa">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:#4a5568;border-bottom:2px solid #e2e8f0">Cliente</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#4a5568;border-bottom:2px solid #e2e8f0">Total</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#1baf7a;border-bottom:2px solid #e2e8f0">Act.</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#e53e3e;border-bottom:2px solid #e2e8f0">No Act.</th>
+          <th style="padding:8px 12px;text-align:right;font-size:11px;color:#eda100;border-bottom:2px solid #e2e8f0">Por Act.</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:#4a5568;border-bottom:2px solid #e2e8f0">% Cumplimiento</th>
+        </tr></thead>
+        <tbody>${clientes.map(c=>{const s=stats[c];const p=pct(s.act,s.total);const pc=pctColor(p);return`<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px 12px;font-weight:600"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px"></span>${c}</td><td style="padding:9px 12px;text-align:right">${fmt(s.total)}</td><td style="padding:9px 12px;text-align:right;color:#1baf7a;font-weight:600">${fmt(s.act)}</td><td style="padding:9px 12px;text-align:right;color:#e53e3e;font-weight:600">${fmt(s.noAct)}</td><td style="padding:9px 12px;text-align:right;color:#eda100;font-weight:600">${fmt(s.porAct)}</td><td style="padding:9px 12px;font-weight:700;color:${pc}">${p}%${barHtml(+p)}</td></tr>`}).join('')}</tbody>
+      </table>
+      ${(()=>{
+        // ── TOP CAUSAS EN EL INFORME ──────────────────────────────────────────
+        const activeMeses = [...selMes];
+        const activeClis  = [...selCli].map(c=>CLI.indexOf(c)).filter(i=>i>=0);
+        // Global aggregate
+        const globalMap = {};
+        const cliCausasReport = {};
+        const reportIsFallback = {};
+        activeClis.forEach(idx=>{
+          const cData = CAUSAS[String(idx)];
+          if (!cData) return;
+          const combined = {};
+          activeMeses.forEach(mes=>{
+            (cData[String(mes)]||[]).forEach(([c,n])=>{combined[c]=(combined[c]||0)+n;});
+          });
+          let top = Object.entries(combined).sort((a,b)=>b[1]-a[1]).slice(0,4);
+          // Fallback to all months if no data for selected period
+          if (!top.length) {
+            const fallback = {};
+            Object.values(cData).forEach(rows=>rows.forEach(([c,n])=>{fallback[c]=(fallback[c]||0)+n;}));
+            top = Object.entries(fallback).sort((a,b)=>b[1]-a[1]).slice(0,4);
+            if (top.length) reportIsFallback[idx] = true;
+          }
+          if (top.length) {
+            cliCausasReport[idx] = top;
+            top.forEach(([c,n])=>{globalMap[c]=(globalMap[c]||0)+n;});
+          }
+        });
+        const globalTop = Object.entries(globalMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        if (!globalTop.length) return '';
+        const maxG = globalTop[0][1];
+        // Unpatched per client for sorting
+        const unpatchedPerCli = {};
+        filt.forEach(r=>{const s=STA[r[2]];if(s==='No actualizado'||s==='Por actualizar')unpatchedPerCli[r[0]]=(unpatchedPerCli[r[0]]||0)+r[3];});
+        const sortedClis = Object.keys(cliCausasReport).map(Number).sort((a,b)=>(unpatchedPerCli[b]||0)-(unpatchedPerCli[a]||0));
+        const cauRow=(c,n,max,extra='')=>`
+          <tr>
+            <td style="padding:5px 8px 5px 0;color:#4a5568;font-size:12px;line-height:1.3${extra}">${c.length>70?c.slice(0,67)+'…':c}</td>
+            <td style="padding:5px 0;width:180px;vertical-align:middle">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+                  <div style="width:${Math.round(n/max*100)}%;height:100%;background:#e53e3e;border-radius:3px"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#1a202c;white-space:nowrap">${n.toLocaleString('es-AR')}</span>
+              </div>
+            </td>
+          </tr>`;
+        // Global section
+        let html = `
+          <h3 style="font-size:12px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.5px;margin:24px 0 10px">Top Causas de No Actualización</h3>
+          <div style="background:#f8faff;border:1px solid #c3d1ef;border-radius:8px;padding:14px;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;color:#2a78d6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+              📊 Resumen global — ${selCli.size} clientes seleccionados
+            </div>
+            <table style="width:100%;border-collapse:collapse">
+              <tbody>${globalTop.map(([c,n],i)=>`
+                <tr>
+                  <td style="padding:4px 8px 4px 0;color:#718096;font-weight:700;width:18px;font-size:12px">${i+1}</td>
+                  ${cauRow(c,n,maxG)}
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        // Per-client sections (only if more than 1 client)
+        if (sortedClis.length > 1) {
+          html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:10px">`;
+          sortedClis.forEach(idx=>{
+            const cli   = CLI[idx];
+            const rows  = cliCausasReport[idx];
+            const maxC  = rows[0][1];
+            const unp   = unpatchedPerCli[idx]||0;
+            const color = CLI_COLORS[idx%CLI_COLORS.length];
+            html += `
+              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.5px">${cli}</div>
+                    ${reportIsFallback[idx]?`<span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:600">Histórico</span>`:''}
+                  </div>
+                  ${unp?`<span style="font-size:11px;background:#fee2e2;color:#e53e3e;border-radius:4px;padding:2px 7px;font-weight:700">${unp.toLocaleString('es-AR')} sin act.</span>`:''}
+                </div>
+                <table style="width:100%;border-collapse:collapse">
+                  <tbody>${rows.map(([c,n])=>cauRow(c,n,maxC)).join('')}</tbody>
+                </table>
+              </div>`;
+          });
+          html += `</div>`;
+        }
+        return html;
+      })()}`;
+  } else {
+    // Per-client report
+    document.getElementById('modalContent').innerHTML = `
+      <div style="border-bottom:3px solid #2a78d6;padding-bottom:14px;margin-bottom:20px">
+        <h1 style="font-size:20px;font-weight:700;color:#1a202c">📄 Informe de Patching por Cliente</h1>
+        <p style="color:#718096;margin-top:4px;font-size:13px">Generado: ${fecha} &nbsp;·&nbsp; Período: ${periodo}</p>
+      </div>
+      ${clientes.map(c=>{
+        const s=stats[c]; const p=pct(s.act,s.total); const pc=pctColor(p);
+        return`<div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <h2 style="font-size:16px;font-weight:700;color:#1a202c"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${s.color};margin-right:8px"></span>${c}</h2>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:22px;font-weight:700;color:${pc}">${p}%</span>
+              <div style="background:#e2e8f0;border-radius:4px;height:10px;width:120px;overflow:hidden"><div style="width:${p}%;height:100%;background:${pc};border-radius:4px"></div></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="text-align:center;padding:10px;background:#f8f9fa;border-radius:6px"><div style="font-size:10px;color:#718096;font-weight:600;text-transform:uppercase">Total</div><div style="font-size:18px;font-weight:700">${fmt(s.total)}</div></div>
+            <div style="text-align:center;padding:10px;background:#f0fff4;border-radius:6px"><div style="font-size:10px;color:#1baf7a;font-weight:600;text-transform:uppercase">Actualizados</div><div style="font-size:18px;font-weight:700;color:#1baf7a">${fmt(s.act)}</div></div>
+            <div style="text-align:center;padding:10px;background:#fff5f5;border-radius:6px"><div style="font-size:10px;color:#e53e3e;font-weight:600;text-transform:uppercase">No Act.</div><div style="font-size:18px;font-weight:700;color:#e53e3e">${fmt(s.noAct)}</div></div>
+            <div style="text-align:center;padding:10px;background:#fffbeb;border-radius:6px"><div style="font-size:10px;color:#eda100;font-weight:600;text-transform:uppercase">Por Act.</div><div style="font-size:18px;font-weight:700;color:#eda100">${fmt(s.porAct)}</div></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="padding:12px;background:#f8f9fa;border-radius:6px;font-size:12px;color:#718096">
+        Informe incluye ${clientes.length} clientes · ${fmt(totals.total)} registros totales. % Cumplimiento = Actualizados / Total.
+      </div>`;
+  }
+  document.getElementById('modalBg').style.display = 'block';
+}
+
+function closeModal(){document.getElementById('modalBg').style.display='none'}
+
+function printReport() {
+  const content = document.getElementById('modalContent').innerHTML;
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe de Patching</title>
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:40px;color:#1a202c;font-size:13px}table{width:100%;border-collapse:collapse}@media print{body{padding:20px}}</style>
+    </head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ─── CERRAR MODAL CON ESC ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+document.getElementById('modalBg').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+// ─── EXTRA CHART INSTANCES (declaradas antes de refresh para evitar TDZ) ──────
+let cRiskInst=null, cKbInst=null, cGruposInst=null;
+
+// ─── ARRANCAR ─────────────────────────────────────────────────────────────
+refresh();
+
+function renderRisk() {
+  const filt = getFilt();
+  // Per-client: total, unpatched (no_act + por_act), weighted score
+  const weight = {1:3,2:4,3:5,4:6,5:7,6:8,7:10,8:6,9:5,10:4,11:3,12:2};
+  const cliData = {};
+  filt.forEach(r => {
+    const cli = CLI[r[0]];
+    if (!cliData[cli]) cliData[cli] = {tot:0, unp:0, score:0};
+    cliData[cli].tot += r[3];
+    if (r[2] === 3 || r[2] === 4) { // No act or Por act
+      cliData[cli].unp += r[3];
+      cliData[cli].score += r[3] * (weight[r[1]] || 1);
+    }
+  });
+  const sorted = Object.entries(cliData)
+    .map(([cli, d]) => ({cli, score: d.score, pct: d.tot ? +(d.unp/d.tot*100).toFixed(1) : 0}))
+    .sort((a,b) => b.score - a.score);
+
+  const labels = sorted.map(d => d.cli);
+  const scores = sorted.map(d => d.score);
+  const pcts   = sorted.map(d => d.pct);
+  // Color gradient: highest risk = red, lowest = amber
+  const maxS = Math.max(...scores, 1);
+  const bgColors = scores.map(s => {
+    const t = s/maxS;
+    const r = Math.round(229 + (83-229)*0);
+    // simple: red→amber gradient
+    const R = Math.round(229 * t + 237 * (1-t));
+    const G = Math.round(62  * t + 161 * (1-t));
+    const B = Math.round(62  * t + 0   * (1-t));
+    return `rgba(${R},${G},${B},0.8)`;
+  });
+
+  const ctx = document.getElementById('cRisk').getContext('2d');
+  if (cRiskInst) cRiskInst.destroy();
+  cRiskInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Índice de Riesgo',
+        data: scores,
+        backgroundColor: bgColors,
+        borderColor: bgColors.map(c=>c.replace('0.8','1')),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const d = sorted[ctx.dataIndex];
+              return [`Índice de riesgo: ${d.score.toLocaleString('es-AR')}`, `% No actualizado: ${d.pct}%`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: {color:'#e2e8f022'}, ticks:{color:'#718096',font:{size:11}} },
+        y: { grid: {display:false}, ticks:{color:'#4a5568',font:{size:12,weight:'600'}} }
+      }
+    }
+  });
+}
+
+function renderKbs() {
+  const labels = TOP_KBS.map(d => d[0]);
+  const counts = TOP_KBS.map(d => d[1]);
+  const ctx = document.getElementById('cKb').getContext('2d');
+  if (cKbInst) cKbInst.destroy();
+  cKbInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Servidores con KB aplicado',
+        data: counts,
+        backgroundColor: '#2a78d655',
+        borderColor: '#2a78d6',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display:false},
+        tooltip: {callbacks:{label: ctx => `${ctx.parsed.x} servidores`}}
+      },
+      scales: {
+        x: {grid:{color:'#e2e8f022'}, ticks:{color:'#718096',font:{size:11}}},
+        y: {grid:{display:false}, ticks:{color:'#4a5568',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function renderCausas(filt) {
+  const cont = document.getElementById('causasContainer');
+  cont.innerHTML = '';
+  const activeMeses = [...selMes];
+  const activeClis = [...selCli].map(c => CLI.indexOf(c)).filter(i => i >= 0);
+  if (!activeClis.length) {
+    cont.innerHTML = '<p class="causa-empty">Seleccioná al menos un cliente.</p>';
+    return;
+  }
+
+  // Aggregate causes per client filtered by selected months.
+  // If a client has no causes in the selected months, fall back to all available months.
+  const cliCausas  = {};
+  const cliIsFallback = {}; // track which clients are using fallback data
+  activeClis.forEach(idx => {
+    const cData = CAUSAS[String(idx)];
+    if (!cData) return;
+    // --- try filtered months first ---
+    const combined = {};
+    activeMeses.forEach(mes => {
+      (cData[String(mes)] || []).forEach(([causa, n]) => { combined[causa] = (combined[causa] || 0) + n; });
+    });
+    let top = Object.entries(combined).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    // --- fallback: all available months ---
+    if (!top.length) {
+      const fallback = {};
+      Object.values(cData).forEach(rows => {
+        rows.forEach(([causa, n]) => { fallback[causa] = (fallback[causa] || 0) + n; });
+      });
+      top = Object.entries(fallback).sort((a,b)=>b[1]-a[1]).slice(0,4);
+      if (top.length) cliIsFallback[idx] = true;
+    }
+    if (top.length) cliCausas[idx] = top;
+  });
+
+  if (!Object.keys(cliCausas).length) {
+    cont.innerHTML = '<p class="causa-empty">Sin causas registradas para los clientes seleccionados.</p>';
+    return;
+  }
+
+  // Unpatched count per client in current filter (for sorting)
+  const unpCount = {};
+  filt.forEach(r => {
+    const s = STA[r[2]];
+    if (s === 'No actualizado' || s === 'Por actualizar')
+      unpCount[r[0]] = (unpCount[r[0]] || 0) + r[3];
+  });
+
+  const sortedIdxs = Object.keys(cliCausas).map(Number)
+    .sort((a,b) => (unpCount[b]||0) - (unpCount[a]||0));
+
+  // ── Global aggregate card (only when >1 client) ──────────────────────────
+  if (sortedIdxs.length > 1) {
+    const globalMap = {};
+    sortedIdxs.forEach(idx => {
+      cliCausas[idx].forEach(([causa,n]) => { globalMap[causa]=(globalMap[causa]||0)+n; });
+    });
+    const globalTop = Object.entries(globalMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    if (globalTop.length) {
+      const maxN = globalTop[0][1];
+      const gCard = document.createElement('div');
+      gCard.className = 'causa-card causa-global';
+      gCard.style.cssText = 'grid-column:1/-1;border-color:var(--accent);background:var(--surface)';
+      gCard.innerHTML = `<div class="causa-card-title" style="color:var(--accent);font-size:12px">
+        📊 Resumen global — ${sortedIdxs.length} clientes seleccionados</div>`;
+      const tbl = document.createElement('table');
+      tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;margin-top:6px';
+      globalTop.forEach(([causa,n],i) => {
+        const tr = document.createElement('tr');
+        const pct = Math.round(n/maxN*100);
+        tr.innerHTML = `
+          <td style="width:18px;color:var(--text3);font-weight:700;padding:3px 6px 3px 0">${i+1}</td>
+          <td style="padding:3px 8px 3px 0;color:var(--text2);line-height:1.3">
+            ${causa.length>72?causa.slice(0,69)+'…':causa}</td>
+          <td style="width:120px;vertical-align:middle;padding:3px 0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:var(--red);border-radius:3px"></div>
+              </div>
+              <span style="font-size:11px;font-weight:600;white-space:nowrap;color:var(--text)">${n.toLocaleString('es-AR')}</span>
+            </div>
+          </td>`;
+        tbl.appendChild(tr);
+      });
+      gCard.appendChild(tbl);
+      cont.appendChild(gCard);
+    }
+  }
+
+  // ── Per-client cards ──────────────────────────────────────────────────────
+  sortedIdxs.forEach(idx => {
+    const cli  = CLI[idx];
+    const rows = cliCausas[idx];
+    const maxN = rows[0][1];
+    const unp  = unpCount[idx] || 0;
+    const card = document.createElement('div');
+    card.className = 'causa-card';
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px';
+    hdr.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="causa-card-title" style="margin-bottom:0">${cli}</div>
+        ${cliIsFallback[idx] ? `<span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:600">Histórico</span>` : ''}
+      </div>
+      ${unp ? `<span style="font-size:11px;background:#fee2e2;color:var(--red);border-radius:4px;padding:2px 7px;font-weight:700">${unp.toLocaleString('es-AR')} sin act.</span>` : ''}`;
+    card.appendChild(hdr);
+    rows.forEach(([causa, n]) => {
+      const wrap = document.createElement('div');
+      wrap.style.marginBottom = '7px';
+      const lbl = document.createElement('div');
+      lbl.className = 'causa-lbl';
+      lbl.textContent = causa.length > 65 ? causa.slice(0,62)+'…' : causa;
+      const barRow = document.createElement('div');
+      barRow.className = 'causa-row';
+      const bg = document.createElement('div'); bg.className='causa-bar-bg';
+      const fill = document.createElement('div'); fill.className='causa-bar-fill';
+      fill.style.width = Math.round(n/maxN*100)+'%';
+      bg.appendChild(fill);
+      const cnt = document.createElement('div'); cnt.className='causa-cnt';
+      cnt.textContent = n.toLocaleString('es-AR');
+      barRow.appendChild(bg); barRow.appendChild(cnt);
+      wrap.appendChild(lbl); wrap.appendChild(barRow);
+      card.appendChild(wrap);
+    });
+    cont.appendChild(card);
+  });
+}
+
+function renderGrupos() {
+  const labels = GRUPOS.map(g => g.name);
+  const vals   = GRUPOS.map(g => g.unpatched);
+  const pcts   = GRUPOS.map(g => g.pct);
+  const ctx = document.getElementById('cGrupos').getContext('2d');
+  if (cGruposInst) cGruposInst.destroy();
+  cGruposInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Servidores sin actualizar',
+        data: vals,
+        backgroundColor: '#e53e3e55',
+        borderColor: '#e53e3e',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display:false},
+        tooltip: {callbacks:{label:(ctx)=>`${ctx.parsed.x.toLocaleString('es-AR')} sin actualizar (${pcts[ctx.dataIndex]}%)`}}
+      },
+      scales: {
+        x: {grid:{color:'#e2e8f022'}, ticks:{color:'#718096',font:{size:11}}},
+        y: {grid:{display:false}, ticks:{color:'#4a5568',font:{size:11}}}
+      }
+    }
+  });
+}
+
+</script>
+</body>
+</html>
