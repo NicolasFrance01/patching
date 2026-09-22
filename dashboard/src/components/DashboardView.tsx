@@ -10,7 +10,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
 } from "recharts";
-import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
+import { getServerInfo, SERVER_TYPES, ServerType, serverTypeMap } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
 
@@ -496,10 +496,10 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
       {/* ── KPIs ────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MetricCard title="Total Servidores"   value={stats.total}   icon={<Server       className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
+        <MetricCard title="Total Servidores"   value={Object.keys(serverTypeMap).length}   icon={<Server       className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
+        <MetricCard title="Total Sincronizados" value={stats.total}   icon={<CheckCircle2 className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
         <MetricCard title="OK / Actualizados"  value={stats.ok}      icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
         <MetricCard title="Con Errores"        value={stats.errors}  icon={<XCircle      className="w-5 h-5 text-rose-400"    />} accent="rose"    />
-        <MetricCard title="Sin Datos"          value={stats.noData}  icon={<AlertTriangle className="w-5 h-5 text-zinc-500"   />} accent="zinc"    />
         <MetricCard title="% Cumplimiento"     value={`${stats.pct}%`} icon={<Clock      className="w-5 h-5 text-cyan-400"   />} accent="cyan"    />
       </div>
 

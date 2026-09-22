@@ -11,7 +11,8 @@ import {
   LogOut,
   Shield,
   Ticket,
-  ClipboardList
+  ClipboardList,
+  Calendar
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useState } from "react";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/historial", label: "Historial", icon: History },
   { href: "/reportes", label: "Reportes", icon: BarChart2 },
+  { href: "/calendario", label: "Calendario", icon: Calendar },
   { href: "/jira", label: "Jira", icon: Ticket },
   { href: "/mis-tickets", label: "Mis Tickets", icon: ClipboardList },
 ];

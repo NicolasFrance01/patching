@@ -139,3 +139,22 @@ model MonthlyServerStatus {
   @@index([month])
   @@index([serverName])
 }
+
+model PatchOrder {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  actionType    String   // 'CHECK' or 'INSTALL'
+  targetGroups  String?  // e.g., 'ASJ, BSC'
+  targetServers String?  // e.g., 'SRV1, SRV2'
+  scheduledAt   DateTime // When it should be executed
+  status        String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  executionLog  String?  @db.Text
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
