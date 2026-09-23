@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail, Trash2 } from "lucide-react";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
@@ -528,6 +528,23 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                 className="ml-2 p-1.5 rounded-lg border border-zinc-700/50 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-colors"
                               >
                                 <Mail className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm("¿Estás seguro que deseas eliminar esta sincronización? Esta acción no se puede deshacer.")) {
+                                    fetch(`/api/sync-runs/${run.id}`, { method: 'DELETE' })
+                                      .then(res => {
+                                        if (res.ok) window.location.reload();
+                                        else alert("Error al eliminar la sincronización.");
+                                      })
+                                      .catch(() => alert("Error al conectar con el servidor."));
+                                  }
+                                }}
+                                title="Eliminar sincronización"
+                                className="ml-2 p-1.5 rounded-lg border border-rose-700/50 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </button>

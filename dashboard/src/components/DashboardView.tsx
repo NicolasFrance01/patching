@@ -164,6 +164,14 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo]   = useState("");
   const [showFilterBar, setShowFilterBar] = useState(false);
+  
+  // Advanced filters state
+  const [grupoFilters, setGrupoFilters] = useState<string[]>([]);
+  const [ambienteFilters, setAmbienteFilters] = useState<string[]>([]);
+  const [analistaFilters, setAnalistaFilters] = useState<string[]>([]);
+  const [comentariosFilters, setComentariosFilters] = useState<string[]>([]);
+  const [snapFilters, setSnapFilters] = useState<string[]>([]);
+  const [confirmadoFilters, setConfirmadoFilters] = useState<string[]>([]);
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [chartsMounted, setChartsMounted] = useState(false);
   const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
@@ -210,12 +218,21 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     }),
   [initialData]);
 
-  // ── Filtered servers (bank + time + search) ─────────────────────────────────
+  // ── Filtered servers (bank + time + search + advanced) ──────────────────────
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return enriched.filter((s) => {
       if (!matchesBankFilter(s.serverName, bankFilters)) return false;
       if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, selectedMonth, customFrom, customTo)) return false;
+      
+      // Advanced Filters
+      if (grupoFilters.length > 0 && (!s.grupo || !grupoFilters.includes(s.grupo))) return false;
+      if (ambienteFilters.length > 0 && (!s.ambiente || !ambienteFilters.includes(s.ambiente))) return false;
+      if (analistaFilters.length > 0 && (!s.analista || !analistaFilters.includes(s.analista))) return false;
+      if (comentariosFilters.length > 0 && (!s.comentarios || !comentariosFilters.includes(s.comentarios))) return false;
+      if (snapFilters.length > 0 && (!s.snap || !snapFilters.includes(s.snap))) return false;
+      if (confirmadoFilters.length > 0 && (!s.confirmado || !confirmadoFilters.includes(s.confirmado))) return false;
+
       if (!q) return true;
       return (
         s.serverName.toLowerCase().includes(q) ||
@@ -226,7 +243,28 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         (s.ambiente ?? "").toLowerCase().includes(q)
       );
     });
-  }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search]);
+  }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search, grupoFilters, ambienteFilters, analistaFilters, comentariosFilters, snapFilters, confirmadoFilters]);
+
+  // ── Advanced filter options ─────────────────────────────────────────────────
+  const filterOptions = useMemo(() => {
+    const opts = { grupo: new Set<string>(), ambiente: new Set<string>(), analista: new Set<string>(), comentarios: new Set<string>(), snap: new Set<string>(), confirmado: new Set<string>() };
+    enriched.forEach(s => {
+      if (s.grupo) opts.grupo.add(s.grupo);
+      if (s.ambiente) opts.ambiente.add(s.ambiente);
+      if (s.analista) opts.analista.add(s.analista);
+      if (s.comentarios) opts.comentarios.add(s.comentarios);
+      if (s.snap) opts.snap.add(s.snap);
+      if (s.confirmado) opts.confirmado.add(s.confirmado);
+    });
+    return {
+      grupo: Array.from(opts.grupo).sort(),
+      ambiente: Array.from(opts.ambiente).sort(),
+      analista: Array.from(opts.analista).sort(),
+      comentarios: Array.from(opts.comentarios).sort(),
+      snap: Array.from(opts.snap).sort(),
+      confirmado: Array.from(opts.confirmado).sort(),
+    };
+  }, [enriched]);
 
   // ── KPI Stats ───────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -482,14 +520,44 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                   className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
               </div>
             )}
-            {(!bankFilters.includes("all") || timeFilter !== "mes") && (
+            {(!bankFilters.includes("all") || timeFilter !== "mes" || grupoFilters.length > 0 || ambienteFilters.length > 0 || analistaFilters.length > 0 || comentariosFilters.length > 0 || snapFilters.length > 0 || confirmadoFilters.length > 0) && (
               <button
-                onClick={() => { setBankFilters(["all"]); setTimeFilter("mes"); setCustomFrom(""); setCustomTo(""); }}
+                onClick={() => { setBankFilters(["all"]); setTimeFilter("mes"); setCustomFrom(""); setCustomTo(""); setGrupoFilters([]); setAmbienteFilters([]); setAnalistaFilters([]); setComentariosFilters([]); setSnapFilters([]); setConfirmadoFilters([]); }}
                 className="ml-auto flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <X className="w-3 h-3" /> Limpiar filtros
               </button>
             )}
+          </div>
+          
+          <div className="pt-2 mt-2 border-t border-zinc-800/50 flex flex-wrap gap-x-4 gap-y-3">
+            {[
+              { label: "Grupo", options: filterOptions.grupo, state: grupoFilters, setState: setGrupoFilters },
+              { label: "Ambiente", options: filterOptions.ambiente, state: ambienteFilters, setState: setAmbienteFilters },
+              { label: "Analista", options: filterOptions.analista, state: analistaFilters, setState: setAnalistaFilters },
+              { label: "Comentarios", options: filterOptions.comentarios, state: comentariosFilters, setState: setComentariosFilters },
+              { label: "Snap", options: filterOptions.snap, state: snapFilters, setState: setSnapFilters },
+              { label: "Confirmado", options: filterOptions.confirmado, state: confirmadoFilters, setState: setConfirmadoFilters },
+            ].map(({ label, options, state, setState }) => (
+              options.length > 0 && (
+                <div key={label} className="flex flex-col gap-1 min-w-[140px]">
+                  <span className="text-[10px] text-zinc-500 font-medium uppercase">{label}</span>
+                  <select
+                    multiple
+                    value={state}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value);
+                      setState(selected);
+                    }}
+                    className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 min-h-[60px] custom-scrollbar"
+                  >
+                    {options.map(opt => (
+                      <option key={opt} value={opt} className="hover:bg-zinc-800">{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            ))}
           </div>
         </div>
       )}

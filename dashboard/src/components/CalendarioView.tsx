@@ -212,8 +212,8 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
             </div>
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-lg font-bold text-white">{selectedOrder.title}</h4>
+                <div className="flex-1 pr-4 min-w-0">
+                  <h4 className="text-lg font-bold text-white break-words">{selectedOrder.title}</h4>
                   <p className="text-xs text-zinc-400 mt-1">{new Date(selectedOrder.scheduledAt).toLocaleString("es-AR")}</p>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase ${getStatusColor(selectedOrder.status)}`}>
