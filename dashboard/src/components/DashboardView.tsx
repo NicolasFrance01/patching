@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, memo } from "react";
 import { ServerStatus } from "@/types";
 import {
   Server, CheckCircle2, XCircle, Clock, Search, AlertTriangle,
-  Mail, Filter, X, AlertCircle
+  Mail, Filter, X, AlertCircle, ChevronDown, Check
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -125,6 +125,68 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+
+function CustomMultiSelect({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (newSelected: string[]) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleOption = (opt: string) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter((s) => s !== opt));
+    } else {
+      onChange([...selected, opt]);
+    }
+  };
+
+  return (
+    <div className="relative flex flex-col gap-1 min-w-[140px]">
+      <span className="text-[10px] text-zinc-500 font-medium uppercase">{label}</span>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500 transition-colors focus:outline-none focus:border-indigo-500"
+      >
+        <span className="truncate max-w-[120px]">
+          {selected.length === 0 ? "Todos" : `${selected.length} seleccionados`}
+        </span>
+        <ChevronDown className="w-3.5 h-3.5 text-zinc-500 ml-2" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 custom-scrollbar py-1">
+            {options.map((opt) => {
+              const isSelected = selected.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  onClick={() => toggleOption(opt)}
+                  className="w-full flex items-start gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800 transition-colors"
+                >
+                  <div className={`mt-0.5 shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isSelected ? "bg-indigo-500 border-indigo-500" : "border-zinc-600 bg-zinc-950"}`}>
+                    {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                  </div>
+                  <span className={`text-zinc-300 ${isSelected ? "font-medium text-white" : ""}`}>
+                    {opt}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 
 
@@ -540,22 +602,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
               { label: "Confirmado", options: filterOptions.confirmado, state: confirmadoFilters, setState: setConfirmadoFilters },
             ].map(({ label, options, state, setState }) => (
               options.length > 0 && (
-                <div key={label} className="flex flex-col gap-1 min-w-[140px]">
-                  <span className="text-[10px] text-zinc-500 font-medium uppercase">{label}</span>
-                  <select
-                    multiple
-                    value={state}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      setState(selected);
-                    }}
-                    className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 min-h-[60px] custom-scrollbar"
-                  >
-                    {options.map(opt => (
-                      <option key={opt} value={opt} className="hover:bg-zinc-800">{opt}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomMultiSelect
+                  key={label}
+                  label={label}
+                  options={options}
+                  selected={state}
+                  onChange={setState}
+                />
               )
             ))}
           </div>
