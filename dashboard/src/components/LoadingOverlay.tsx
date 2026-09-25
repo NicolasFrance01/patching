@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Shield } from "lucide-react";
 
 export default function LoadingOverlay() {
   return (
@@ -9,11 +9,11 @@ export default function LoadingOverlay() {
         
         {/* Logo in the center */}
         <div className="w-16 h-16 rounded-full flex items-center justify-center bg-transparent">
-          <Image src="/logo (2).png" alt="Cargando" width={32} height={32} className="animate-pulse" />
+          <Shield className="w-8 h-8 text-indigo-400 animate-pulse" />
         </div>
       </div>
       <p className="mt-4 text-sm font-medium text-zinc-400 animate-pulse">
-        Cargando dashboard...
+        Cargando...
       </p>
     </div>
   );
