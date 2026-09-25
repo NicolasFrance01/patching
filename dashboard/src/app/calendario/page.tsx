@@ -15,6 +15,10 @@ export default async function CalendarioPage() {
     updatedAt: o.updatedAt.toISOString(),
   }));
 
+  const servers = await prisma.serverStatus.findMany({
+    select: { serverName: true, grupo: true, ip: true, ambiente: true },
+  });
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>
@@ -25,7 +29,7 @@ export default async function CalendarioPage() {
           Visualiza, programa y gestiona las ejecuciones de parcheo (WUU).
         </p>
       </div>
-      <CalendarioView initialOrders={serializedOrders} />
+      <CalendarioView initialOrders={serializedOrders} initialServers={servers} />
     </div>
   );
 }

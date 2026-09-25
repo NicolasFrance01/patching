@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2 } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2, Check, Search } from "lucide-react";
 
 interface PatchOrder {
   id: string;
@@ -15,7 +15,104 @@ interface PatchOrder {
   executionLog: string | null;
 }
 
-export default function CalendarioView({ initialOrders }: { initialOrders: PatchOrder[] }) {
+interface ServerInfo {
+  serverName: string;
+  grupo: string | null;
+  ip: string | null;
+  ambiente: string | null;
+}
+
+const PREDEFINED_GROUPS = [
+  "DCGrupo1", "DCGrupo2", "DCGrupo3", "DCGrupo4", "Desarrollo1", "Fix1", "Fix1 | Produccion2", 
+  "Fix1 | Produccion3", "Fix1 | Produccion6", "Fix2", "Fix2 | Produccion4", "Fix3", "Fix3 | Produccion1", 
+  "Produccion1", "Produccion1 | Sucursal4", "Produccion2", "Produccion3", "Produccion3 | Sucursal3", 
+  "Produccion4", "Produccion4 | Sucursal3", "Produccion4 | Sucursal4", "Produccion5", "Produccion5 | Sucursal2", 
+  "Produccion5 | Sucursal3", "Produccion5 | Sucursal4", "Produccion6", "Proxy1", "Proxy2", "Proxy3", 
+  "Sucursal1", "Sucursal2", "Sucursal3", "Sucursal4", "Sucursal5", "Testing1", "Testing1 | Testing2", 
+  "Testing1 | Testing4", "Testing2", "Testing3", "Testing4", "Veeam1", "Veeam2"
+];
+
+const PREDEFINED_BANKS = ["ASJ", "BSC", "BSJ", "Corp", "NBERSA", "NBSF", "QUALIA"];
+
+function ComboMultiSelect({ 
+  label, options, selected, onChange 
+}: { 
+  label: string, options: string[], selected: string[], onChange: (s: string[]) => void 
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = useMemo(() => {
+    const q = search.toLowerCase();
+    const opts = new Set(options);
+    selected.forEach(s => opts.add(s));
+    if (search && !opts.has(search)) opts.add(search); // Allow custom typing
+    return Array.from(opts).filter(o => o.toLowerCase().includes(q));
+  }, [options, selected, search]);
+
+  const toggleOption = (opt: string) => {
+    if (selected.includes(opt)) onChange(selected.filter(s => s !== opt));
+    else onChange([...selected, opt]);
+  };
+
+  return (
+    <div className="relative flex flex-col gap-1" ref={containerRef}>
+      <label className="block text-xs font-medium text-zinc-400">{label}</label>
+      <div 
+        onClick={() => setIsOpen(true)}
+        className="min-h-[38px] p-1.5 w-full bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus-within:border-indigo-500 flex flex-wrap gap-1 items-center cursor-text"
+      >
+        {selected.map(sel => (
+          <span key={sel} className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1">
+            {sel}
+            <button type="button" onClick={(e) => { e.stopPropagation(); toggleOption(sel); }} className="hover:text-indigo-100">
+              <XCircle className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        <input 
+          value={search} 
+          onChange={e => setSearch(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          className="bg-transparent flex-1 outline-none min-w-[80px] text-xs px-1"
+          placeholder={selected.length === 0 ? "Buscar o escribir..." : ""}
+        />
+      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl z-50 custom-scrollbar py-1">
+          {filteredOptions.length === 0 && <div className="px-3 py-2 text-xs text-zinc-500">Sin resultados</div>}
+          {filteredOptions.map(opt => {
+            const isSelected = selected.includes(opt);
+            return (
+              <button
+                type="button"
+                key={opt}
+                onClick={() => { toggleOption(opt); setSearch(""); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800 transition-colors"
+              >
+                <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isSelected ? "bg-indigo-500 border-indigo-500" : "border-zinc-600 bg-zinc-950"}`}>
+                  {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
+                </div>
+                <span className={`text-zinc-300 ${isSelected ? "font-medium text-white" : ""}`}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function CalendarioView({ initialOrders, initialServers = [] }: { initialOrders: PatchOrder[], initialServers?: ServerInfo[] }) {
   const [orders, setOrders] = useState<PatchOrder[]>(initialOrders);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -26,8 +123,8 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [actionType, setActionType] = useState("CHECK");
-  const [targetGroups, setTargetGroups] = useState("");
-  const [targetServers, setTargetServers] = useState("");
+  const [targetBanks, setTargetBanks] = useState<string[]>([]);
+  const [targetGroups, setTargetGroups] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +151,14 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
     setIsSubmitting(true);
     try {
       const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      const dbTargetGroups = targetBanks.join(", ");
+      const dbTargetServers = targetGroups.join(", ");
+      
       const res = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, actionType, targetGroups, targetServers, scheduledAt, status: "PENDING"
+          title, description, actionType, targetGroups: dbTargetGroups, targetServers: dbTargetServers, scheduledAt, status: "PENDING"
         })
       });
 
@@ -67,7 +167,7 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
         setOrders([...orders, newOrder]);
         setIsCreateModalOpen(false);
         // Reset form
-        setTitle(""); setDescription(""); setTargetGroups(""); setTargetServers(""); setScheduledDate(""); setScheduledTime("");
+        setTitle(""); setDescription(""); setTargetBanks([]); setTargetGroups([]); setScheduledDate(""); setScheduledTime("");
       } else {
         alert("Error al crear la programación.");
       }
@@ -127,6 +227,23 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
     }
     return days;
   };
+
+  const selectedOrderGroups = selectedOrder?.targetServers ? selectedOrder.targetServers.split(", ").map(g => g.trim()) : [];
+  const selectedOrderBanks = selectedOrder?.targetGroups ? selectedOrder.targetGroups.split(", ").map(b => b.trim()) : [];
+  
+  const selectedOrderServers = useMemo(() => {
+    if (!initialServers || !selectedOrder) return [];
+    if (selectedOrderGroups.length === 0 && selectedOrderBanks.length === 0) return [];
+    
+    return initialServers.filter(s => {
+      // Very basic filtering based on group name
+      if (s.grupo && selectedOrderGroups.includes(s.grupo)) return true;
+      // If we implemented serverTypeMap here we could filter by bank, but we don't have it easily. 
+      // We'll just rely on the groups for now, or add a basic check:
+      if (s.serverName && selectedOrderBanks.some(b => s.serverName.toUpperCase().includes(b))) return true;
+      return false;
+    });
+  }, [selectedOrder, initialServers, selectedOrderGroups, selectedOrderBanks]);
 
   return (
     <div className="space-y-6">
@@ -199,14 +316,21 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
                   <option value="INSTALL">Instalación y Reinicio (Install)</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Grupos Destino (separados por coma)</label>
-                <input value={targetGroups} onChange={(e) => setTargetGroups(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" placeholder="Ej: ASJ, BSC" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Servidores Destino (opcional)</label>
-                <input value={targetServers} onChange={(e) => setTargetServers(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" placeholder="Ej: SRV1, SRV2" />
-              </div>
+              
+              <ComboMultiSelect 
+                label="Bancos Destino" 
+                options={PREDEFINED_BANKS} 
+                selected={targetBanks} 
+                onChange={setTargetBanks} 
+              />
+              
+              <ComboMultiSelect 
+                label="Grupos Destino" 
+                options={PREDEFINED_GROUPS} 
+                selected={targetGroups} 
+                onChange={setTargetGroups} 
+              />
+
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">Cancelar</button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-all">
@@ -221,7 +345,7 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
       {/* Details Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-xl w-full max-w-lg max-h-[90vh] shadow-2xl flex flex-col border border-zinc-700/50">
+          <div className="glass rounded-xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col border border-zinc-700/50">
             <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center shrink-0">
               <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                 Detalle de Programación
@@ -250,29 +374,74 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
                   {selectedOrder.status}
                 </span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4 bg-zinc-900/50 p-3 rounded-lg border border-zinc-800/50">
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-800/50">
                 <div>
-                  <p className="text-[10px] text-zinc-500 font-medium uppercase">Acción</p>
-                  <p className="text-sm text-zinc-200 font-semibold">{selectedOrder.actionType}</p>
+                  <span className="text-[10px] text-zinc-500 uppercase font-medium">Acción</span>
+                  <p className="text-sm font-medium text-zinc-200 mt-1">{selectedOrder.actionType}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 font-medium uppercase">Grupos</p>
-                  <p className="text-sm text-zinc-200">{selectedOrder.targetGroups || "—"}</p>
+                  <span className="text-[10px] text-zinc-500 uppercase font-medium">Bancos Destino</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedOrderBanks.map(g => (
+                      <span key={g} className="px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 border border-zinc-700">{g}</span>
+                    ))}
+                    {selectedOrderBanks.length === 0 && <span className="text-sm text-zinc-500">—</span>}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-zinc-500 uppercase font-medium">Grupos Destino</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedOrderGroups.map(g => (
+                      <span key={g} className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{g}</span>
+                    ))}
+                    {selectedOrderGroups.length === 0 && <span className="text-sm text-zinc-500">—</span>}
+                  </div>
                 </div>
               </div>
+              
+              {/* Servidores list */}
+              {selectedOrderServers.length > 0 && (
+                <div className="pt-4 border-t border-zinc-800/50">
+                  <span className="text-[10px] text-zinc-500 uppercase font-medium block mb-2">Servidores Incluidos ({selectedOrderServers.length})</span>
+                  <div className="max-h-48 overflow-y-auto border border-zinc-800 rounded-lg">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-zinc-950/80 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-zinc-400 font-medium">Servidor</th>
+                          <th className="px-3 py-2 text-zinc-400 font-medium">Grupo</th>
+                          <th className="px-3 py-2 text-zinc-400 font-medium">IP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/50">
+                        {selectedOrderServers.map((s, i) => (
+                          <tr key={i} className="hover:bg-zinc-900/50">
+                            <td className="px-3 py-2 font-medium text-zinc-300">{s.serverName}</td>
+                            <td className="px-3 py-2 text-zinc-400">{s.grupo || "—"}</td>
+                            <td className="px-3 py-2 text-zinc-500">{s.ip || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {selectedOrder.executionLog && (
-                <div>
-                  <p className="text-xs text-zinc-400 mb-1 font-medium">Log de Ejecución</p>
-                  <pre className="bg-black/50 border border-zinc-800 rounded-lg p-3 text-[10px] text-zinc-300 max-h-60 overflow-y-auto font-mono whitespace-pre-wrap break-all">
+                <div className="pt-4 border-t border-zinc-800/50">
+                  <span className="text-[10px] text-zinc-500 uppercase font-medium mb-2 block">Log de Ejecución</span>
+                  <pre className="bg-zinc-950 border border-zinc-800 p-3 rounded-lg text-xs text-zinc-400 whitespace-pre-wrap font-mono">
                     {selectedOrder.executionLog}
                   </pre>
                 </div>
               )}
             </div>
+            
             <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end shrink-0">
-              <button onClick={() => setSelectedOrder(null)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-semibold transition-colors">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
+              >
                 Cerrar
               </button>
             </div>

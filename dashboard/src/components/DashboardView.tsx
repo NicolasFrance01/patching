@@ -250,6 +250,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [comentariosFilters, setComentariosFilters] = useState<string[]>([]);
   const [snapFilters, setSnapFilters] = useState<string[]>([]);
   const [confirmadoFilters, setConfirmadoFilters] = useState<string[]>([]);
+  const [estadoFilters, setEstadoFilters] = useState<string[]>([]);
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [chartsMounted, setChartsMounted] = useState(false);
   const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
@@ -314,6 +315,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       if (comentariosFilters.length > 0 && (!s.comentarios || !comentariosFilters.includes(s.comentarios))) return false;
       if (snapFilters.length > 0 && (!s.snap || !snapFilters.includes(s.snap))) return false;
       if (confirmadoFilters.length > 0 && (!s.confirmado || !confirmadoFilters.includes(s.confirmado))) return false;
+      if (estadoFilters.length > 0 && (!s.extendedStatus || !estadoFilters.includes(s.extendedStatus))) return false;
 
       if (!q) return true;
       return (
@@ -325,11 +327,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         (s.ambiente ?? "").toLowerCase().includes(q)
       );
     });
-  }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search, grupoFilters, ambienteFilters, analistaFilters, comentariosFilters, snapFilters, confirmadoFilters]);
+  }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search, grupoFilters, ambienteFilters, analistaFilters, comentariosFilters, snapFilters, confirmadoFilters, estadoFilters]);
 
   // ── Advanced filter options ─────────────────────────────────────────────────
   const filterOptions = useMemo(() => {
-    const opts = { grupo: new Set<string>(), ambiente: new Set<string>(), analista: new Set<string>(), comentarios: new Set<string>(), snap: new Set<string>(), confirmado: new Set<string>() };
+    const opts = { grupo: new Set<string>(), ambiente: new Set<string>(), analista: new Set<string>(), comentarios: new Set<string>(), snap: new Set<string>(), confirmado: new Set<string>(), estado: new Set<string>() };
     enriched.forEach(s => {
       if (s.grupo) opts.grupo.add(s.grupo);
       if (s.ambiente) opts.ambiente.add(s.ambiente);
@@ -337,6 +339,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       if (s.comentarios) opts.comentarios.add(s.comentarios);
       if (s.snap) opts.snap.add(s.snap);
       if (s.confirmado) opts.confirmado.add(s.confirmado);
+      if (s.extendedStatus) opts.estado.add(s.extendedStatus);
     });
     return {
       grupo: Array.from(opts.grupo).sort(),
@@ -345,6 +348,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       comentarios: Array.from(opts.comentarios).sort(),
       snap: Array.from(opts.snap).sort(),
       confirmado: Array.from(opts.confirmado).sort(),
+      estado: Array.from(opts.estado).sort(),
     };
   }, [enriched]);
 
@@ -475,9 +479,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── Banco con más riesgo ────────────────────────────────────────────────────
   const riskData = useMemo(() =>
     byBankData
-      .filter((b) => b.errors > 0)
       .sort((a, b) => b.errors - a.errors)
-      
       .map((b) => ({ name: b.name, errors: b.errors, pct: b.pct })),
   [byBankData]);
 
@@ -623,9 +625,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                   className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" />
               </div>
             )}
-            {(!bankFilters.includes("all") || timeFilter !== "mes" || grupoFilters.length > 0 || ambienteFilters.length > 0 || analistaFilters.length > 0 || comentariosFilters.length > 0 || snapFilters.length > 0 || confirmadoFilters.length > 0) && (
+            {(!bankFilters.includes("all") || timeFilter !== "mes" || grupoFilters.length > 0 || ambienteFilters.length > 0 || analistaFilters.length > 0 || comentariosFilters.length > 0 || snapFilters.length > 0 || confirmadoFilters.length > 0 || estadoFilters.length > 0) && (
               <button
-                onClick={() => { setBankFilters(["all"]); setTimeFilter("mes"); setCustomFrom(""); setCustomTo(""); setGrupoFilters([]); setAmbienteFilters([]); setAnalistaFilters([]); setComentariosFilters([]); setSnapFilters([]); setConfirmadoFilters([]); }}
+                onClick={() => { setBankFilters(["all"]); setTimeFilter("mes"); setCustomFrom(""); setCustomTo(""); setGrupoFilters([]); setAmbienteFilters([]); setAnalistaFilters([]); setComentariosFilters([]); setSnapFilters([]); setConfirmadoFilters([]); setEstadoFilters([]); }}
                 className="ml-auto flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <X className="w-3 h-3" /> Limpiar filtros
@@ -641,6 +643,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
               { label: "Comentarios", options: filterOptions.comentarios, state: comentariosFilters, setState: setComentariosFilters },
               { label: "Snap", options: filterOptions.snap, state: snapFilters, setState: setSnapFilters },
               { label: "Confirmado", options: filterOptions.confirmado, state: confirmadoFilters, setState: setConfirmadoFilters },
+              { label: "Estado", options: filterOptions.estado, state: estadoFilters, setState: setEstadoFilters },
             ].map(({ label, options, state, setState }) => (
               options.length > 0 && (
                 <CustomMultiSelect
@@ -778,7 +781,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <ChartCard title="Pipeline de actualización">
-            <div className="space-y-4 py-2">
+            <div className="space-y-8 py-4">
               {[
                 { label: "1. Servidores evaluados", value: stats.total, max: stats.total },
                 { label: "2. No actualizados", value: stats.total - stats.ok, max: stats.total },
@@ -786,12 +789,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 { label: "4. SNAP OK", value: stats.total - stats.sinConf - stats.revision - stats.sinSnap, max: stats.total },
                 { label: "5. Actualización ejecutada", value: stats.ok + stats.errors, max: stats.total }
               ].map((step, i) => (
-                <div key={i} className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-xs">
+                <div key={i} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-zinc-300 font-medium">{step.label}</span>
                     <span className="text-zinc-400 font-bold">{step.value}</span>
                   </div>
-                  <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-zinc-800/50 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
                       style={{ width: `${step.max > 0 ? (step.value / step.max) * 100 : 0}%` }}
@@ -805,7 +808,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         
         <div className="flex flex-col gap-4">
           <ChartCard title="Detalle para seguimiento">
-            <div className="overflow-auto max-h-[220px]">
+            <div className="overflow-auto max-h-[360px]">
               <table className="w-full text-[10px] text-left table-fixed">
                 <thead className="text-zinc-500 uppercase sticky top-0 bg-zinc-950/80 backdrop-blur-md z-10">
                   <tr>
