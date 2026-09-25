@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, Mail, Trash2, Clock } from "lucide-react";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
@@ -83,7 +83,7 @@ function StatusBadge({ status, extendedStatus }: { status: string; extendedStatu
     const color = EXTENDED_STATUS_COLORS[extendedStatus];
     const label = EXTENDED_STATUS_LABELS[extendedStatus];
     return (
-      <span 
+      <span
         className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border"
         style={{ backgroundColor: `${color}15`, color: color, borderColor: `${color}30` }}
       >
@@ -98,9 +98,9 @@ function StatusBadge({ status, extendedStatus }: { status: string; extendedStatu
   return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>;
 }
 
-function TruncatedCell({ 
+function TruncatedCell({
   content, title, onClick, isError = false, children, extraClasses = ""
-}: { 
+}: {
   content: string | null | undefined;
   title: string;
   onClick: (detail: { title: string; content: string; isError?: boolean }) => void;
@@ -109,10 +109,10 @@ function TruncatedCell({
   extraClasses?: string;
 }) {
   const display = content ?? "—";
-  
+
   return (
     <td className={`px-3 py-2 min-w-[160px] max-w-[160px] ${isError ? "text-rose-400/80" : "text-zinc-400"} ${extraClasses}`}>
-      <button 
+      <button
         onClick={() => onClick({ title, content: display, isError })}
         className={`w-full text-left block text-[10px] truncate transition-colors ${isError ? "hover:text-rose-300" : "hover:text-zinc-200"}`}
         title={`Ver ${title} completo`}
@@ -189,7 +189,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
 
         const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
         const latestTotal = latestFiltered.length;
-        
+
         const mappedRuns = runs.map(r => r.records.filter(rec => matchesBankFilter(rec.serverName, bankFilters)).map(rec => getExtendedStatus(rec.status, rec.comentarios, rec.snap, rec.confirmado)));
         const allMappedStatuses = mappedRuns.flat();
 
@@ -268,11 +268,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                     return [...next, value];
                   });
                 }}
-                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                  isActive
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border ${isActive
                     ? "text-white border-transparent shadow-lg"
                     : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
-                }`}
+                  }`}
                 style={isActive && color ? { backgroundColor: color + "33", borderColor: color + "66", color } : isActive ? { backgroundColor: "#6366f133", borderColor: "#6366f166", color: "#a5b4fc" } : {}}
               >
                 {label}
@@ -288,21 +287,20 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
             <button
               key={tf}
               onClick={() => setTimeFilter(tf)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${
-                timeFilter === tf
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${timeFilter === tf
                   ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
                   : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
-              }`}
+                }`}
             >
               {tf === "all" ? "Todos" : tf === "month" ? "Mes" : "Rango Personalizado"}
             </button>
           ))}
           {timeFilter === "month" && (
-            <input 
-              type="month" 
-              value={selectedMonth} 
+            <input
+              type="month"
+              value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500" 
+              className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
             />
           )}
           {timeFilter === "custom" && (
@@ -601,11 +599,10 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                     <button
                                       key={s}
                                       onClick={() => setStatusFilter((prev) => ({ ...prev, [run.id]: s }))}
-                                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border ${
-                                        (statusFilter[run.id] ?? "all") === s
+                                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors border ${(statusFilter[run.id] ?? "all") === s
                                           ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
                                           : "text-zinc-500 border-zinc-700/50 hover:text-zinc-300"
-                                      }`}
+                                        }`}
                                     >
                                       {s === "all" ? "Todos" : s === "ok" ? "OK" : s === "error" ? "Error" : "Sin datos"}
                                     </button>

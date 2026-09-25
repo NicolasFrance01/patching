@@ -289,8 +289,8 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       const info = getServerInfo(s.serverName, s.ip ?? undefined);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
-      const status   = isError ? "error" : isNoData ? "nodata" : s.status || "ok";
-      const extendedStatus = getExtendedStatus(status, s.comentarios, s.snap, s.confirmado);
+      const status   = isError ? "error" : isNoData ? "nodata" : "ok";
+      const extendedStatus = getExtendedStatus(status, s.comentarios ?? null, s.snap ?? null, s.confirmado ?? null);
       return { ...s, info, isError, isNoData, status, extendedStatus };
     }),
   [serverData]);

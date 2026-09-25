@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Calendar
 } from "lucide-react";
+import ProfileModal from "./ProfileModal";
 import { useState, useEffect } from "react";
 import LoadingOverlay from "./LoadingOverlay";
 
