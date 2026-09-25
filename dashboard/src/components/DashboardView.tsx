@@ -778,8 +778,8 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       )}
 
       {/* ── Charts Row 3: Pipeline de Actualización ─────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="lg:col-span-1">
           <ChartCard title="Pipeline de actualización">
             <div className="space-y-8 py-4">
               {[
@@ -806,11 +806,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           </ChartCard>
         </div>
         
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 overflow-hidden">
           <ChartCard title="Detalle para seguimiento">
-            <div className="overflow-auto max-h-[360px]">
-              <table className="w-full text-[10px] text-left table-fixed">
-                <thead className="text-zinc-500 uppercase sticky top-0 bg-zinc-950/80 backdrop-blur-md z-10">
+            <div className="overflow-x-auto overflow-y-auto max-h-[360px] custom-scrollbar">
+              <table className="w-full text-[10px] text-left min-w-[500px]">
+                <thead className="text-zinc-500 uppercase sticky top-0 bg-zinc-950/90 backdrop-blur-md z-10">
                   <tr>
                     <th className="px-2 py-1.5 font-medium">Servidor</th>
                     <th className="px-2 py-1.5 font-medium">Estado</th>
