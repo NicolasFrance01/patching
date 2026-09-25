@@ -13,6 +13,7 @@ import {
 import { getServerInfo, SERVER_TYPES, ServerType, serverTypeMap } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
+import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,7 +117,20 @@ const ChartCard = memo(function ChartCard({ title, children }: { title: string; 
   );
 });
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, extendedStatus }: { status: string; extendedStatus?: ExtendedStatus }) {
+  if (extendedStatus) {
+    const color = EXTENDED_STATUS_COLORS[extendedStatus];
+    const label = EXTENDED_STATUS_LABELS[extendedStatus];
+    return (
+      <span 
+        className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border"
+        style={{ backgroundColor: `${color}15`, color: color, borderColor: `${color}30` }}
+      >
+        {label}
+      </span>
+    );
+  }
+  // Fallback
   if (status === "ok")
     return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>;
   if (status === "error")
@@ -275,10 +289,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       const info = getServerInfo(s.serverName, s.ip ?? undefined);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
-      const status   = isError ? "error" : isNoData ? "nodata" : "ok";
-      return { ...s, info, isError, isNoData, status };
+      const status   = isError ? "error" : isNoData ? "nodata" : s.status || "ok";
+      const extendedStatus = getExtendedStatus(status, s.comentarios, s.snap, s.confirmado);
+      return { ...s, info, isError, isNoData, status, extendedStatus };
     }),
-  [initialData]);
+  [serverData]);
 
   // ── Filtered servers (bank + time + search + advanced) ──────────────────────
   const filtered = useMemo(() => {
@@ -331,19 +346,30 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── KPI Stats ───────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const total     = filtered.length;
-    const ok        = filtered.filter((s) => s.status === "ok").length;
-    const errors    = filtered.filter((s) => s.status === "error").length;
-    const noData    = filtered.filter((s) => s.status === "nodata").length;
+    const ok        = filtered.filter((s) => s.extendedStatus === "Actualizado").length;
+    const errors    = filtered.filter((s) => s.extendedStatus === "Error").length;
+    const sinConf   = filtered.filter((s) => s.extendedStatus === "Sin Confirmación").length;
+    const sinSnap   = filtered.filter((s) => s.extendedStatus === "Sin Snap").length;
+    const revision  = filtered.filter((s) => s.extendedStatus === "En Revisión").length;
+    const pendientes = filtered.filter((s) => s.extendedStatus === "Pendiente").length;
+    const noData    = filtered.filter((s) => s.extendedStatus === "Sin Datos").length;
+    
+    // Para % de cumplimiento seguimos considerando solo los que ya pasaron
+    // O si queremos que el pipeline sea la base: ok / total
     const pct       = total > 0 ? Math.round((ok / total) * 100) : 0;
-    return { total, ok, errors, noData, pct };
+    return { total, ok, errors, sinConf, sinSnap, revision, pendientes, noData, pct };
   }, [filtered]);
 
   // ── Donut chart data ────────────────────────────────────────────────────────
   const donutData = useMemo(() => [
-    { name: "OK",        value: stats.ok,     color: STATUS_COLORS.ok },
-    { name: "Error",     value: stats.errors, color: STATUS_COLORS.error },
-    { name: "Sin datos", value: stats.noData, color: STATUS_COLORS.nodata },
-  ].filter((d) => d.value > 0), [stats]);
+    { name: "Actualizado", value: stats.ok, color: EXTENDED_STATUS_COLORS["Actualizado"] },
+    { name: "Error", value: stats.errors, color: EXTENDED_STATUS_COLORS["Error"] },
+    { name: "Sin Confirmación", value: stats.sinConf, color: EXTENDED_STATUS_COLORS["Sin Confirmación"] },
+    { name: "Sin Snap", value: stats.sinSnap, color: EXTENDED_STATUS_COLORS["Sin Snap"] },
+    { name: "En Revisión", value: stats.revision, color: EXTENDED_STATUS_COLORS["En Revisión"] },
+    { name: "Pendiente", value: stats.pendientes, color: EXTENDED_STATUS_COLORS["Pendiente"] },
+    { name: "Sin datos", value: stats.noData, color: EXTENDED_STATUS_COLORS["Sin Datos"] },
+  ].filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [stats]);
 
   // ── Cumplimiento por banco ──────────────────────────────────────────────────
   const byBankData = useMemo(() => {
@@ -357,11 +383,15 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         const b = info ? info.type : "Sin clasificar";
         return b === bank;
       });
-      const total  = srvs.length;
-      const ok     = srvs.filter((s) => s.status === "ok").length;
-      const errors = srvs.filter((s) => s.status === "error").length;
-      const nodata = total - ok - errors;
-      return { name: bank, total, ok, errors, nodata, pct: total > 0 ? Math.round((ok / total) * 100) : 0 };
+      const total      = srvs.length;
+      const ok         = srvs.filter((s) => s.extendedStatus === "Actualizado").length;
+      const errors     = srvs.filter((s) => s.extendedStatus === "Error").length;
+      const sinConf    = srvs.filter((s) => s.extendedStatus === "Sin Confirmación").length;
+      const sinSnap    = srvs.filter((s) => s.extendedStatus === "Sin Snap").length;
+      const revision   = srvs.filter((s) => s.extendedStatus === "En Revisión").length;
+      const pendientes = srvs.filter((s) => s.extendedStatus === "Pendiente").length;
+      const nodata     = srvs.filter((s) => s.extendedStatus === "Sin Datos").length;
+      return { name: bank, total, ok, errors, sinConf, sinSnap, revision, pendientes, nodata, pct: total > 0 ? Math.round((ok / total) * 100) : 0 };
     }).filter((d) => d.total > 0).sort((a, b) => b.total - a.total);
   }, [filtered, bankFilters]);
 
@@ -375,13 +405,18 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     return runs.map((run) => {
       const recs = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
       const total  = recs.length;
-      const ok     = recs.filter((r) => r.status === "ok").length;
-      const errors = recs.filter((r) => r.status === "error").length;
-      const nodata = recs.filter((r) => r.status === "nodata").length;
+      
+      const mapped = recs.map(r => getExtendedStatus(r.status, r.errorDescription, null, null)); // Not exactly full data but good enough for trend history unless we have full history records. Actually, we do have errorDescription which sometimes stores comments in historical runs, but let's just use what we can. 
+      const ok     = mapped.filter((s) => s === "Actualizado").length;
+      const errors = mapped.filter((s) => s === "Error").length;
+      const sinConf = mapped.filter((s) => s === "Sin Confirmación").length;
+      const sinSnap = mapped.filter((s) => s === "Sin Snap").length;
+      const nodata = mapped.filter((s) => s === "Sin Datos" || s === "Pendiente" || s === "En Revisión").length;
+
       const dateObj = new Date(run.syncedAt);
       return {
         label: `${dateObj.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} ${dateObj.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
-        ok, errors, nodata, total,
+        ok, errors, sinConf, sinSnap, nodata, total,
         pct: total > 0 ? Math.round((ok / total) * 100) : 0,
       };
     });
@@ -402,14 +437,16 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       .map(([kb, count]) => ({ kb, count }));
   }, [filtered]);
 
-  // ── Top Grupos afectados (con errores) ──────────────────────────────────────
+  // ── Top Grupos afectados (con problemas operativos o técnicos) ───────────────
   const topGrupos = useMemo(() => {
     const gMap: Record<string, { total: number; errors: number }> = {};
     for (const s of filtered) {
       const g = s.grupo ?? s.info?.type ?? "Sin clasificar";
       if (!gMap[g]) gMap[g] = { total: 0, errors: 0 };
       gMap[g].total++;
-      if (s.status === "error") gMap[g].errors++;
+      if (s.extendedStatus !== "Actualizado" && s.extendedStatus !== "Sin Datos" && s.extendedStatus !== "Pendiente") {
+        gMap[g].errors++;
+      }
     }
     return Object.entries(gMap)
       .map(([name, v]) => ({ name, ...v, pct: v.total > 0 ? Math.round((v.errors / v.total) * 100) : 0 }))
@@ -616,12 +653,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       )}
 
       {/* ── KPIs ────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MetricCard title="Total Servidores"   value={Object.keys(serverTypeMap).length}   icon={<Server       className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
-        <MetricCard title="Total Sincronizados" value={stats.total}   icon={<CheckCircle2 className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
-        <MetricCard title="OK / Actualizados"  value={stats.ok}      icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
-        <MetricCard title="Con Errores"        value={stats.errors}  icon={<XCircle      className="w-5 h-5 text-rose-400"    />} accent="rose"    />
-        <MetricCard title="% Cumplimiento"     value={`${stats.pct}%`} icon={<Clock      className="w-5 h-5 text-cyan-400"   />} accent="cyan"    />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <MetricCard title="Total Servidores"   value={Object.keys(serverTypeMap).length} subtitle="Inventario evaluado" icon={<Server className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
+        <MetricCard title="Actualizados"  value={stats.ok} subtitle="Seguridad al día" icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
+        <MetricCard title="No Actualizados" value={stats.sinConf + stats.sinSnap + stats.revision + stats.noData} subtitle="Requieren gestión" icon={<AlertCircle className="w-5 h-5 text-amber-400"  />} accent="amber"  />
+        <MetricCard title="Errores"        value={stats.errors} subtitle="Requieren remediación" icon={<XCircle className="w-5 h-5 text-rose-400"    />} accent="rose"    />
+        <MetricCard title="Pendientes"     value={stats.pendientes} subtitle="Programados a futuro" icon={<Clock className="w-5 h-5 text-violet-400" />} accent="violet" />
+        <MetricCard title="% Cumplimiento"     value={`${stats.pct}%`} subtitle="Tasa de éxito" icon={<Check className="w-5 h-5 text-cyan-400"   />} accent="cyan"    />
       </div>
 
       {/* ── Charts Row 1: Donut + Cumplimiento por Banco ─────────────────────── */}
@@ -718,9 +756,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10, fill: "#6366f1" }} />
                 <Tooltip {...tooltipStyle} />
                 <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
-                <Bar yAxisId="cnt" dataKey="ok"     name="OK"        stackId="s" fill="#10b981aa" />
+                <Bar yAxisId="cnt" dataKey="ok"     name="Actualizado (OK)" stackId="s" fill="#10b981aa" />
                 <Bar yAxisId="cnt" dataKey="errors" name="Errores"   stackId="s" fill="#ef4444aa" />
-                <Bar yAxisId="cnt" dataKey="nodata" name="Sin datos" stackId="s" fill="#3f3f46aa" radius={[4,4,0,0]} />
+                <Bar yAxisId="cnt" dataKey="sinConf" name="Sin Confirmación" stackId="s" fill="#f59e0baa" />
+                <Bar yAxisId="cnt" dataKey="sinSnap" name="Sin Snap" stackId="s" fill="#eab308aa" />
+                <Bar yAxisId="cnt" dataKey="nodata" name="Otros" stackId="s" fill="#3f3f46aa" radius={[4,4,0,0]} />
                 <Line yAxisId="pct" type="monotone" dataKey="pct" name="% Cumplimiento"
                   stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </BarChart>
@@ -729,7 +769,62 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         </ChartCard>
       )}
 
-      {/* ── Charts Row 3: Riesgo por banco + Top KBs ────────────────────────── */}
+      {/* ── Charts Row 3: Pipeline de Actualización ─────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <ChartCard title="Pipeline de actualización">
+            <div className="space-y-4 py-2">
+              {[
+                { label: "1. Servidores evaluados", value: stats.total, max: stats.total },
+                { label: "2. No actualizados", value: stats.total - stats.ok, max: stats.total },
+                { label: "3. Confirmación OK", value: stats.total - stats.sinConf - stats.revision, max: stats.total },
+                { label: "4. SNAP OK", value: stats.total - stats.sinConf - stats.revision - stats.sinSnap, max: stats.total },
+                { label: "5. Actualización ejecutada", value: stats.ok + stats.errors, max: stats.total }
+              ].map((step, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-300 font-medium">{step.label}</span>
+                    <span className="text-zinc-400 font-bold">{step.value}</span>
+                  </div>
+                  <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+                      style={{ width: `${step.max > 0 ? (step.value / step.max) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </div>
+        
+        <div className="flex flex-col gap-4">
+          <ChartCard title="Detalle del seguimiento">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="glass rounded-xl p-3 flex flex-col items-center justify-center border border-white/5">
+                <span className="text-xl font-bold text-white">{stats.ok}</span>
+                <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-3 h-3" /> OK
+                </span>
+              </div>
+              <div className="glass rounded-xl p-3 flex flex-col items-center justify-center border border-white/5">
+                <span className="text-xl font-bold text-white">{stats.errors}</span>
+                <span className="text-[10px] text-rose-400 font-medium flex items-center gap-1 mt-1">
+                  <AlertTriangle className="w-3 h-3" /> Error
+                </span>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-zinc-800/50 flex flex-col gap-1">
+              <span className="text-[10px] text-zinc-500 uppercase font-medium">Tasa de éxito en ejecución</span>
+              <span className="text-2xl font-bold text-indigo-400">
+                {stats.ok + stats.errors > 0 ? Math.round((stats.ok / (stats.ok + stats.errors)) * 100) : 0}%
+              </span>
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* ── Charts Row 4: Riesgo por banco + Top KBs ────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Riesgo */}
         <ChartCard title="Bancos con Mayor Riesgo (errores)">
@@ -877,7 +972,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                     <TruncatedCell title="Ambiente" content={server.ambiente} onClick={setSelectedDetail}>{server.ambiente ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{server.ambiente}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
                     <TruncatedCell title="Dominio" content={server.domain} onClick={setSelectedDetail} />
                     <TruncatedCell title="IP" content={server.ip} onClick={setSelectedDetail} />
-                    <TruncatedCell title="Estado" content={server.status === "ok" ? "OK" : server.status === "error" ? "Error" : "Sin datos"} onClick={setSelectedDetail}><StatusBadge status={server.status} /></TruncatedCell>
+                    <TruncatedCell title="Estado" content={server.extendedStatus} onClick={setSelectedDetail}><StatusBadge status={server.status} extendedStatus={server.extendedStatus} /></TruncatedCell>
                     <TruncatedCell title="Analista" content={server.analista} onClick={setSelectedDetail} />
                     <TruncatedCell title="OS" content={server.os} onClick={setSelectedDetail} />
                     <TruncatedCell title="Versión SO" content={server.osVersion} onClick={setSelectedDetail} />
@@ -948,29 +1043,35 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 // ─── MetricCard ───────────────────────────────────────────────────────────────
 
 function MetricCard({
-  title, value, icon, accent,
+  title, value, icon, accent, subtitle
 }: {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  accent: "indigo" | "emerald" | "rose" | "zinc" | "cyan";
+  accent: "indigo" | "emerald" | "rose" | "amber" | "violet" | "zinc" | "cyan";
+  subtitle?: string;
 }) {
   const gradients: Record<string, string> = {
     indigo:  "from-indigo-500/5",
     emerald: "from-emerald-500/5",
     rose:    "from-rose-500/5",
+    amber:   "from-amber-500/5",
+    violet:  "from-violet-500/5",
     zinc:    "from-zinc-500/5",
     cyan:    "from-cyan-500/5",
   };
   return (
-    <div className="glass rounded-2xl p-4 flex items-start justify-between relative overflow-hidden group hover:border-white/10 transition-all">
+    <div className="glass rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-white/10 transition-all min-h-[105px]">
       <div className={`absolute inset-0 bg-gradient-to-br ${gradients[accent]} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
-      <div className="relative">
+      <div className="relative flex items-start justify-between w-full">
         <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">{title}</p>
-        <p className="mt-1.5 text-2xl font-bold tracking-tight text-white">{value}</p>
+        <div className="relative p-1.5 bg-white/[0.04] rounded-lg border border-white/[0.06]">
+          {icon}
+        </div>
       </div>
-      <div className="relative p-2 bg-white/[0.04] rounded-xl border border-white/[0.06]">
-        {icon}
+      <div className="relative mt-2">
+        <p className="text-2xl font-bold tracking-tight text-white leading-none">{value}</p>
+        {subtitle && <p className="text-[10px] text-zinc-400 mt-1.5 font-medium truncate">{subtitle}</p>}
       </div>
     </div>
   );

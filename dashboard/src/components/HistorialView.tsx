@@ -5,6 +5,7 @@ import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertCircle, 
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
+import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
 
 interface SyncRecord {
   id: string;
@@ -77,7 +78,25 @@ function formatDayHeader(dayKey: string): string {
   });
 }
 
-
+function StatusBadge({ status, extendedStatus }: { status: string; extendedStatus?: ExtendedStatus }) {
+  if (extendedStatus) {
+    const color = EXTENDED_STATUS_COLORS[extendedStatus];
+    const label = EXTENDED_STATUS_LABELS[extendedStatus];
+    return (
+      <span 
+        className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border"
+        style={{ backgroundColor: `${color}15`, color: color, borderColor: `${color}30` }}
+      >
+        {label}
+      </span>
+    );
+  }
+  if (status === "ok")
+    return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>;
+  if (status === "error")
+    return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Error</span>;
+  return <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>;
+}
 
 function TruncatedCell({ 
   content, title, onClick, isError = false, children, extraClasses = ""
@@ -120,6 +139,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
   const [readSyncIds, setReadSyncIds] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const filteredRuns = useMemo(() => {
     return syncRuns.filter((run) => {
@@ -169,14 +189,19 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
 
         const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
         const latestTotal = latestFiltered.length;
-        const latestSuccess = latestFiltered.filter((r) => r.status === "ok").length;
+        
+        const mappedRuns = runs.map(r => r.records.filter(rec => matchesBankFilter(rec.serverName, bankFilters)).map(rec => getExtendedStatus(rec.status, rec.comentarios, rec.snap, rec.confirmado)));
+        const allMappedStatuses = mappedRuns.flat();
 
-        const totalSuccess = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "ok").length, 0);
-        const totalErrors = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "error").length, 0);
-        const totalNoData = runs.reduce((acc, r) =>
-          acc + r.records.filter((rec) => matchesBankFilter(rec.serverName, bankFilters) && rec.status === "nodata").length, 0);
+        const totalSuccess = allMappedStatuses.filter(s => s === "Actualizado").length;
+        const totalErrors = allMappedStatuses.filter(s => s === "Error").length;
+        const totalNoData = allMappedStatuses.filter(s => s === "Sin Datos").length;
+        const totalSinConf = allMappedStatuses.filter(s => s === "Sin Confirmación").length;
+        const totalSinSnap = allMappedStatuses.filter(s => s === "Sin Snap").length;
+        const totalPendientes = allMappedStatuses.filter(s => s === "Pendiente").length;
+
+        const latestMapped = mappedRuns[0] || [];
+        const latestSuccess = latestMapped.filter(s => s === "Actualizado").length;
 
         return {
           day,
@@ -185,6 +210,9 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
           totalSuccess,
           totalErrors,
           totalNoData,
+          totalSinConf,
+          totalSinSnap,
+          totalPendientes,
           successRate: latestTotal > 0 ? Math.round((latestSuccess / latestTotal) * 100) : 0,
         };
       });
@@ -367,7 +395,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {dayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, successRate }) => {
+          {dayGroups.map(({ day, runs, serverCount, totalSuccess, totalErrors, totalNoData, totalSinConf, totalSinSnap, totalPendientes, successRate }) => {
             const isDayOpen = expandedDay === day;
             const hasNew = runs.some(r => r.isNew && !readSyncIds.has(r.id));
 
@@ -408,10 +436,22 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 mr-2">
+                  <div className="flex flex-wrap items-center gap-4 mr-2">
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span className="text-xs text-emerald-400">{totalSuccess}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5" title="Sin Confirmación">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-xs text-amber-400">{totalSinConf}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5" title="Sin Snap">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-xs text-amber-500">{totalSinSnap}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5" title="Pendiente">
+                      <Clock className="w-3.5 h-3.5 text-violet-400" />
+                      <span className="text-xs text-violet-400">{totalPendientes}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <XCircle className="w-3.5 h-3.5 text-rose-400" />
@@ -532,14 +572,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (confirm("¿Estás seguro que deseas eliminar esta sincronización? Esta acción no se puede deshacer.")) {
-                                    fetch(`/api/sync-runs/${run.id}`, { method: 'DELETE' })
-                                      .then(res => {
-                                        if (res.ok) window.location.reload();
-                                        else alert("Error al eliminar la sincronización.");
-                                      })
-                                      .catch(() => alert("Error al conectar con el servidor."));
-                                  }
+                                  setDeleteConfirm(run.id);
                                 }}
                                 title="Eliminar sincronización"
                                 className="ml-2 p-1.5 rounded-lg border border-rose-700/50 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 transition-colors"
@@ -615,14 +648,8 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                         <TruncatedCell title="Ambiente" content={r.ambiente} onClick={setSelectedDetail}>{r.ambiente ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{r.ambiente}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
                                         <TruncatedCell title="Dominio" content={r.domain} onClick={setSelectedDetail} />
                                         <TruncatedCell title="IP" content={r.ip} onClick={setSelectedDetail} />
-                                        <TruncatedCell title="Estado" content={r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin datos"} onClick={setSelectedDetail}>
-                                          {r.status === "ok" ? (
-                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OK</span>
-                                          ) : r.status === "error" ? (
-                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Error</span>
-                                          ) : (
-                                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-600/30">Sin datos</span>
-                                          )}
+                                        <TruncatedCell title="Estado" content={getExtendedStatus(r.status, r.comentarios, r.snap, r.confirmado)} onClick={setSelectedDetail}>
+                                          <StatusBadge status={r.status} extendedStatus={getExtendedStatus(r.status, r.comentarios, r.snap, r.confirmado)} />
                                         </TruncatedCell>
                                         <TruncatedCell title="Analista" content={r.analista} onClick={setSelectedDetail} />
                                         <TruncatedCell title="OS" content={r.os} onClick={setSelectedDetail} />
@@ -669,7 +696,47 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         payload={emailPayload}
       />
 
-      {/* Modal de Error */}
+      {/* Modal de Eliminación */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass rounded-xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden border border-rose-500/30">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-rose-400">
+                <AlertCircle className="w-4 h-4" />
+                Eliminar sincronización
+              </h3>
+              <button onClick={() => setDeleteConfirm(null)} className="text-zinc-400 hover:text-white transition-colors">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 text-sm text-zinc-300">
+              ¿Estás seguro que deseas eliminar esta sincronización? Esta acción no se puede deshacer.
+            </div>
+            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-800 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  fetch(`/api/sync-runs/${deleteConfirm}`, { method: 'DELETE' })
+                    .then(res => {
+                      if (res.ok) window.location.reload();
+                      else alert("Error al eliminar la sincronización.");
+                    })
+                    .catch(() => alert("Error al conectar con el servidor."));
+                }}
+                className="px-4 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Detalles */}
       {selectedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, User, Shield } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,11 +23,12 @@ export default function LoginPage() {
       password,
       redirect: false,
     });
-    setLoading(false);
     if (res?.ok) {
+      setIsSuccess(true);
       router.push("/");
       router.refresh();
     } else {
+      setLoading(false);
       if (res?.error === "EXPIRED_PASSWORD") {
         setError("Tu contraseña temporal ha expirado. Por favor, solicita una nueva.");
       } else {
@@ -35,8 +38,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-      <div className="w-full max-w-sm">
+    <>
+      {(loading || isSuccess) && <LoadingOverlay />}
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <div className="w-full max-w-sm">
         <div className="glass rounded-2xl p-8 space-y-6">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
@@ -96,6 +101,6 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
-    </div>
+    </>
   );
 }

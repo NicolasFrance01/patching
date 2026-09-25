@@ -14,8 +14,8 @@ import {
   ClipboardList,
   Calendar
 } from "lucide-react";
-import ProfileModal from "./ProfileModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import LoadingOverlay from "./LoadingOverlay";
 
 interface SidebarProps {
   role?: string;
@@ -34,11 +34,18 @@ const navItems = [
 export default function Sidebar({ role, username }: SidebarProps) {
   const pathname = usePathname();
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-56 flex flex-col bg-zinc-950 border-r border-zinc-800/60 z-40">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-zinc-800/60">
+    <>
+      {isNavigating && <LoadingOverlay />}
+      <aside className="fixed inset-y-0 left-0 w-56 flex flex-col bg-zinc-950 border-r border-zinc-800/60 z-40">
+        {/* Logo */}
+        <div className="px-4 py-5 border-b border-zinc-800/60">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
             <Shield className="w-4 h-4 text-indigo-400" />
@@ -58,6 +65,11 @@ export default function Sidebar({ role, username }: SidebarProps) {
             <Link
               key={href}
               href={href}
+              onClick={() => {
+                if (href !== "/" ? pathname !== href : pathname !== "/") {
+                  setIsNavigating(true);
+                }
+              }}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                 active
                   ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
@@ -73,6 +85,9 @@ export default function Sidebar({ role, username }: SidebarProps) {
         {role === "admin" && (
           <Link
             href="/usuarios"
+            onClick={() => {
+              if (pathname !== "/usuarios") setIsNavigating(true);
+            }}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
               pathname.startsWith("/usuarios")
                 ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
@@ -110,5 +125,6 @@ export default function Sidebar({ role, username }: SidebarProps) {
 
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </aside>
+    </>
   );
 }

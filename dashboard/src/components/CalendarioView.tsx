@@ -201,8 +201,8 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
       {/* Details Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-xl w-full max-w-lg shadow-2xl flex flex-col border border-zinc-700/50">
-            <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
+          <div className="glass rounded-xl w-full max-w-lg max-h-[90vh] shadow-2xl flex flex-col border border-zinc-700/50">
+            <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center shrink-0">
               <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                 Detalle de Programación
               </h3>
@@ -210,7 +210,7 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto min-h-0">
               <div className="flex justify-between items-start">
                 <div className="flex-1 pr-4 min-w-0">
                   <h4 className="text-lg font-bold text-white break-words">{selectedOrder.title}</h4>
@@ -235,13 +235,13 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
               {selectedOrder.executionLog && (
                 <div>
                   <p className="text-xs text-zinc-400 mb-1 font-medium">Log de Ejecución</p>
-                  <pre className="bg-black/50 border border-zinc-800 rounded-lg p-3 text-[10px] text-zinc-300 h-32 overflow-auto font-mono whitespace-pre-wrap">
+                  <pre className="bg-black/50 border border-zinc-800 rounded-lg p-3 text-[10px] text-zinc-300 max-h-60 overflow-y-auto font-mono whitespace-pre-wrap break-all">
                     {selectedOrder.executionLog}
                   </pre>
                 </div>
               )}
             </div>
-            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
+            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/50 flex justify-end shrink-0">
               <button onClick={() => setSelectedOrder(null)} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-semibold transition-colors">
                 Cerrar
               </button>
