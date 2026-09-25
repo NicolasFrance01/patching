@@ -14,6 +14,8 @@ import { getServerInfo, SERVER_TYPES, ServerType, serverTypeMap } from "@/lib/se
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
 import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
+import KbInfoModal from "./KbInfoModal";
+import KbExplorerModal from "./KbExplorerModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,10 +110,10 @@ function isInTimeFilter(iso: string, tf: TimeFilter, selectedMonth: string, from
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const ChartCard = memo(function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+const ChartCard = memo(function ChartCard({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-3">
-      <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide">{title}</h3>
+      <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide flex items-center justify-between">{title}</h3>
       {children}
     </div>
   );
@@ -253,6 +255,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
+
+  const [selectedKbModal, setSelectedKbModal] = useState<string | null>(null);
+  const [isKbExplorerOpen, setIsKbExplorerOpen] = useState(false);
 
   useEffect(() => { setChartsMounted(true); }, []);
 
@@ -409,21 +414,21 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       const mapped = recs.map(r => getExtendedStatus(r.status, r.errorDescription, null, null)); // Not exactly full data but good enough for trend history unless we have full history records. Actually, we do have errorDescription which sometimes stores comments in historical runs, but let's just use what we can. 
       const ok     = mapped.filter((s) => s === "Actualizado").length;
       const errors = mapped.filter((s) => s === "Error").length;
-      const sinConf = mapped.filter((s) => s === "Sin Confirmación").length;
+      const sinConf = mapped.filter((s) => s === "Sin Confirmación").length; const revision = mapped.filter((s) => s === "En Revisión").length; const pendientes = mapped.filter((s) => s === "Pendiente").length;
       const sinSnap = mapped.filter((s) => s === "Sin Snap").length;
-      const nodata = mapped.filter((s) => s === "Sin Datos" || s === "Pendiente" || s === "En Revisión").length;
+      const nodata = mapped.filter((s) => s === "Sin Datos").length;
 
       const dateObj = new Date(run.syncedAt);
       return {
         label: `${dateObj.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })} ${dateObj.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
-        ok, errors, sinConf, sinSnap, nodata, total,
+        ok, errors, sinConf, sinSnap, revision, pendientes, nodata, total,
         pct: total > 0 ? Math.round((ok / total) * 100) : 0,
       };
     });
   }, [syncRuns, timeFilter, selectedMonth, customFrom, customTo, bankFilters]);
 
   // ── Top KBs instaladas ──────────────────────────────────────────────────────
-  const topKBs = useMemo(() => {
+  const allKBs = useMemo(() => {
     const kbMap: Record<string, number> = {};
     for (const s of filtered) {
       if (!s.installedKBs) continue;
@@ -433,7 +438,6 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     }
     return Object.entries(kbMap)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
       .map(([kb, count]) => ({ kb, count }));
   }, [filtered]);
 
@@ -465,7 +469,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     return Object.entries(eMap)
       .map(([msg, servers]) => ({ msg, count: servers.size }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      ;
   }, [filtered]);
 
   // ── Banco con más riesgo ────────────────────────────────────────────────────
@@ -473,7 +477,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     byBankData
       .filter((b) => b.errors > 0)
       .sort((a, b) => b.errors - a.errors)
-      .slice(0, 8)
+      
       .map((b) => ({ name: b.name, errors: b.errors, pct: b.pct })),
   [byBankData]);
 
@@ -659,7 +663,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         <MetricCard title="No Actualizados" value={stats.sinConf + stats.sinSnap + stats.revision + stats.noData} subtitle="Requieren gestión" icon={<AlertCircle className="w-5 h-5 text-amber-400"  />} accent="amber"  />
         <MetricCard title="Errores"        value={stats.errors} subtitle="Requieren remediación" icon={<XCircle className="w-5 h-5 text-rose-400"    />} accent="rose"    />
         <MetricCard title="Pendientes"     value={stats.pendientes} subtitle="Programados a futuro" icon={<Clock className="w-5 h-5 text-violet-400" />} accent="violet" />
-        <MetricCard title="% Cumplimiento"     value={`${stats.pct}%`} subtitle="Tasa de éxito" icon={<Check className="w-5 h-5 text-cyan-400"   />} accent="cyan"    />
+        <MetricCard title="Sincronizados este mes" value={stats.total} subtitle="Servidores analizados" icon={<CheckCircle2 className="w-5 h-5 text-cyan-400" />} accent="cyan" />
       </div>
 
       {/* ── Charts Row 1: Donut + Cumplimiento por Banco ─────────────────────── */}
@@ -691,11 +695,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                     <tr>
                       <th className="px-2 py-2 text-left font-medium">Banco</th>
                       <th className="px-2 py-2 text-right font-medium">Total</th>
-                      <th className="px-2 py-2 text-right font-medium text-emerald-500">OK</th>
-                      <th className="px-2 py-2 text-right font-medium text-rose-500">Error</th>
-                      <th className="px-2 py-2 text-right font-medium text-zinc-500">Sin datos</th>
-                      <th className="px-2 py-2 text-right font-medium text-emerald-400">% OK</th>
-                      <th className="px-2 py-2 text-right font-medium text-rose-400">% Err</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>OK</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>Err</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>S. Conf</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>S. Snap</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["En Revisión"]}}>Revisi�n</th>
+                      <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>Pend</th>
+                      <th className="px-2 py-2 text-right font-medium text-zinc-500">S/D</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
@@ -709,18 +715,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                               style={{ color, borderColor: color + "44", backgroundColor: color + "15" }}>{b.name}</span>
                           </td>
                           <td className="px-2 py-2 text-right text-zinc-300 font-medium">{b.total}</td>
-                          <td className="px-2 py-2 text-right text-emerald-400">{b.ok}</td>
-                          <td className="px-2 py-2 text-right text-rose-400">{b.errors}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>{b.ok}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>{b.errors}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>{b.sinConf}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>{b.sinSnap}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["En Revisión"]}}>{b.revision}</td>
+                          <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>{b.pendientes}</td>
                           <td className="px-2 py-2 text-right text-zinc-500">{b.nodata}</td>
-                          <td className="px-2 py-2 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <div className="w-14 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${b.pct}%` }} />
-                              </div>
-                              <span className="text-emerald-400 font-medium">{b.pct}%</span>
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 text-right text-rose-400">{pctErr}%</td>
                         </tr>
                       );
                     })}
@@ -728,11 +729,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                     <tr className="bg-zinc-900/50 font-bold">
                       <td className="px-2 py-2 text-zinc-300">Total general</td>
                       <td className="px-2 py-2 text-right text-zinc-200">{stats.total}</td>
-                      <td className="px-2 py-2 text-right text-emerald-400">{stats.ok}</td>
-                      <td className="px-2 py-2 text-right text-rose-400">{stats.errors}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>{stats.ok}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>{stats.errors}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>{stats.sinConf}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>{stats.sinSnap}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["En Revisión"]}}>{stats.revision}</td>
+                      <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>{stats.pendientes}</td>
                       <td className="px-2 py-2 text-right text-zinc-500">{stats.noData}</td>
-                      <td className="px-2 py-2 text-right text-emerald-400">{stats.pct}%</td>
-                      <td className="px-2 py-2 text-right text-rose-400">{stats.total > 0 ? Math.round((stats.errors / stats.total) * 100) : 0}%</td>
                     </tr>
                   </tbody>
                 </table>
@@ -756,11 +759,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10, fill: "#6366f1" }} />
                 <Tooltip {...tooltipStyle} />
                 <Legend formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
-                <Bar yAxisId="cnt" dataKey="ok"     name="Actualizado (OK)" stackId="s" fill="#10b981aa" />
-                <Bar yAxisId="cnt" dataKey="errors" name="Errores"   stackId="s" fill="#ef4444aa" />
-                <Bar yAxisId="cnt" dataKey="sinConf" name="Sin Confirmación" stackId="s" fill="#f59e0baa" />
-                <Bar yAxisId="cnt" dataKey="sinSnap" name="Sin Snap" stackId="s" fill="#eab308aa" />
-                <Bar yAxisId="cnt" dataKey="nodata" name="Otros" stackId="s" fill="#3f3f46aa" radius={[4,4,0,0]} />
+                <Bar yAxisId="cnt" dataKey="ok"     name="Actualizado (OK)" stackId="s" fill={EXTENDED_STATUS_COLORS["Actualizado"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="errors" name="Errores"   stackId="s" fill={EXTENDED_STATUS_COLORS["Error"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="sinConf" name="Sin Confirmación" stackId="s" fill={EXTENDED_STATUS_COLORS["Sin Confirmación"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="sinSnap" name="Sin Snap" stackId="s" fill={EXTENDED_STATUS_COLORS["Sin Snap"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="revision" name="En Revisión" stackId="s" fill={EXTENDED_STATUS_COLORS["En Revisión"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="pendientes" name="Pendiente" stackId="s" fill={EXTENDED_STATUS_COLORS["Pendiente"] + "aa"} />
+                <Bar yAxisId="cnt" dataKey="nodata" name="Sin Datos" stackId="s" fill={EXTENDED_STATUS_COLORS["Sin Datos"] + "aa"} radius={[4,4,0,0]} />
                 <Line yAxisId="pct" type="monotone" dataKey="pct" name="% Cumplimiento"
                   stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </BarChart>
@@ -799,28 +804,40 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         </div>
         
         <div className="flex flex-col gap-4">
-          <ChartCard title="Detalle del seguimiento">
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="glass rounded-xl p-3 flex flex-col items-center justify-center border border-white/5">
-                <span className="text-xl font-bold text-white">{stats.ok}</span>
-                <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-3 h-3" /> OK
-                </span>
-              </div>
-              <div className="glass rounded-xl p-3 flex flex-col items-center justify-center border border-white/5">
-                <span className="text-xl font-bold text-white">{stats.errors}</span>
-                <span className="text-[10px] text-rose-400 font-medium flex items-center gap-1 mt-1">
-                  <AlertTriangle className="w-3 h-3" /> Error
-                </span>
-              </div>
-            </div>
-            <div className="pt-3 border-t border-zinc-800/50 flex flex-col gap-1">
-              <span className="text-[10px] text-zinc-500 uppercase font-medium">Tasa de éxito en ejecución</span>
-              <span className="text-2xl font-bold text-indigo-400">
-                {stats.ok + stats.errors > 0 ? Math.round((stats.ok / (stats.ok + stats.errors)) * 100) : 0}%
-              </span>
-            </div>
-          </ChartCard>
+          <ChartCard title="Detalle para seguimiento">
+            <div className="overflow-auto max-h-[220px]">
+              <table className="w-full text-[10px] text-left table-fixed">
+                <thead className="text-zinc-500 uppercase sticky top-0 bg-zinc-950/80 backdrop-blur-md z-10">
+                  <tr>
+                    <th className="px-2 py-1.5 font-medium">Servidor</th>
+                    <th className="px-2 py-1.5 font-medium">Estado</th>
+                    <th className="px-2 py-1.5 font-medium">Confirmación</th>
+                    <th className="px-2 py-1.5 font-medium">SNAP</th>
+                    <th className="px-2 py-1.5 font-medium">Ejecución</th>
+                    <th className="px-2 py-1.5 font-medium">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {filtered.slice(0, 50).map((s) => {
+                    const isEjecutado = s.status === "ok" || s.status === "error";
+                    const confirmLabel = (!s.comentarios?.toLowerCase().includes("no confirmo")) ? "OK" : "No";
+                    const snapLabel = (!s.snap?.toLowerCase().includes("no se recibio")) ? "OK" : "No";
+                    const ejecucionLabel = isEjecutado ? "Ejecutado" : "No";
+                    const resultadoLabel = s.status === "ok" ? "OK" : (s.status === "error" ? "Error" : "-");
+                    return (
+                      <tr key={s.id} className="hover:bg-white/[0.02]">
+                        <td className="px-2 py-1.5 font-medium text-zinc-300 truncate" title={s.serverName}>{s.serverName}</td>
+                        <td className="px-2 py-1.5 truncate"><StatusBadge status={s.status} extendedStatus={s.extendedStatus} /></td>
+                        <td className="px-2 py-1.5 text-zinc-400">{confirmLabel}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{snapLabel}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{ejecucionLabel}</td>
+                        <td className="px-2 py-1.5 text-zinc-400">{resultadoLabel}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>          </ChartCard>
         </div>
       </div>
 
@@ -844,15 +861,32 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         </ChartCard>
 
         {/* Top KBs */}
-        <ChartCard title="Top 10 KBs Instaladas">
-          {chartsMounted && topKBs.length > 0 ? (
+        <ChartCard title={
+          <>
+            <span>Top 10 KBs Instaladas</span>
+            <button 
+              onClick={() => setIsKbExplorerOpen(true)}
+              className="text-indigo-400 hover:text-indigo-300 font-bold normal-case text-xs underline underline-offset-2"
+            >
+              Ver más
+            </button>
+          </>
+        }>
+          {chartsMounted && allKBs.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={topKBs} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+              <BarChart data={allKBs.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#71717a" }} />
                 <YAxis type="category" dataKey="kb" tick={{ fontSize: 10, fill: "#a1a1aa" }} width={80} />
-                <Tooltip {...tooltipStyle} />
-                <Bar dataKey="count" name="Servidores" fill="#6366f1aa" radius={[0,4,4,0]} />
+                <Tooltip {...tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Bar 
+                  dataKey="count" 
+                  name="Servidores" 
+                  fill="#6366f1aa" 
+                  radius={[0,4,4,0]} 
+                  onClick={(data: any) => setSelectedKbModal(data.kb)}
+                  className="cursor-pointer hover:fill-indigo-400"
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -1036,6 +1070,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           </div>
         </div>
       )}
+      {selectedKbModal && (
+        <KbInfoModal kbNumber={selectedKbModal} onClose={() => setSelectedKbModal(null)} />
+      )}
+      {isKbExplorerOpen && (
+        <KbExplorerModal kbs={allKBs} onClose={() => setIsKbExplorerOpen(false)} />
+      )}
     </div>
   );
 }
@@ -1076,3 +1116,4 @@ function MetricCard({
     </div>
   );
 }
+

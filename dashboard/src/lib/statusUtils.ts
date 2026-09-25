@@ -61,11 +61,11 @@ export function getExtendedStatus(
 
 export const EXTENDED_STATUS_COLORS: Record<ExtendedStatus, string> = {
   "Actualizado": "#10b981", // Emerald 500
-  "Error": "#f43f5e",       // Rose 500
-  "Sin Confirmación": "#f59e0b", // Amber 500
+  "Error": "#ef4444",       // Red 500
+  "Sin Confirmación": "#f97316", // Orange 500
   "Sin Snap": "#eab308",    // Yellow 500
-  "En Revisión": "#6366f1", // Indigo 500
-  "Pendiente": "#8b5cf6",   // Violet 500
+  "En Revisión": "#3b82f6", // Blue 500
+  "Pendiente": "#a855f7",   // Purple 500
   "Sin Datos": "#71717a"    // Zinc 500
 };
 

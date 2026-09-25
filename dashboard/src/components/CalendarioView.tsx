@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2 } from "lucide-react";
 
 interface PatchOrder {
   id: string;
@@ -20,6 +20,7 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<PatchOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states for creating new order
   const [title, setTitle] = useState("");
@@ -75,6 +76,25 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
       alert("Error al crear la programación.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm("¿Estás seguro que deseas eliminar esta programación?")) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/calendar?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setOrders(orders.filter(o => o.id !== id));
+        setSelectedOrder(null);
+      } else {
+        alert("Error al eliminar la programación.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error al eliminar la programación.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -206,9 +226,19 @@ export default function CalendarioView({ initialOrders }: { initialOrders: Patch
               <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
                 Detalle de Programación
               </h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-zinc-500 hover:text-white">
-                <XCircle className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDeleteOrder(selectedOrder.id)}
+                  disabled={isDeleting}
+                  className="text-rose-400 hover:text-rose-300 transition-colors p-1"
+                  title="Eliminar programación"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => setSelectedOrder(null)} className="text-zinc-500 hover:text-white transition-colors p-1">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto min-h-0">
               <div className="flex justify-between items-start">

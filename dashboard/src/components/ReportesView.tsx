@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
+import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
@@ -50,7 +51,7 @@ interface ReportesViewProps {
 }
 
 type ByTypeItem = {
-  name: string; total: number; ok: number; error: number; nodata: number; successRate: number;
+  name: string; total: number; ok: number; error: number; nodata: number; sinConf: number; sinSnap: number; revision: number; pendientes: number; successRate: number;
 };
 
 type TimeFilter = "all" | "hoy" | "semana" | "mes" | "custom";
@@ -144,9 +145,13 @@ const ByTypeCharts = memo(function ByTypeCharts({ byTypeData }: { byTypeData: By
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
                 <Tooltip {...tooltipStyle} />
-                <Bar dataKey="ok" name="OK" stackId="a" fill="#10b981" />
-                <Bar dataKey="error" name="Error" stackId="a" fill="#ef4444" />
-                <Bar dataKey="nodata" name="Sin datos" stackId="a" fill="#3f3f46" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="ok" name="Actualizado (OK)" stackId="a" fill={EXTENDED_STATUS_COLORS["Actualizado"]} />
+                <Bar dataKey="error" name="Error" stackId="a" fill={EXTENDED_STATUS_COLORS["Error"]} />
+                <Bar dataKey="sinConf" name="Sin Confirmación" stackId="a" fill={EXTENDED_STATUS_COLORS["Sin Confirmación"]} />
+                <Bar dataKey="sinSnap" name="Sin Snap" stackId="a" fill={EXTENDED_STATUS_COLORS["Sin Snap"]} />
+                <Bar dataKey="revision" name="En Revisión" stackId="a" fill={EXTENDED_STATUS_COLORS["En Revisión"]} />
+                <Bar dataKey="pendientes" name="Pendiente" stackId="a" fill={EXTENDED_STATUS_COLORS["Pendiente"]} />
+                <Bar dataKey="nodata" name="Sin datos" stackId="a" fill={EXTENDED_STATUS_COLORS["Sin Datos"]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -439,12 +444,20 @@ export default function ReportesView({
   };
 
   const enrichedServers = useMemo(() =>
-    data.currentServers.map((s) => ({
-      ...s,
-      info: getServerInfo(s.serverName, s.ip),
-      isError: !!(s.errorDescription && s.errorDescription !== "N/A"),
-      isNoData: (!s.os || s.os === "N/A") && !(s.errorDescription && s.errorDescription !== "N/A"),
-    })),
+    data.currentServers.map((s) => {
+      const isError = !!(s.errorDescription && s.errorDescription !== "N/A");
+      const isNoData = (!s.os || s.os === "N/A") && !isError;
+      const status = isError ? "error" : isNoData ? "nodata" : "ok";
+      const extendedStatus = getExtendedStatus(status, s.errorDescription, (s as any).snap ?? null, (s as any).confirmado ?? null);
+      return {
+        ...s,
+        info: getServerInfo(s.serverName, s.ip),
+        isError,
+        isNoData,
+        status,
+        extendedStatus
+      };
+    }),
     [data.currentServers]
   );
 
@@ -523,20 +536,24 @@ export default function ReportesView({
 
   // ── Por Tipo ──────────────────────────────────────────────────────────────
   const byTypeData = useMemo((): ByTypeItem[] => {
-    const counts: Record<string, { total: number; ok: number; error: number; nodata: number }> = {};
+    const counts: Record<string, { total: number; ok: number; error: number; nodata: number; sinConf: number; sinSnap: number; revision: number; pendientes: number }> = {};
     const typesToShow = selectedBanks.includes("all")
       ? [...SERVER_TYPES, "Sin clasificar"]
       : selectedBanks.map((b) => (b === "unclassified" ? "Sin clasificar" : b));
 
-    typesToShow.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0 }; });
+    typesToShow.forEach((t) => { counts[t] = { total: 0, ok: 0, error: 0, nodata: 0, sinConf: 0, sinSnap: 0, revision: 0, pendientes: 0 }; });
 
     for (const s of filteredEnrichedServers) {
       const key = s.info?.type ?? "Sin clasificar";
-      if (!counts[key]) counts[key] = { total: 0, ok: 0, error: 0, nodata: 0 };
+      if (!counts[key]) counts[key] = { total: 0, ok: 0, error: 0, nodata: 0, sinConf: 0, sinSnap: 0, revision: 0, pendientes: 0 };
       counts[key].total++;
-      if (s.isError) counts[key].error++;
-      else if (s.isNoData) counts[key].nodata++;
-      else counts[key].ok++;
+      if (s.extendedStatus === "Actualizado") counts[key].ok++;
+      else if (s.extendedStatus === "Error") counts[key].error++;
+      else if (s.extendedStatus === "Sin Confirmación") counts[key].sinConf++;
+      else if (s.extendedStatus === "Sin Snap") counts[key].sinSnap++;
+      else if (s.extendedStatus === "En Revisión") counts[key].revision++;
+      else if (s.extendedStatus === "Pendiente") counts[key].pendientes++;
+      else counts[key].nodata++;
     }
 
     return Object.entries(counts)
