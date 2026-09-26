@@ -43,7 +43,7 @@ interface DashboardViewProps {
 }
 
 type BankFilter = "all" | ServerType | "unclassified";
-type TimeFilter = "mes" | "custom";
+type TimeFilter = "all" | "mes" | "custom";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -605,7 +605,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-zinc-500 font-medium mr-1 shrink-0">Filtro de Tiempo:</span>
-            {(["mes","custom"] as TimeFilter[]).map((tf) => (
+            {(["all", "mes", "custom"] as TimeFilter[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeFilter(tf)}
@@ -615,7 +615,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                     : "text-zinc-400 border-zinc-700/50 hover:text-zinc-200"
                 }`}
               >
-                {tf === "mes" ? "Mes" : "Rango Personalizado"}
+                {tf === "all" ? "Todos los meses" : tf === "mes" ? "Por Mes" : "Rango Personalizado"}
               </button>
             ))}
             {timeFilter === "mes" && (
