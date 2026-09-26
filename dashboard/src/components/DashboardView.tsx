@@ -234,7 +234,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [activeTab, setActiveTab] = useState<"dashboard" | "reportes" | "historial" | "jira" | "mis-tickets">("dashboard");
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("mes");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
