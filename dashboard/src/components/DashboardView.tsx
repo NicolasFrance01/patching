@@ -505,7 +505,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         <p className="text-xs text-zinc-500">
           Última sincronización: <span className="text-zinc-300">{lastUpdated}</span>
           {" · "}
-          <span className="text-zinc-400">{filtered.length} de {initialData.length} servidores</span>
+          <span className="text-zinc-400">{filtered.length} de {Object.keys(serverTypeMap).length} servidores</span>
         </p>
         <div className="flex items-center gap-2 flex-wrap">
           <button

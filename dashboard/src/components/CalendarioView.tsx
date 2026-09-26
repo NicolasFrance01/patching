@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2, Check, Search } from "lucide-react";
+import { GROUPS, SERVER_TYPES } from "@/lib/serverTypeMap";
 
 interface PatchOrder {
   id: string;
@@ -22,17 +23,9 @@ interface ServerInfo {
   ambiente: string | null;
 }
 
-const PREDEFINED_GROUPS = [
-  "DCGrupo1", "DCGrupo2", "DCGrupo3", "DCGrupo4", "Desarrollo1", "Fix1", "Fix1 | Produccion2", 
-  "Fix1 | Produccion3", "Fix1 | Produccion6", "Fix2", "Fix2 | Produccion4", "Fix3", "Fix3 | Produccion1", 
-  "Produccion1", "Produccion1 | Sucursal4", "Produccion2", "Produccion3", "Produccion3 | Sucursal3", 
-  "Produccion4", "Produccion4 | Sucursal3", "Produccion4 | Sucursal4", "Produccion5", "Produccion5 | Sucursal2", 
-  "Produccion5 | Sucursal3", "Produccion5 | Sucursal4", "Produccion6", "Proxy1", "Proxy2", "Proxy3", 
-  "Sucursal1", "Sucursal2", "Sucursal3", "Sucursal4", "Sucursal5", "Testing1", "Testing1 | Testing2", 
-  "Testing1 | Testing4", "Testing2", "Testing3", "Testing4", "Veeam1", "Veeam2"
-];
+const PREDEFINED_GROUPS = GROUPS;
 
-const PREDEFINED_BANKS = ["ASJ", "BSC", "BSJ", "Corp", "NBERSA", "NBSF", "QUALIA"];
+const PREDEFINED_BANKS = SERVER_TYPES;
 
 function ComboMultiSelect({ 
   label, options, selected, onChange 

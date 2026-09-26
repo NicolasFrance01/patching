@@ -1,0 +1,565 @@
+Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
+BSJ;Producción1;bancosanjuan.net;172.20.73.15;Microsoft Windows 11 (64-bit);ABSPREPROD15DKP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.6;Microsoft Windows Server 2012 (64-bit);DB6VRT-PRE;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.143;Microsoft Windows Server 2019 (64-bit);DEVABS143PREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.13;Microsoft Windows 11 (64-bit);DKPREPROD13VRT;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.78;Microsoft Windows Server 2019 (64-bit);NTS78ABSPREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.80;Microsoft Windows Server 2016 or later (64-bit);NTS80VRT_TMP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.14;Microsoft Windows Server 2012 (64-bit);PROB14ABSPREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.23;Microsoft Windows Server 2012 (64-bit);PROBDB23ABSPREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.123;Microsoft Windows Server 2022 (64-bit);PROBDB23SRV;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.24;Microsoft Windows Server 2022 (64-bit);PROBWEB24ABSPREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.142;Microsoft Windows Server 2019 (64-bit);RTABS142PREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.62;Microsoft Windows Server 2019 (64-bit);SIDB62ABSPREP;PreProducción
+BSJ;Producción1;bancosanjuan.net;172.20.73.51;Microsoft Windows Server 2019 (64-bit);UNISYS51ABSPREP;PreProducción
+BSJ;Producción2;bancosanjuan.net;172.20.4.118;Microsoft Windows Server 2019 (64-bit);BDLINK118VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.33;Microsoft Windows Server 2019 (64-bit);COMX33SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.4;Microsoft Windows Server 2012 (64-bit);DB04VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.86;Microsoft Windows Server 2019 (64-bit);DB15VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.108;Microsoft Windows Server 2012 (64-bit);DB6VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.97;Microsoft Windows Server 2022 (64-bit);DB97SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.31;Microsoft Windows Server 2012 (64-bit);DBRDM31VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.33;Microsoft Windows Server 2022 (64-bit);GRAFO33VRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.1.113;Microsoft Windows Server 2022 (64-bit);NTS101DCS;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.27;Microsoft Windows Server 2012 (64-bit);NTS126BVRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.119;Microsoft Windows Server 2019 (64-bit);NTS19;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.28;Microsoft Windows Server 2012 (64-bit);NTS28VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.149;Microsoft Windows Server 2008 R2 (64-bit);NTS33VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.61;Microsoft Windows Server 2012 (64-bit);NTS60BVRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.9;Microsoft Windows Server 2012 (64-bit);NTS9VRT;Producción
+BSJ;Producción2;bancosanjuan.net;139.1.1.33;Microsoft Windows Server 2022 (64-bit);NTSMDC06;Producción
+BSJ;Producción2;bancosanjuan.net;172.21.21.51;Microsoft Windows Server 2012 (64-bit);SEGINFOSHP;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.95;Microsoft Windows Server 2016 or later (64-bit);TRK95VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.30.51;Microsoft Windows Server 2019 (64-bit);UNISYSTAS51VRT;Producción
+BSJ;Producción2;dmz.com;10.0.0.118;Microsoft Windows Server 2012 (64-bit);W2S118;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.240;Microsoft Windows Server 2019 (64-bit);4DBAS240SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.203;Microsoft Windows Server 2019 (64-bit);BSJDRPPXY01;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.14.61;Microsoft Windows 11 (64-bit);caja-003;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.184;Microsoft Windows 10 (32-bit);FATCA;Producción
+BSJ;Producción2;bancosanjuan.net;172.21.15.234;Microsoft Windows Server 2012 (64-bit);NTS020PRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.100.200;Microsoft Windows Server 2016 or later (64-bit);NTS100PRX1;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.2.201;Microsoft Windows Server 2016 or later (64-bit);NTS102PRX2;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.3.202;Microsoft Windows Server 2022 (64-bit);NTS103PRX2;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.5.239;Microsoft Windows Server 2016 (64-bit);NTS105PRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.6.201;Microsoft Windows Server 2016 or later (64-bit);NTS106PRX2;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.7.239;Microsoft Windows Server 2012 (64-bit);NTS107PRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.13.239;Microsoft Windows Server 2016 (64-bit);NTS113PRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.19.200;Microsoft Windows Server 2016 or later (64-bit);NTS119PRX1;Producción
+BSJ;Producción2;bancosanjuan.net;172.21.69.239;Microsoft Windows Server 2019 (64-bit);NTS203PRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.169;Microsoft Windows Server 2022 (64-bit);NTS46VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.177;Microsoft Windows Server 2008 R2 (64-bit);NTS57VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.219;Microsoft Windows Server 2022 (64-bit);PRA219SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.14.66;Microsoft Windows 11 (64-bit);TES-002;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.65;Microsoft Windows 10 (64-bit);WIN10PIVOT65;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.63;Microsoft Windows Server 2019 (64-bit);WSUS63VRT;Producción
+BSJ;Producción2;SitioEmpresas.bsj;192.168.200.101;Microsoft Windows Server 2022 (64-bit);DCSEMP02;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.136;Microsoft Windows Server 2012 (64-bit);MERCAPDB136VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.2;Microsoft Windows Server 2016 or later (64-bit);MSEXC02VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.250;Microsoft Windows Server 2019 (64-bit);SNMPC250SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.120;Microsoft Windows Server 2019 (64-bit);SRV120VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.56;Microsoft Windows Server 2019 (64-bit);APEXONE56SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.19;Microsoft Windows Server 2016 or later (64-bit);APPS19VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.94;Microsoft Windows Server 2022 (64-bit);APPV04SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.111;Microsoft Windows Server 2019 (64-bit);BRS111SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.216;Microsoft Windows 11 (64-bit);BSJSOCORP216DKP;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.112;Microsoft Windows Server 2019 (64-bit);CC111SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.77;Microsoft Windows Server 2022 (64-bit);DHCP77SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.155;Microsoft Windows Server 2022 (64-bit);FS-COM155;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.153;Microsoft Windows Server 2022 (64-bit);FS-OPERAC153;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.48;Microsoft Windows Server 2019 (64-bit);GOA48SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.198;Microsoft Windows Server 2012 (64-bit);INTRANETUSERS;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.12;Microsoft Windows Server 2019 (64-bit);MCK12VRT;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.15.113;Microsoft Windows Server 2022 (64-bit);NTS115DCS;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.16.113;Microsoft Windows Server 2022 (64-bit);NTS116DCS;Producción
+BSJ;Producción2;bancosanjuan.net;202.1.20.113;Microsoft Windows Server 2022 (64-bit);NTS120DCS;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.174;Microsoft Windows Server 2012 (64-bit);NTS174VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.21.204.113;Microsoft Windows Server 2022 (64-bit);NTS204DC;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.152;Microsoft Windows Server 2008 R2 (64-bit);NTS77VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.118;Microsoft Windows Server 2012 (64-bit);NTS82VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.88;Microsoft Windows Server 2012 (64-bit);NTS88VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.74;Microsoft Windows Server 2019 (64-bit);PAI74SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.242;Microsoft Windows Server 2019 (64-bit);PIVOT242SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.21.21.17;Microsoft Windows Server 2012 (64-bit);prtaudit;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.8.32;Microsoft Windows Server 2022 (64-bit);PRXVBK32SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.8.37;Microsoft Windows Server 2022 (64-bit);PRXVBK37SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.38;Microsoft Windows Server 2022 (64-bit);REPOPAI38SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.8.3;Microsoft Windows Server 2012 (64-bit);VMDB03;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.8.10;Microsoft Windows Server 2022 (64-bit);VMPROXY10SQL;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.130;Microsoft Windows 11 (64-bit);BSJCORP130DKP;Producción
+BSJ;Producción2;petersen.corp;172.20.1.69;Microsoft Windows Server 2022 (64-bit);ENGAGEMD;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.61;Microsoft Windows Server 2019 (64-bit);JUD61SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.14.121;Microsoft Windows Server 2012 (64-bit);NTS021SAM;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.20;Microsoft Windows Server 2022 (64-bit);NTS20VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.1.129;Microsoft Windows Server 2012 (64-bit);NTS502V;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.53;Microsoft Windows Server 2012 (64-bit);SCO53VRT;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.4.58;Microsoft Windows Server 2019 (64-bit);SI58SRV;Producción
+BSJ;Producción2;bancosanjuan.net;172.20.72.191;Microsoft Windows Server 2022 (64-bit);SW191DRS;Producción
+BSJ;Producción2;SitioEmpresas.bsj;10.0.0.70;Microsoft Windows Server 2012 (64-bit);WS70VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.238;Microsoft Windows 10 (32-bit);ACCESO238VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.74;Microsoft Windows Server 2019 (64-bit);APIDMEDIA74SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.250;Microsoft Windows Server 2016 or later (64-bit);APPTI250VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.49;Microsoft Windows Server 2019 (64-bit);ATE49SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.45;Microsoft Windows Server 2022 (64-bit);BMC45SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.11;Microsoft Windows Server 2019 (64-bit);BRS11SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.131;Microsoft Windows 11 (64-bit);BSJCORP131DKP;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.204;Microsoft Windows Server 2019 (64-bit);BSJDRPPXY02;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.217;Microsoft Windows 11 (64-bit);BSJSOCORP217DKP;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.14.63;Microsoft Windows 11 (64-bit);caja-004;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.148;Microsoft Windows Server 2022 (64-bit);CC148SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.14.1;Microsoft Windows Server 2022 (64-bit);CSMH01SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.80;Microsoft Windows Server 2022 (64-bit);DB10VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.16;Microsoft Windows Server 2019 (64-bit);DB16VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.77;Microsoft Windows Server 2016 or later (64-bit);DB7VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.79;Microsoft Windows Server 2016 or later (64-bit);DB9VRT;Producción
+BSJ;Producción3;dmz.com;10.0.0.11;Microsoft Windows Server 2022 (64-bit);DC01DMZ;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.55;Microsoft Windows Server 2016 or later (64-bit);DEEP55VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.218;Microsoft Windows Server 2019 (64-bit);DLOGS218SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.138;Microsoft Windows Server 2019 (64-bit);ETSDB38VRT;Producción
+BSJ;Producción3;root.bsj;172.20.139.1;Microsoft Windows Server 2022 (64-bit);FRDBSJ01DC;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.157;Microsoft Windows Server 2022 (64-bit);FS-FINAN157;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.159;Microsoft Windows Server 2022 (64-bit);FS-RHMRO159;Producción
+BSJ;Producción3;dmz.com;10.0.0.47;Microsoft Windows Server 2019 (64-bit);GOAD47SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.110;Microsoft Windows Server 2019 (64-bit);HK110SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.42;Microsoft Windows Server 2022 (64-bit);Invgate_Assets_BSJ;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.62;Microsoft Windows Server 2012 (64-bit);LEGD62VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.26;Microsoft Windows Server 2019 (64-bit);MDE26SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.16;Microsoft Windows Server 2019 (64-bit);MIM16SRV;Producción
+BSJ;Producción3;bancosanjuan.net;169.254.55.214;Microsoft Windows Server 2016 or later (64-bit);NIW85VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.21.15.200;Microsoft Windows Server 2016 or later (64-bit);NTS020PRX1;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.14.22;Microsoft Windows Server 2012 (64-bit);NTS022;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.100.201;Microsoft Windows Server 2016 or later (64-bit);NTS100PRX2;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.101;Microsoft Windows Server 2012 (64-bit);NTS101SAM;Producción
+BSJ;Producción3;bancosanjuan.net;2002:ca01:266::ca01:266;Microsoft Windows Server 2012 (64-bit);NTS102SAM;Producción
+BSJ;Producción3;bancosanjuan.net;2002:ca01:366::ca01:366;Microsoft Windows Server 2012 (64-bit);NTS103SAM;Producción
+BSJ;Producción3;bancosanjuan.net;2002:ca01:566::ca01:566;Microsoft Windows Server 2012 (64-bit);NTS105SAM;Producción
+BSJ;Producción3;bancosanjuan.net;2002:ca01:666::ca01:666;Microsoft Windows Server 2012 (64-bit);NTS106SAM;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.7.200;Microsoft Windows Server 2022 (64-bit);NTS107PRX;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.13.211;Microsoft Windows Server 2022 (64-bit);NTS113PRX;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.15.239;Microsoft Windows Server 2012 (64-bit);NTS115PRT;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.16.239;Microsoft Windows Server 2022 (64-bit);NTS116PRT;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.19.201;Microsoft Windows Server 2016 or later (64-bit);NTS119PRX2;Producción
+BSJ;Producción3;bancosanjuan.net;202.1.20.234;Microsoft Windows Server 2012 (64-bit);NTS120PRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.126;Microsoft Windows Server 2012 (64-bit);NTS126VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.217;Microsoft Windows Server 2012 (64-bit);NTS17VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.168;Microsoft Windows Server 2022 (64-bit);NTS190VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.21.69.200;Microsoft Windows Server 2019 (64-bit);NTS203PRX1;Producción
+BSJ;Producción3;bancosanjuan.net;172.21.204.239;Microsoft Windows Server 2019 (64-bit);NTS204PRT;Producción
+BSJ;Producción3;bancosanjuan.net;139.1.1.21;Microsoft Windows Server 2019 (64-bit);NTS21;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.29;Microsoft Windows Server 2012 (64-bit);NTS29VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.136;Microsoft Windows Server 2012 (64-bit);NTS34VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.47;Microsoft Windows Server 2012 (64-bit);NTS47VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.51;Microsoft Windows Server 2012 (64-bit);NTS51VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.58;Microsoft Windows Server 2012 (64-bit);NTS58VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.60;Microsoft Windows Server 2019 (64-bit);NTS60VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.161;Microsoft Windows Server 2019 (64-bit);NTS78VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.83;Microsoft Windows Server 2012 (64-bit);NTS83PKIVRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.94;Microsoft Windows Server 2019 (64-bit);NTS94VRT;Producción
+BSJ;Producción3;bancosanjuan.net;139.1.1.104;Microsoft Windows Server 2022 (64-bit);NTSMDC02;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.123;Microsoft Windows Server 2022 (64-bit);OCPFE123SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.7;Microsoft Windows Server 2016 or later (64-bit);PAISVR07VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.12;Microsoft Windows Server 2019 (64-bit);PIVOTCORP12SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.30.114;Microsoft Windows Server 2012 (64-bit);PROB14VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.186;Microsoft Windows Server 2016 or later (64-bit);PRTG186VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.8.33;Microsoft Windows Server 2022 (64-bit);PRXVBK33SRV;Producción
+BSJ;Producción3;-;172.20.1.215;Microsoft Windows Server 2022 (64-bit);PWS215SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.44;Microsoft Windows Server 2019 (64-bit);RMA44;Producción
+BSJ;Producción3;SitioEmpresas.bsj;192.168.200.70;Microsoft Windows Server 2016 or later (64-bit);SDR70VRT;Producción
+BSJ;Producción3;dmz.com;10.0.0.23;Microsoft Windows Server 2019 (64-bit);SERV23SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.30.59;Microsoft Windows Server 2019 (64-bit);SI59SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.23;Microsoft Windows Server 2019 (64-bit);SONDA23SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.181;Microsoft Windows Server 2019 (64-bit);SRV181VRT;Producción
+BSJ;Producción3;bancosanjuan.net;192.168.56.1;Microsoft Windows Server 2019 (64-bit);SYS9SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.14.67;Microsoft Windows 11 (64-bit);TES-003;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.72.27;Microsoft Windows Server 2019 (64-bit);TSN26VRT;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.28;Microsoft Windows Server 2019 (64-bit);VAM28SRV;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.188;Microsoft Windows 10 (32-bit);vmfichadas;Producción
+BSJ;Producción3;bancosanjuan.net;172.21.20.83;Microsoft Windows 10 (64-bit);W10SEG;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.1.87;Microsoft Windows Server 2012 (64-bit);wbs87vrt;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.116;Microsoft Windows 10 (64-bit);WIN10RITEST;Producción
+BSJ;Producción3;SitioEmpresas.bsj;192.168.200.21;Microsoft Windows Server 2019 (64-bit);WSCOMX;Producción
+BSJ;Producción3;bancosanjuan.net;172.20.4.21;Microsoft Windows Server 2019 (64-bit);XWS21SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.175;Microsoft Windows 11 (64-bit);accesos175vrt;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.6;Microsoft Windows Server 2012 (64-bit);APPCOR6VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.91;Microsoft Windows Server 2016 or later (64-bit);APPV01VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.11;Microsoft Windows Server 2022 (64-bit);AUPDT11SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.163;Microsoft Windows Server 2012 (64-bit);BOMGAR163VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.153;Microsoft Windows 11 (64-bit);BSJCORP112DKP;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.132;Microsoft Windows 11 (64-bit);BSJCORP132DKP;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.213;Microsoft Windows 11 (64-bit);BSJSOCORP213DKP;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.67;Microsoft Windows Server 2012 (64-bit);CAC67VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.60;Microsoft Windows 11 (64-bit);caja-005;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.168;Microsoft Windows Server 2016 (64-bit);CDP168SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.2;Microsoft Windows Server 2022 (64-bit);CSRH02SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.81;Microsoft Windows Server 2016 or later (64-bit);DB11VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.17;Microsoft Windows Server 2019 (64-bit);DB17VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.87;Microsoft Windows Server 2012 (64-bit);DB87SQL2008;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.60;Microsoft Windows Server 2012 (64-bit);DBCOR60VRT;Producción
+BSJ;Producción4;dmz.com;10.0.0.12;Microsoft Windows Server 2022 (64-bit);DC02DMZ;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.30.143;Microsoft Windows Server 2019 (64-bit);DEVABS143;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.50;Microsoft Windows Server 2019 (64-bit);ECHECK50SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.221;Microsoft Windows 11 (64-bit);F2K021DKP;Producción
+BSJ;Producción4;root.bsj;172.20.139.38;Microsoft Windows Server 2022 (64-bit);FRDBSJ03DC;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.158;Microsoft Windows Server 2022 (64-bit);FS-GGDIR158;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.160;Microsoft Windows Server 2022 (64-bit);FS-RROP160;Producción
+BSJ;Producción4;dmz.com;10.0.0.48;Microsoft Windows Server 2019 (64-bit);GOAD48SRV;Producción
+BSJ;Producción4;bancosanjuan.net;139.1.1.206;Microsoft Windows Server 2012 (64-bit);hub01;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.36;Microsoft Windows Server 2022 (64-bit);Invgatebsj2;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.40;Microsoft Windows Server 2012 (64-bit);LEGDB40VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.26;Microsoft Windows Server 2012 (64-bit);MDE26VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.243;Microsoft Windows Server 2022 (64-bit);MOBSEC243VRT;Producción
+BSJ;Producción4;bancosanjuan.net;139.1.1.101;Microsoft Windows Server 2022 (64-bit);NTS0001DC;Producción
+BSJ;Producción4;bancosanjuan.net;172.21.15.201;Microsoft Windows Server 2016 or later (64-bit);NTS020PRX2;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.122;Microsoft Windows Server 2012 (64-bit);NTS022SAM;Producción
+BSJ;Producción4;bancosanjuan.net;2002:ca01:6466::ca01:6466;Microsoft Windows Server 2012 (64-bit);NTS100SAM;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.2.100;Microsoft Windows Server 2012 (64-bit);NTS102;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.3.100;Microsoft Windows Server 2012 (64-bit);NTS103;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.5.100;Microsoft Windows Server 2012 (64-bit);NTS105;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.6.113;Microsoft Windows Server 2022 (64-bit);NTS106DCS;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.6.100;Microsoft Windows Server 2012 (64-bit);NTS106V;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.7.101;Microsoft Windows Server 2012 (64-bit);NTS107SAM;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.13.102;Microsoft Windows Server 2012 (64-bit);NTS113SAM;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.15.211;Microsoft Windows Server 2022 (64-bit);NTS115PRX;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.117;Microsoft Windows Server 2012 (64-bit);NTS116SAM;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.19.102;Microsoft Windows Server 2012 (64-bit);NTS119SAM;Producción
+BSJ;Producción4;bancosanjuan.net;202.1.20.200;Microsoft Windows Server 2016 or later (64-bit);NTS120PRX1;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.182;Microsoft Windows Server 2012 (64-bit);NTS128;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.183;Microsoft Windows Server 2019 (64-bit);NTS183VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.194;Microsoft Windows Server 2012 (64-bit);NTS202VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.21.69.201;Microsoft Windows Server 2016 or later (64-bit);NTS203PRX2;Producción
+BSJ;Producción4;bancosanjuan.net;172.21.204.200;Microsoft Windows Server 2019 (64-bit);NTS204PRX1;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.141;Microsoft Windows Server 2019 (64-bit);NTS21VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.160;Microsoft Windows Server 2016 (64-bit);NTS30B;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.36;Microsoft Windows Server 2019 (64-bit);NTS36VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.149;Microsoft Windows Server 2022 (64-bit);NTS49SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.52;Microsoft Windows Server 2012 (64-bit);NTS52VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.70;Microsoft Windows Server 2008 R2 (64-bit);NTS60;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.159;Microsoft Windows Server 2019 (64-bit);NTS66VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.125;Microsoft Windows Server 2016 or later (64-bit);NTS80VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.84;Microsoft Windows Server 2012 (64-bit);NTS84VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.96;Microsoft Windows Server 2019 (64-bit);NTS96;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.103;Microsoft Windows Server 2022 (64-bit);NTSMDC03;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.99;Microsoft Windows Server 2022 (64-bit);OCPMS99SRV;Producción
+BSJ;Producción4;bancosanjuan.net;139.1.1.81;Microsoft Windows 11 (64-bit);PC80DSK;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.58.150;Microsoft Windows 10 (32-bit);PIVOTL150VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.23;Microsoft Windows Server 2012 (64-bit);PROBDB23VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.201;Microsoft Windows Server 2022 (64-bit);PRXCPD201SJ;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.8.34;Microsoft Windows Server 2022 (64-bit);PRXVBK34SRV;Producción
+BSJ;Producción4;-;172.20.1.216;Microsoft Windows Server 2022 (64-bit);PWS216SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.210;Microsoft Windows 11 (64-bit);RSGO210DKP;Producción
+BSJ;Producción4;SitioEmpresas.bsj;10.0.0.71;Microsoft Windows Server 2016 or later (64-bit);SDR71VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.39;Microsoft Windows Server 2019 (64-bit);SFBPRINT39VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.62;Microsoft Windows Server 2019 (64-bit);SIDB62VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.18;Microsoft Windows Server 2019 (64-bit);SOS18VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.239;Microsoft Windows Server 2016 or later (64-bit);SRVAUDITORIAVRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.22;Microsoft Windows Server 2022 (64-bit);SYSADOC22SRV;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.14.68;Microsoft Windows 11 (64-bit);TES-004;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.72.66;Microsoft Windows Server 2019 (64-bit);TSN66SRV;Producción
+BSJ;Producción4;SitioEmpresas.bsj;192.168.200.35;Microsoft Windows Server 2019 (64-bit);VAPP35VRT;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.8.1;Microsoft Windows Server 2022 (64-bit);VMGATE01;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.1.55;Microsoft Windows 10 (64-bit);W10SFB;Producción
+BSJ;Producción4;SitioEmpresas.bsj;192.168.200.20;Microsoft Windows Server 2019 (64-bit);WCOMX;Producción
+BSJ;Producción4;-;172.20.1.127;Microsoft Windows Server 2022 (64-bit);WIN-2B1BPAA2Q16;Producción
+BSJ;Producción4;bancosanjuan.net;172.20.4.119;Microsoft Windows Server 2019 (64-bit);WSL119VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.173;Microsoft Windows 10 (32-bit);accesovrt;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.222;Microsoft Windows Server 2022 (64-bit);APPDRS222SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.202;Microsoft Windows Server 2016 or later (64-bit);APPV02VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.240;Microsoft Windows Server 2012 (64-bit);BATCH240VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.162;Microsoft Windows Server 2012 (64-bit);BomgarV162vrt;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.113;Microsoft Windows 11 (64-bit);BSJCORP113DKP;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.133;Microsoft Windows 11 (64-bit);BSJCORP133DKP;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.214;Microsoft Windows 11 (64-bit);BSJSOCORP214DKP;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.14.62;Microsoft Windows 11 (64-bit);caja-001;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.147;Microsoft Windows Server 2012 (64-bit);CAPS147VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.244;Microsoft Windows Server 2012 (64-bit);CM244VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.135;Microsoft Windows Server 2019 (64-bit);CST135SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.82;Microsoft Windows Server 2019 (64-bit);DB12VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.3;Microsoft Windows Server 2019 (64-bit);DB3VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.88;Microsoft Windows Server 2012 (64-bit);DB88SQL2012;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.19;Microsoft Windows Server 2022 (64-bit);DBHZN19VRT;Producción
+BSJ;Producción5;petersen.corp;172.20.1.100;Microsoft Windows Server 2019 (64-bit);dcp100vrt;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.72.14;Microsoft Windows Server 2019 (64-bit);DEVOC14DRS;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.162;Microsoft Windows Server 2019 (64-bit);EFLOWDB62SRV;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.1.90;Microsoft Windows 11 (64-bit);F2K600DKP;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.156;Microsoft Windows Server 2019 (64-bit);FS156VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.151;Microsoft Windows Server 2022 (64-bit);FS-LEXAUDIT151;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.152;Microsoft Windows Server 2022 (64-bit);FS-SYS152;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.85;Microsoft Windows Server 2019 (64-bit);GPC85SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.206;Microsoft Windows Server 2012 (64-bit);HUB02SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.43;Microsoft Windows Server 2019 (64-bit);IS4SRV;Producción
+BSJ;Producción5;bancosanjuan.net;192.168.200.74;Microsoft Windows Server 2019 (64-bit);LXD74VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.10;Microsoft Windows Server 2022 (64-bit);MEAPMFA10SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.35;Microsoft Windows 10 (64-bit);MONITORWF;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.15.100;Microsoft Windows Server 2012 (64-bit);NTS020;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.15.102;Microsoft Windows Server 2012 (64-bit);NTS020SAM;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.100.113;Microsoft Windows Server 2022 (64-bit);NTS100DCS;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.100.100;Microsoft Windows Server 2012 (64-bit);NTS100V;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.2.113;Microsoft Windows Server 2022 (64-bit);NTS102DCS;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.3.113;Microsoft Windows Server 2022 (64-bit);NTS103DCS;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.5.113;Microsoft Windows Server 2022 (64-bit);NTS105DCS;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.6.234;Microsoft Windows Server 2012 (64-bit);NTS106PRT;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.7.100;Microsoft Windows Server 2012 (64-bit);NTS107;Producción
+BSJ;Producción5;bancosanjuan.net;139.1.1.11;Microsoft Windows Server 2016 or later (64-bit);NTS11;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.13.100;Microsoft Windows Server 2012 (64-bit);NTS113V;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.15.101;Microsoft Windows Server 2012 (64-bit);NTS115SAM;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.19.113;Microsoft Windows Server 2022 (64-bit);NTS119DCS;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.19.100;Microsoft Windows Server 2012 (64-bit);NTS119V;Producción
+BSJ;Producción5;bancosanjuan.net;202.1.20.201;Microsoft Windows Server 2016 or later (64-bit);NTS120PRX2;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.128;Microsoft Windows Server 2012 (64-bit);NTS128SAM;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.187;Microsoft Windows Server 2012 (64-bit);NTS187;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.69.100;Microsoft Windows Server 2012 (64-bit);NTS203;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.69.102;Microsoft Windows Server 2012 (64-bit);NTS203SAM;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.204.201;Microsoft Windows Server 2016 (64-bit);NTS204PRX2;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.124;Microsoft Windows Server 2019 (64-bit);NTS23VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.156;Microsoft Windows Server 2012 (64-bit);NTS30VRT;Producción
+BSJ;Producción5;bancosanjuan.net;139.1.1.141;Microsoft Windows Server 2012 (64-bit);NTS41;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.139;Microsoft Windows Server 2008 (32-bit);NTS49VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.53;Microsoft Windows Server 2012 (64-bit);NTS53VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.91;Microsoft Windows Server 2012 (64-bit);NTS601;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.122;Microsoft Windows Server 2022 (64-bit);NTS67VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.158;Microsoft Windows Server 2016 or later (64-bit);NTS81VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.137;Microsoft Windows Server 2022 (64-bit);NTS87SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.166;Microsoft Windows Server 2012 (64-bit);NTS96AFIP_NV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.106;Microsoft Windows Server 2022 (64-bit);NTSMDC04;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.130;Microsoft Windows Server 2019 (64-bit);OSXG130VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.93;Microsoft Windows Server 2022 (64-bit);PHPWIN93SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.40;Microsoft Windows Server 2019 (64-bit);PP40VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.214;Microsoft Windows Server 2012 (64-bit);PROBW214;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.8.30;Microsoft Windows Server 2022 (64-bit);PRXVBK30SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.8.35;Microsoft Windows Server 2022 (64-bit);PRXVBK35SRV;Producción
+BSJ;Producción5;dmz.com;10.0.0.40;Microsoft Windows Server 2019 (64-bit);PY40SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.142;Microsoft Windows Server 2019 (64-bit);RTABS142;Producción
+BSJ;Producción5;SitioEmpresas.bsj;192.168.200.95;Microsoft Windows Server 2012 (64-bit);SDR95VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.71;Microsoft Windows Server 2019 (64-bit);SFR71SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.54;Microsoft Windows Server 2019 (64-bit);SINCRO54SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.30.19.65;Microsoft Windows 10 (64-bit);SPOT247VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.81;Microsoft Windows Server 2016 or later (64-bit);SRVDBVRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.21.21.9;Microsoft Windows 10 (64-bit);TECNO9VRT;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.14.69;Microsoft Windows 11 (64-bit);TES-005;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.20;Microsoft Windows Server 2019 (64-bit);UAS20SRV;Producción
+BSJ;Producción5;SitioEmpresas.bsj;192.168.200.22;Microsoft Windows Server 2022 (64-bit);VAPPS22SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.8.2;Microsoft Windows Server 2019 (64-bit);VMGATE02;Producción
+BSJ;Producción5;dmz.com;10.0.0.116;Microsoft Windows Server 2016 or later (64-bit);W2S116APP;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.1.106;Microsoft Windows Server 2022 (64-bit);WF06SRV;Producción
+BSJ;Producción5;bancosanjuan.net;172.20.4.150;Microsoft Windows Server 2012 (64-bit);WL150VRT;Producción
+BSJ;Producción5;dmz.com;10.0.0.75;Microsoft Windows Server 2019 (64-bit);WSMAG75VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.108;Microsoft Windows Server 2022 (64-bit);ADMPAI108SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.22;Microsoft Windows Server 2019 (64-bit);APPPAI22VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.3;Microsoft Windows Server 2022 (64-bit);APPV03SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.185;Microsoft Windows Server 2016 or later (64-bit);BDBSM84VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.165;Microsoft Windows Server 2012 (64-bit);BOMGARV165VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.114;Microsoft Windows 11 (64-bit);BSJCORP114DKP;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.134;Microsoft Windows 11 (64-bit);BSJCORP134DKP;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.215;Microsoft Windows 11 (64-bit);BSJSOCORP215DKP;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.14.64;Microsoft Windows 11 (64-bit);caja-002;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.32;Microsoft Windows Server 2016 or later (64-bit);CAXCOM32VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.64;Microsoft Windows Server 2019 (64-bit);CODEX64VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.57;Microsoft Windows Server 2019 (64-bit);CUSD57VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.113;Microsoft Windows Server 2016 or later (64-bit);DB13VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.5;Microsoft Windows Server 2019 (64-bit);DB5VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.78;Microsoft Windows Server 2016 or later (64-bit);DB8VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.25;Microsoft Windows Server 2016 or later (64-bit);DBPRMQ25;Producción
+BSJ;Producción6;SitioEmpresas.bsj;192.168.200.100;Microsoft Windows Server 2022 (64-bit);DCSEMP01;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.76;Microsoft Windows Server 2022 (64-bit);DHCP76SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.75;Microsoft Windows Server 2019 (64-bit);EMADB75VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.83;Microsoft Windows 11 (64-bit);FAC83DSK;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.154;Microsoft Windows Server 2022 (64-bit);FS-CDG154;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.89;Microsoft Windows Server 2022 (64-bit);FS-OHVDI89;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.47;Microsoft Windows Server 2019 (64-bit);GOA47SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.121;Microsoft Windows Server 2019 (64-bit);GRAF121SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.92;Microsoft Windows Server 2016 or later (64-bit);INFOC92VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.13;Microsoft Windows Server 2022 (64-bit);IWBCA13SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.192;Microsoft Windows Server 2016 or later (64-bit);MBT192VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.131;Microsoft Windows Server 2012 (64-bit);MERCAP131VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.1;Microsoft Windows Server 2016 or later (64-bit);MSEXC01VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.21.15.113;Microsoft Windows Server 2022 (64-bit);NTS020DCS;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.14.21;Microsoft Windows Server 2012 (64-bit);NTS021;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.100.234;Microsoft Windows Server 2012 (64-bit);NTS100PRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.1;Microsoft Windows Server 2012 (64-bit);NTS101;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.2.239;Microsoft Windows Server 2012 (64-bit);NTS102PRT;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.3.239;Microsoft Windows Server 2022 (64-bit);NTS103PRT;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.5.201;Microsoft Windows Server 2022 (64-bit);NTS105PROX2;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.6.200;Microsoft Windows Server 2016 or later (64-bit);NTS106PRX1;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.7.113;Microsoft Windows Server 2022 (64-bit);NTS107DCS;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.13.113;Microsoft Windows Server 2022 (64-bit);NTS113DCS;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.15.100;Microsoft Windows Server 2012 (64-bit);NTS115;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.14.116;Microsoft Windows Server 2012 (64-bit);NTS116;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.19.239;Microsoft Windows Server 2012 (64-bit);NTS119PRT;Producción
+BSJ;Producción6;bancosanjuan.net;202.1.20.100;Microsoft Windows Server 2012 (64-bit);NTS120;Producción
+BSJ;Producción6;bancosanjuan.net;2002:ca01:1467::ca01:1467;Microsoft Windows Server 2012 (64-bit);NTS120SAM;Producción
+BSJ;Producción6;bancosanjuan.net;139.1.1.15;Microsoft Windows Server 2019 (64-bit);NTS15;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.18;Microsoft Windows Server 2012 (64-bit);NTS18VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.21.69.113;Microsoft Windows Server 2022 (64-bit);NTS203DCS;Producción
+BSJ;Producción6;bancosanjuan.net;172.21.204.100;Microsoft Windows Server 2012 (64-bit);NTS204;Producción
+BSJ;Producción6;bancosanjuan.net;172.21.204.102;Microsoft Windows Server 2012 (64-bit);NTS204SAM;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.170;Microsoft Windows Server 2008 R2 (64-bit);NTS24VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.32;Microsoft Windows Server 2019 (64-bit);NTS32VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.30.144;Microsoft Windows Server 2016 or later (64-bit);NTS43VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.121;Microsoft Windows Server 2012 (64-bit);NTS501V;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.54;Microsoft Windows Server 2012 (64-bit);NTS54VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.197;Microsoft Windows Server 2008 (32-bit);NTS60A;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.176;Microsoft Windows Server 2012 (64-bit);NTS76VRTFS;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.82;Microsoft Windows Server 2012 (64-bit);NTS82PKIVRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.140;Microsoft Windows Server 2008 R2 (64-bit);NTS87VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.98;Microsoft Windows Server 2012 (64-bit);NTS98VRT;Producción
+BSJ;Producción6;bancosanjuan.net;139.1.1.102;Microsoft Windows Server 2022 (64-bit);NTSMDC05;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.10;Microsoft Windows 10 (64-bit);PAI10VM;Producción
+BSJ;Producción6;dmz.com;10.0.0.21;Microsoft Windows Server 2019 (64-bit);PIVOT21DMZ;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.218;Microsoft Windows Server 2022 (64-bit);PRA218SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.75;Microsoft Windows Server 2012 (64-bit);PRT75VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.8.31;Microsoft Windows Server 2022 (64-bit);PRXVBK31SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.8.36;Microsoft Windows Server 2022 (64-bit);PRXVBK36SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.170;Microsoft Windows Server 2016 or later (64-bit);RDSPIVOT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.125;Microsoft Windows Server 2022 (64-bit);RUNDECK125SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.235;Microsoft Windows Server 2012 (64-bit);SeginfoServer;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.72;Microsoft Windows Server 2019 (64-bit);SFRBD72SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.69;Microsoft Windows Server 2022 (64-bit);SLPNTIQS69SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.17;Microsoft Windows Server 2019 (64-bit);SPPC17SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.72.137;Microsoft Windows Server 2022 (64-bit);SW137SRV;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.147;Microsoft Windows 11 (64-bit);TES-001;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.30.141;Microsoft Windows Server 2019 (64-bit);TFSABS141;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.4.46;Microsoft Windows Server 2019 (64-bit);UNI46VRT;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.8.6;Microsoft Windows Server 2019 (64-bit);VMBD06;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.2;Microsoft Windows Server 2022 (64-bit);VMONE02VRT;Producción
+BSJ;Producción6;dmz.com;10.0.0.117;Microsoft Windows Server 2016 or later (64-bit);W2S117BD;Producción
+BSJ;Producción6;bancosanjuan.net;172.20.1.6;Microsoft Windows Server 2012 (64-bit);WF06VRT;Producción
+BSJ;Producción6;SitioEmpresas.bsj;10.0.0.60;Microsoft Windows Server 2012 (64-bit);WS60VRT;Producción
+BSJ;Producción6;dmz.com;10.0.0.76;Microsoft Windows Server 2019 (64-bit);WSMAG76SRV;Producción
+BSJ;Testing1;vtest.net;172.21.222.102;Microsoft Windows Server 2012 (64-bit);ADMPAI108TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.149;Microsoft Windows Server 2019 (64-bit);ATE49SRV;Test/QA
+BSJ;Testing1;F2K.test;172.21.222.122;Microsoft Windows 11 (64-bit);bsj-caja-02;Test/QA
+BSJ;Testing1;F2K.test;172.21.222.123;Microsoft Windows 11 (64-bit);bsj-caja-08;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.64;Microsoft Windows Server 2019 (64-bit);CODEX64VRT;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.139;Microsoft Windows Server 2019 (64-bit);DB14VRT-TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.220.21;Microsoft Windows Server 2019 (64-bit);DBLINKVRT;Test/QA
+BSJ;Testing1;empresa.bsj;10.0.140.103;Microsoft Windows Server 2022 (64-bit);DC02EMPTST;Test/QA
+BSJ;Testing1;vtest.net;172.21.220.50;Microsoft Windows Server 2019 (64-bit);ECHECK50SRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.7;Microsoft Windows Server 2012 (64-bit);ENGAGE07VRT;Test/QA
+BSJ;Testing1;sin dominio;202.1.1.91;Microsoft Windows 11 (64-bit);F2K500DKP;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.61;Microsoft Windows Server 2019 (64-bit);JUD61SRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.28;Microsoft Windows Server 2019 (64-bit);MDE26CLON;Test/QA
+BSJ;Testing1;F2K.test;172.21.222.101;Microsoft Windows Server 2012 (64-bit);NTS101TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.202;Microsoft Windows Server 2012 (64-bit);NTS202VRT;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.93;Microsoft Windows Server 2022 (64-bit);NTS49SRV;Test/QA
+BSJ;Testing1;sin dominio;172.21.222.78;Microsoft Windows Server 2019 (64-bit);NTS78ABS;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.99;Microsoft Windows Server 2022 (64-bit);OCPMS99SRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.14;Microsoft Windows Server 2012 (64-bit);PROB14-TST;Test/QA
+BSJ;Testing1;empresa.bsj;10.0.140.70;Microsoft Windows Server 2016 or later (64-bit);SDR70TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.54;Microsoft Windows Server 2019 (64-bit);SINCRO54VRT;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.211;Microsoft Windows 10 (64-bit);TERMEP211;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.29;Microsoft Windows Server 2019 (64-bit);UAT20SRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.170;Microsoft Windows 10 (64-bit);VM170WF;Test/QA
+BSJ;Testing1;sin dominio;10.0.123.10;Microsoft Windows Server 2012 (64-bit);VWSDR-TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.161;Microsoft Windows Server 2012 (64-bit);WF161SRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.132;Microsoft Windows 11 (64-bit);WKSTN132;Test/QA
+BSJ;Testing1;empresa.bsj;10.0.123.21;Microsoft Windows Server 2019 (64-bit);WSCOMX;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.92;Microsoft Windows Server 2016 or later (64-bit);APPV02TST;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.112;Microsoft Windows Server 2008 R2 (64-bit);DB12VRT;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.19;Microsoft Windows Server 2019 (64-bit);ENG19DBSRV;Test/QA
+BSJ;Testing1;vtest.net;172.21.222.36;Microsoft Windows Server 2012 (64-bit);MERCAP36DB;Test/QA
+BSJ;Testing1;F2K.test;10.0.140.23;Microsoft Windows Server 2022 (64-bit);OCPFE23SRV;Test/QA
+BSJ;Testing1;empresa.bsj;10.0.123.49;Microsoft Windows Server 2022 (64-bit);SW49SRV-TST;Test/QA
+BSJ;Testing1;empresa.bsj;10.0.140.21;Microsoft Windows Server 2019 (64-bit);WCOMX;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.47;Microsoft Windows Server 2019 (64-bit);APIDMEDIA47SRV;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.16;Microsoft Windows Server 2016 or later (64-bit);BD2016;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.117;Microsoft Windows 11 (64-bit);bsj-caja-03;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.124;Microsoft Windows 11 (64-bit);bsj-caja-09;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.88;Microsoft Windows Server 2022 (64-bit);CONNECT88F2K;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.65;Microsoft Windows Server 2016 or later (64-bit);DB65VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.27;Microsoft Windows Server 2012 (64-bit);DBMDE27VRT;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.221;Microsoft Windows Server 2022 (64-bit);DC02SRV;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.62;Microsoft Windows Server 2019 (64-bit);EFLOWDB62SRV;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.169;Microsoft Windows Server 2022 (64-bit);ENGAGEMD;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.231;Microsoft Windows Server 2022 (64-bit);FS-DVI231;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.187;Microsoft Windows Server 2019 (64-bit);LD187SRV;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.26;Microsoft Windows Server 2012 (64-bit);MDE26VRT-TST;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.219;Microsoft Windows Server 2019 (64-bit);NTS119;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.179;Microsoft Windows Server 2008 R2 (64-bit);NTS24VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.93;Microsoft Windows Server 2008 (32-bit);NTS49VRT;Test/QA
+BSJ;Testing2;vtest.net;169.254.104.72;Microsoft Windows Server 2019 (64-bit);NTS78VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.8;Microsoft Windows Server 2019 (64-bit);PIVOT-TST;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.23;Microsoft Windows Server 2012 (64-bit);PROBDB23-TST;Test/QA
+BSJ;Testing2;empresa.bsj;10.0.123.71;Microsoft Windows Server 2016 or later (64-bit);SDR71TST;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.218;Microsoft Windows Server 2019 (64-bit);SOS18VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.213;Microsoft Windows 10 (64-bit);TERMEP213;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.146;Microsoft Windows Server 2019 (64-bit);UNI46VRTOLD;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.171;Microsoft Windows 10 (64-bit);VM171WF;Test/QA
+BSJ;Testing2;empresa.bsj;10.0.123.116;Microsoft Windows Server 2016 or later (64-bit);W2S16APP-TST;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.162;Microsoft Windows Server 2012 (64-bit);WF162SRV;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.133;Microsoft Windows 11 (64-bit);WKSTN133VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.220.19;Microsoft Windows Server 2019 (64-bit);WSL19VRT;Test/QA
+BSJ;Testing2;F2K.test;172.21.222.121;Microsoft Windows 11 (64-bit);bsj-caja-01;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.87;Microsoft Windows Server 2019 (64-bit);DBEngageDesa;Test/QA
+BSJ;Testing2;vtest.net;169.254.106.24;Microsoft Windows Server 2019 (64-bit);EWF60;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.115;Microsoft Windows Server 2019 (64-bit);NTS15;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.40;Microsoft Windows Server 2019 (64-bit);PP40VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.84;Microsoft Windows Server 2016 or later (64-bit);TST84VRT;Test/QA
+BSJ;Testing2;vtest.net;172.21.222.131;Microsoft Windows 11 (64-bit);WKSTN131VRT;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.6;Microsoft Windows Server 2012 (64-bit);APPCOR6-TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.212;Microsoft Windows Server 2012 (64-bit);BIETL-TST;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.114;Microsoft Windows 11 (64-bit);bsj-caja-04;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.125;Microsoft Windows 11 (64-bit);bsj-caja-10;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.35;Microsoft Windows Server 2019 (64-bit);CST35SRV;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.97;Microsoft Windows Server 2022 (64-bit);DB97SRV;Test/QA
+BSJ;Testing3;empresa.bsj;10.0.140.113;Microsoft Windows Server 2022 (64-bit);DC01EMPTST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.20;Microsoft Windows Server 2022 (64-bit);DC02TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.175;Microsoft Windows Server 2019 (64-bit);EMA75SRV;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.59;Microsoft Windows Server 2022 (64-bit);ENGDB59SRV;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.107;Microsoft Windows Server 2012 (64-bit);GRAFODESA;Test/QA
+BSJ;Testing3;empresa.bsj;10.0.140.74;Microsoft Windows Server 2019 (64-bit);LXD74VRT;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.31;Microsoft Windows Server 2012 (64-bit);MERCAP31SRV;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.119;Microsoft Windows Server 2012 (64-bit);NTS119V;Test/QA
+BSJ;Testing3;vtest.net;169.254.181.7;Microsoft Windows Server 2016 (64-bit);NTS36VRT;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.140;Microsoft Windows Server 2008 R2 (64-bit);NTS60;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.181;Microsoft Windows Server 2016 or later (64-bit);NTS81VRT;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.89;Microsoft Windows Server 2022 (64-bit);POCDVI89F2K;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.48;Microsoft Windows Server 2019 (64-bit);PROBDB48SRV;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.39;Microsoft Windows Server 2019 (64-bit);SFBPRINT39VRT;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.21;Microsoft Windows Server 2012 (64-bit);SQLW2012-TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.196;Microsoft Windows Server 2016 or later (64-bit);TRK196VRT;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.51;Microsoft Windows Server 2019 (64-bit);UNYSISTAS51VRT;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.172;Microsoft Windows 10 (64-bit);VM172WF;Test/QA
+BSJ;Testing3;empresa.bsj;10.0.123.117;Microsoft Windows Server 2016 or later (64-bit);W2S17BD-TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.30;Microsoft Windows Server 2012 (64-bit);WF30-TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.134;Microsoft Windows 11 (64-bit);Wkstn134vrt;Test/QA
+BSJ;Testing3;empresa.bsj;10.0.123.75;Microsoft Windows Server 2019 (64-bit);WSMAG75VRT;Test/QA
+BSJ;Testing3;F2K.test;172.21.222.120;Microsoft Windows 11 (64-bit);bsj-caja-07;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.10;Microsoft Windows Server 2022 (64-bit);DC01TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.44;Microsoft Windows Server 2019 (64-bit);IS4DB;Test/QA
+BSJ;Testing3;vtest.net;172.21.220.43;Microsoft Windows Server 2016 or later (64-bit);NTS43NVO;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.53;Microsoft Windows Server 2012 (64-bit);SCO53-TST;Test/QA
+BSJ;Testing3;empresa.bsj;10.0.140.11;Microsoft Windows Server 2012 (64-bit);VAPPDR-TST;Test/QA
+BSJ;Testing3;vtest.net;172.21.222.150;Microsoft Windows Server 2012 (64-bit);WL150-TST;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.91;Microsoft Windows Server 2016 or later (64-bit);APPV01VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.45;Microsoft Windows Server 2022 (64-bit);BMC45SRV-TST;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.106;Microsoft Windows 11 (64-bit);bsj-caja-05;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.109;Microsoft Windows 11 (64-bit);CAJAVDIF2K;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.75;Microsoft Windows Server 2019 (64-bit);CUSD75VRT;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.60;Microsoft Windows Server 2012 (64-bit);DBCOR60-TST;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.110;Microsoft Windows Server 2022 (64-bit);DC01SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.228;Microsoft Windows Server 2022 (64-bit);DLOGS228SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.76;Microsoft Windows Server 2019 (64-bit);EMADB76VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.38;Microsoft Windows Server 2019 (64-bit);ETSDB38VRT;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.230;Microsoft Windows Server 2022 (64-bit);HCS230SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.74;Microsoft Windows Server 2019 (64-bit);LXD74VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.32;Microsoft Windows Server 2012 (64-bit);MERCAP32VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.111;Microsoft Windows Server 2012 (64-bit);NTS128T;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.141;Microsoft Windows Server 2012 (64-bit);NTS41TST;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.160;Microsoft Windows Server 2019 (64-bit);NTS60VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.96;Microsoft Windows Server 2019 (64-bit);NTS96;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.50;Microsoft Windows Server 2012 (64-bit);PortalWeb-TST;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.116;Microsoft Windows Server 2022 (64-bit);SCF116SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.71;Microsoft Windows Server 2019 (64-bit);SFR71SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.81;Microsoft Windows Server 2016 or later (64-bit);SRVDBVRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.66;Microsoft Windows Server 2019 (64-bit);TSN66SRV;Test/QA
+BSJ;Testing4;empresa.bsj;10.0.140.35;Microsoft Windows Server 2019 (64-bit);VAPP35VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.173;Microsoft Windows 10 (64-bit);VM173WF;Test/QA
+BSJ;Testing4;empresa.bsj;10.0.123.15;Microsoft Windows Server 2012 (64-bit);W2SEBKD15-TST;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.69;Microsoft Windows Server 2019 (64-bit);WF69SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.135;Microsoft Windows 11 (64-bit);Wkstn135vrt;Test/QA
+BSJ;Testing4;empresa.bsj;10.0.123.76;Microsoft Windows Server 2016 (64-bit);WSMIS76VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.68;Microsoft Windows Server 2016 (64-bit);CDP68SRV;Test/QA
+BSJ;Testing4;F2K.test;172.21.222.118;Microsoft Windows 11 (64-bit);DVI121DKP-F2K;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.12;Microsoft Windows Server 2019 (64-bit);MCK12VRT;Test/QA
+BSJ;Testing4;sin dominio;172.21.222.151;Microsoft Windows Server 2022 (64-bit);NTS77VRT;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.72;Microsoft Windows Server 2019 (64-bit);SFRBD72SRV;Test/QA
+BSJ;Testing4;vtest.net;172.21.222.13;Microsoft Windows Server 2012 (64-bit);VSQLDR-TST;Test/QA

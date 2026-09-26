@@ -1,0 +1,392 @@
+Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
+BSC;DCGrupo1;dmz24.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DC05;Test (DM24)
+BSC;DCGrupo1;dmz4.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DC04;Test (DMZ4)
+BSC;DCGrupo1;stacruz.test;192.168.172.1;Windows Server 2019 (64-bit);VM172DC00;Test
+BSC;DCGrupo1;stacruz.test;192.168.172.4;Windows Server 2019 (64-bit);VM172DC01;Test
+BSC;DCGrupo2;f2k.net;192.168.250.97;Microsoft Windows Server 2016 (64-bit);VM250DCF2K00;Desarrollo
+BSC;DCGrupo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DC02;Desarrollo
+BSC;DCGrupo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DC03;Desarrollo
+BSC;DCGrupo2;dmz24.desa;1,92168E+11;Windows Server 2016 or later (64-bit);VM250DC05;Desarrollo
+BSC;DCGrupo2;dmz4.desa;1,92168E+11;Microsoft Windows Server 2016 (64-bit);VM250DC04;Desarrollo (DMZ)
+BSC;DCGrupo3;dmz.com;10.0.0.13;Windows Server 2019;VM000DC16;Producción (DMZ)
+BSC;DCGrupo3;santacruz.net;172.27.10.100;Windows Server 2019;VM010DC00;Producción - Sucursal Caleta Olivia
+BSC;DCGrupo3;santacruz.net;172.27.40.100;Windows Server 2019;VM040DC00;Producción - Sucursal Perito Moreno
+BSC;DCGrupo3;santacruz.net;172.27.55.100;Windows Server 2019;VM055DC00;Producción - Sucursal Puerto Deseado
+BSC;DCGrupo3;santacruz.net;172.27.60.100;Windows Server 2019;VM060DC00;Producción - Sucursal San Julian
+BSC;DCGrupo3;santacruz.net;172.27.85.100;Windows Server 2019;VM085DC00;Producción - Sucursal 28 de Noviembre
+BSC;DCGrupo4;dmz4.com;10100100100;Windows Server 2016 or later (64-bit);VM000DC20;Producción (DMZ)
+BSC;DCGrupo4;santacruz.net;172.27.5.100;Windows Server 2019;VM005DC00;Producción - Sucursal Buenos Aires
+BSC;DCGrupo4;santacruz.net;172.27.30.100;Windows Server 2019;VM030DC00;Producción - Sucursal Gobernador Gregores
+BSC;DCGrupo4;santacruz.net;172.27.50.100;Windows Server 2019;VM050DC00;Producción - Sucursal Pico Truncado
+BSC;DCGrupo4;santacruz.net;172.27.70.100;Windows Server 2019;VM070DC00;Producción - Sucursal Puerto Santa Cruz
+BSC;DCGrupo4;dmz.com;10.0.0.11;Windows Server 2016 or later (64-bit);VM000DC15;Producción (DMZ)
+BSC;DCGrupo5;dmz24.com;10.10.10.2;Windows Server 2016 or later (64-bit);VM000DC25;Producción (DMZ)
+BSC;DCGrupo5;santacruz.net;172.26.100.19;Windows Server 2016 or later (64-bit);VM000DC14;Producción
+BSC;DCGrupo5;santacruz.net;172.27.15.100;Windows Server 2019;VM015DC00;Producción - Sucursal Rio Turbio
+BSC;DCGrupo5;santacruz.net;172.27.20.100;Windows Server 2019;VM020DC00;Producción - Sucursal Piedra Buena
+BSC;DCGrupo5;santacruz.net;172.27.25.100;Windows Server 2019;VM025DC00;Producción - Sucursal Calafate
+BSC;DCGrupo5;santacruz.net;172.27.41.100;Windows Server 2019;VM041DC00;Producción - Sucursal Los Antiguos
+BSC;Desarrollo1;desapdc01.net;192.168.250.56;Windows 10 (64-bit);BSCDESANICO;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);NTS32desa;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250APL02;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250APL06;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250APL08;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250APL11;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250APL16;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250DB00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250DB02;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250DB08;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250DB10;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB13;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB15;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB17;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB19;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB21;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB22TEMP;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB24;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250DBWF00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250F2K00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250IIS01;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250IIS03;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250IIS05;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250IIS07;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250IIS09;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250IIS11;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250PP00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250SERV00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250SOS01;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);vm250webl00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250WLOGS00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;192.168.250.6;Windows 10 (64-bit);VM250WS06;Desarrollo
+BSC;Desarrollo1;desapdc01.net;192.168.250.8;Windows 10 (64-bit);VM250WS08;Desarrollo
+BSC;Desarrollo1;desapdc01.net;192.168.250.15;Windows 10 (64-bit);BSCDESA08;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);NTS36desa;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250APL00;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250APL07;Desarrollo
+BSC;Desarrollo1;desapdc01.net;192.168.250.36;Windows Server 2016 or later (64-bit);VM250APL09;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2016 or later (64-bit);VM250APL12;Desarrollo
+BSC;Desarrollo1;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250DB11;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB14;Desarrollo
+BSC;Desarrollo2;dmz24.desa;1,92168E+11;Windows Server 2012 (64-bit);App25001;Desarrollo
+BSC;Desarrollo2;dmz4.desa;1,92168E+11;Windows Server 2016 (64-bit);VM252IIS05;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB16;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.60;Windows Server 2016 or later (64-bit);VM250DB18;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB20;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250DB22;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.61;Windows Server 2016 or later (64-bit);VM250DB23;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.28;Windows Server 2016 or later (64-bit);VM250DB25;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250EXCH00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250IIS00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250IIS02;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250IIS04;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250IIS06;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250IIS08;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250IIS10;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2012 (64-bit);VM250KMS00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250PP02;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250SOS00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows Server 2016 (64-bit);VM250TOM00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.21;Windows 10 (64-bit);VM250WS01;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.23;Windows 10 (64-bit);VM250WS03;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Windows 10 (64-bit);VM250WS07;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.9;Windows 10 (64-bit);VM250WS09;Desarrollo
+BSC;Desarrollo2;dmz4.desa;1,92168E+11;Windows Server 2012 (64-bit);App25002;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 (32-bit);BSCEAE01;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 (32-bit);desaaplica01;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);desaaplica03;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);desabases6;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250APL01;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF01A;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF02A;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF03;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF21;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF22;Desarrollo
+BSC;Desarrollo2;desapdc01.net;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM250WF23;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.66;Microsoft Windows Server 2016 (64-bit);VM250DB26;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.55;Microsoft Windows Server 2016 (64-bit);VM250DB27;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.65;Microsoft Windows Server 2016 (64-bit);VM250HELIX00;Desarrollo
+BSC;Desarrollo2;desapdc01.net;192.168.250.54;Microsoft Windows Server 2016 (64-bit);VM250IIS12;Desarrollo
+BSC;Produccion1;corp.bsc;172.26.100.2;Windows Server 2016 or later (64-bit);VM000DC02;Producción
+BSC;Produccion1;dmz.com;10.0.0.108;Windows Server 2016 (64-bit);VM001IIS06;Producción
+BSC;Produccion1;dmz4.com;10100100106;Windows Server 2012 (64-bit);PortalAPP02;Producción
+BSC;Produccion1;santacruz.net;172.26.110.7;Windows 10 (64-bit);ACCESOSUC;Producción
+BSC;Produccion1;santacruz.net;172.26.100.36;Windows Server 2012 (64-bit);NTS36;Producción
+BSC;Produccion1;santacruz.net;172.26.102.136;Windows Server 2016 (64-bit);VM000APL09;Producción
+BSC;Produccion1;santacruz.net;172.26.102.164;Windows Server 2016 (64-bit);VM000APL13;Producción
+BSC;Produccion1;santacruz.net;172.26.100.24;Windows 10 (32-bit);VM000CLK01;Producción
+BSC;Produccion1;santacruz.net;172.26.100.13;Windows Server 2016 or later (64-bit);VM000DC13;Producción
+BSC;Produccion1;santacruz.net;172.26.102.192;Windows Server 2016 or later (64-bit);VM000DHCP00;Producción
+BSC;Produccion1;santacruz.net;172.26.100.153;Windows Server 2012 (64-bit);VM000IIS01;Producción
+BSC;Produccion1;santacruz.net;172.26.102.100;Windows Server 2016 (64-bit);VM000IIS05;Producción
+BSC;Produccion1;santacruz.net;172.26.102.126;Windows Server 2016 (64-bit);VM000IIS09;Producción
+BSC;Produccion1;santacruz.net;172.26.100.126;Windows Server 2012 (64-bit);VM000INVG00;Producción
+BSC;Produccion1;santacruz.net;172.26.100.28;Windows Server 2012 (64-bit);vm000pp01;Producción
+BSC;Produccion1;santacruz.net;172.26.100.170. 10.26.100.170. 10.26.101.170;Windows Server 2016 (64-bit);VM000VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.26.102.184. 10.26.100.184;Windows Server 2016 or later (64-bit);VM000VEEM04;Producción
+BSC;Produccion1;santacruz.net;172.26.102.188. 10.26.100.188;Windows Server 2016 (64-bit);VM000VEEM08;Producción
+BSC;Produccion1;santacruz.net;172.27.5.152;Windows Server 2016 (64-bit);VM005VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.10.152;Windows Server 2016 (64-bit);VM010VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.15.152;Windows Server 2016 (64-bit);VM015VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.20.152;Windows Server 2016 (64-bit);VM020VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.25.152;Windows Server 2016 (64-bit);VM025VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.30.152;Windows Server 2016 (64-bit);VM030VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.40.152;Windows Server 2016 (64-bit);VM040VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.41.152;Windows Server 2016 (64-bit);VM041VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.45.152;Windows Server 2016 (64-bit);VM045VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.50.152;Windows Server 2016 (64-bit);VM050VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.55.152;Windows Server 2016 (64-bit);VM055VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.60.152;Windows Server 2016 (64-bit);VM060VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.70.152;Windows Server 2016 (64-bit);VM070VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.27.85.152;Windows Server 2016 (64-bit);VM085VEEM00;Producción
+BSC;Produccion1;santacruz.net;172.26.110.64;Windows 10 (64-bit);VM110CTEL00;Producción
+BSC;Produccion1;santacruz.net;172.26.110.91;Microsoft Windows 10 (64-bit);VM110F2K9502;Producción
+BSC;Produccion1;santacruz.net;172.26.110.103;Microsoft Windows 10 (64-bit);VM110WS103;Producción
+BSC;Produccion1;santacruz.net;172.26.110.68;Windows 10 (64-bit);VM110WS68;Producción
+BSC;Produccion1;santacruz.net;172.26.110.74;Microsoft Windows 10 (64-bit);VM110WS74;Producción
+BSC;Produccion1;santacruz.net;172.26.110.84;Windows 10 (64-bit);VM110WS79;Producción
+BSC;Produccion1;santacruz.net;172.26.110.98;Microsoft Windows 10 (64-bit);VM110WS83;Producción
+BSC;Produccion1;santacruz.net;172.26.110.93;Windows 10 (64-bit);VM110WS91;Producción
+BSC;Produccion1;corp.bsc;172.26.100.3;Windows Server 2016 or later (64-bit);VM000DC03;Producción
+BSC;Produccion1;dmz4.com;10100100107;Windows Server 2016 or later (64-bit);VM002IIS05;Producción
+BSC;Produccion1;santacruz.net;172.26.102.158;Windows Server 2016 (64-bit);VM000TEC02;Producción
+BSC;Produccion1;santacruz.net;172.26.110.31;Windows 10 (64-bit);BSC0131;Producción
+BSC;Produccion1;santacruz.net;172.26.100.37;Windows Server 2012 (64-bit);NTS37;Producción
+BSC;Produccion1;santacruz.net;172.26.102.142;Windows Server 2016 (64-bit);VM000APL10;Producción
+BSC;Produccion1;santacruz.net;172.26.102.134;Windows Server 2016 (64-bit);VM000AUD01;Producción
+BSC;Produccion1;santacruz.net;172.26.102.193;Windows Server 2016 or later (64-bit);VM000DHCP01;Producción
+BSC;Produccion1;santacruz.net;172.26.100.155;Windows Server 2012 (64-bit);VM000IIS02;Producción
+BSC;Produccion2;santacruz.net;172.26.102.101;Windows Server 2016 (64-bit);VM000IIS06;Producción
+BSC;Produccion2;santacruz.net;172.26.102.179;Windows Server 2016 (64-bit);VM000IIS10;Producción
+BSC;Produccion2;santacruz.net;172.26.102.166;Windows Server 2016 (64-bit);VM000MON01;Producción
+BSC;Produccion2;santacruz.net;172.26.102.114;Windows Server 2016 or later (64-bit);VM000PP02;Producción
+BSC;Produccion2;santacruz.net;172.26.100.158;Windows Server 2016 (64-bit);VM000SERV00;Producción
+BSC;Produccion2;santacruz.net;10.0.26.129;Windows Server 2016 or later (64-bit);VM000SWIFT00;Producción
+BSC;Produccion2;santacruz.net;172.26.100.171;Windows Server 2012 (64-bit);VM000VEEM01;Producción
+BSC;Produccion2;santacruz.net;172.26.102.185. 10.26.100.185;Windows Server 2016 or later (64-bit);VM000VEEM05;Producción
+BSC;Produccion2;santacruz.net;172.26.100.4;Windows Server 2012 (64-bit);VM000WEBL00;Producción
+BSC;Produccion2;santacruz.net;172.26.102.167;Windows Server 2016 (64-bit);VM000WINSER00;Producción
+BSC;Produccion2;santacruz.net;172.27.5.153;Microsoft Windows 10 (64-bit);VM005WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.10.251;Microsoft Windows 10 (64-bit);VM010WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.15.250;Microsoft Windows 10 (64-bit);VM015WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.20.250;Windows Server 2016 (64-bit);VM020WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.25.250;Microsoft Windows 10 (64-bit);VM025WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.30.250;Microsoft Windows 10 (64-bit);VM030WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.40.250;Microsoft Windows 10 (64-bit);VM040WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.41.250;Microsoft Windows 10 (64-bit);VM041WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.45.250;Microsoft Windows Server 2012 (64-bit);VM045WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.50.250;Microsoft Windows 10 (64-bit);VM050WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.55.250;Microsoft Windows 10 (64-bit);VM055WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.60.250;Microsoft Windows 10 (64-bit);VM060WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.70.250;Microsoft Windows 10 (64-bit);VM070WS00;Producción
+BSC;Produccion2;santacruz.net;172.27.85.250;Microsoft Windows 10 (64-bit);VM085WS00;Producción
+BSC;Produccion2;santacruz.net;172.26.110.55;Windows 10 (64-bit);VM110DBA55;Producción
+BSC;Produccion2;santacruz.net;172.26.110.97;Windows 10 (64-bit);VM110FTER00;Producción
+BSC;Produccion2;santacruz.net;172.26.110.100;Microsoft Windows 10 (64-bit);VM110WS100;Producción
+BSC;Produccion2;santacruz.net;172.26.110.62;Microsoft Windows 10 (64-bit);VM110WS62;Producción
+BSC;Produccion2;santacruz.net;172.26.110.82;Windows 10 (64-bit);VM110WS75;Producción
+BSC;Produccion2;santacruz.net;172.26.110.86;Windows 10 (64-bit);VM110WS80;Producción
+BSC;Produccion2;santacruz.net;172.26.110.102;Microsoft Windows 10 (64-bit);VM110WS84;Producción
+BSC;Produccion2;santacruz.net;172.26.110.94;Windows 10 (64-bit);VM110WS92;Producción
+BSC;Produccion2;dmz4.com;10100100103;Windows Server 2012 (64-bit);App0401;Producción
+BSC;Produccion2;dmz4.com;10100100102;Windows Server 2012 (64-bit);w2s102;Producción
+BSC;Produccion2;santacruz.net;172.26.10.115;Windows 10 (64-bit);MESCON115;Producción
+BSC;Produccion2;santacruz.net;172.26.100.30;Windows Server 2016 (64-bit);VM000APL06;Producción
+BSC;Produccion2;santacruz.net;172.26.102.208;Windows Server 2016 (64-bit);VM000APL11;Producción
+BSC;Produccion2;santacruz.net;172.26.100.11;Windows Server 2016 or later (64-bit);VM000DC11;Producción
+BSC;Produccion2;santacruz.net;172.26.102.65;Windows Server 2016 (64-bit);VM000HELIX00;Producción
+BSC;Produccion2;santacruz.net;172.26.100.15;Windows Server 2012 (64-bit);VM000IIS03;Producción
+BSC;Produccion2;santacruz.net;172.26.102.108;Windows Server 2016 (64-bit);VM000IIS07;Producción
+BSC;Produccion2;santacruz.net;172.26.102.223;Windows Server 2016 (64-bit);VM000IIS11;Producción
+BSC;Produccion2;santacruz.net;172.26.100.20;Windows Server 2012 (64-bit);VM000KMS00;Producción
+BSC;Produccion2;santacruz.net;172.26.100.132;Windows Server 2016 (64-bit);VM000PRINT00;Producción
+BSC;Produccion2;santacruz.net;172.26.102.135;Windows Server 2016 (64-bit);VM000SINCRO00;Producción
+BSC;Produccion2;santacruz.net;172.26.102.157;Windows Server 2016 (64-bit);VM000TOM00;Producción
+BSC;Produccion2;santacruz.net;172.26.102.162;Windows Server 2016 (64-bit);VM000VEEAMEM00;Producción
+BSC;Produccion2;santacruz.net;172.26.100.29;Windows Server 2022 (64-bit);VM000VEEM02;Producción
+BSC;Produccion2;santacruz.net;172.26.102.150;Windows Server 2012 (64-bit);VM000VEEM06;Producción
+BSC;Produccion3;santacruz.net;172.26.100.68;Windows Server 2016 (64-bit);VM000WEBL01;Producción
+BSC;Produccion3;santacruz.net;172.27.45.100;Windows Server 2019;VM045DC00;Producción
+BSC;Produccion3;santacruz.net;172.26.100.152;Windows Server 2012 (64-bit);VM095F2K00;Producción
+BSC;Produccion3;santacruz.net;172.26.110.90;Windows 10 (64-bit);VM110F2K9500;Producción
+BSC;Produccion3;santacruz.net;172.26.110.63;Microsoft Windows 10 (64-bit);VM110TEC63;Producción
+BSC;Produccion3;santacruz.net;172.26.110.101;Microsoft Windows 10 (64-bit);VM110WS101;Producción
+BSC;Produccion3;santacruz.net;172.26.110.65;Windows Server 2016 or later (64-bit);VM110WS65;Producción
+BSC;Produccion3;santacruz.net;172.26.110.70;Windows 10 (64-bit);VM110WS70;Producción
+BSC;Produccion3;santacruz.net;172.26.110.83;Windows 10 (64-bit);VM110WS76;Producción
+BSC;Produccion3;santacruz.net;172.26.110.87;Windows 10 (64-bit);VM110WS81;Producción
+BSC;Produccion3;santacruz.net;172.26.110.85;Windows 10 (64-bit);VM110WS85;Producción
+BSC;Produccion3;santacruz.net;172.26.110.99;Microsoft Windows 10 (64-bit);VM110WS99;Producción
+BSC;Produccion3;dmz.com;10.0.0.100;Windows Server 2012 (64-bit);PortalAPP;Producción
+BSC;Produccion3;dmz24.com;10.10.10.3;Windows Server 2012 (64-bit);w2s3;Producción
+BSC;Produccion3;santacruz.net;172.26.0.110;Windows 10 (64-bit);BSC0103;Producción
+BSC;Produccion3;santacruz.net;172.26.100.32;Windows Server 2012 (64-bit);NTS32;Producción
+BSC;Produccion3;santacruz.net;172.26.100.69;Windows Server 2012 (64-bit);VM000APL00;Producción
+BSC;Produccion3;santacruz.net;172.26.102.161;Windows Server 2016 (64-bit);VM000APL12;Producción
+BSC;Produccion3;santacruz.net;172.26.100.12;Windows Server 2016 or later (64-bit);VM000DC12;Producción
+BSC;Produccion3;santacruz.net;172.26.100.125;Windows Server 2012 (64-bit);VM000GSIS02;Producción
+BSC;Produccion3;santacruz.net;172.26.100.58;Windows Server 2012 (64-bit);VM000IIS00;Producción
+BSC;Produccion3;santacruz.net;172.26.100.27;Windows Server 2012 (64-bit);VM000IIS04;Producción
+BSC;Produccion3;santacruz.net;172.26.102.109;Windows Server 2016 (64-bit);VM000IIS08;Producción
+BSC;Produccion3;santacruz.net;172.26.102.54;Windows Server 2016 (64-bit);VM000IIS12;Producción
+BSC;Produccion3;santacruz.net;172.26.100.35;Windows Server 2012 (64-bit);VM000PRINT01;Producción
+BSC;Produccion3;santacruz.net;172.26.102.177;Windows Server 2019 (64-bit);VM000QRADAR00;Producción
+BSC;Produccion3;santacruz.net;10.0.26.130;Windows Server 2016 (64-bit);VM000SWIFT02;Producción
+BSC;Produccion3;santacruz.net;172.26.102.198;Windows Server 2016 or later (64-bit);VM000TOM01;Producción
+BSC;Produccion3;santacruz.net;172.26.102.163;Windows Server 2016 (64-bit);VM000VEEAMEM01;Producción
+BSC;Produccion3;santacruz.net;172.26.102.183. 10.26.100.183;Windows Server 2016 (64-bit);VM000VEEM03;Producción
+BSC;Produccion3;santacruz.net;172.26.102.186. 10.26.100.186;Windows Server 2016 (64-bit);VM000VEEM07;Producción
+BSC;Produccion3;santacruz.net;172.26.100.110;Windows Server 2012 (64-bit);VM000WF04;Producción
+BSC;Produccion3;santacruz.net;172.26.100.151;Windows Server 2012 (64-bit);VM001F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.5.151;Microsoft Windows Server 2012 (64-bit);VM005F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.10.151;Microsoft Windows Server 2012 (64-bit);VM010F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.15.151;Microsoft Windows Server 2012 (64-bit);VM015F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.20.151;Microsoft Windows Server 2012 (64-bit);VM020F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.25.151;Microsoft Windows Server 2012 (64-bit);VM025F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.30.151;Microsoft Windows Server 2012 (64-bit);VM030F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.40.151;Microsoft Windows Server 2012 (64-bit);VM040F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.41.151;Microsoft Windows Server 2012 (64-bit);VM041F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.45.151;Microsoft Windows Server 2012 (64-bit);VM045F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.50.151;Microsoft Windows Server 2012 (64-bit);VM050F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.55.151;Microsoft Windows Server 2012 (64-bit);VM055F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.60.151;Microsoft Windows Server 2012 (64-bit);VM060F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.70.151;Microsoft Windows Server 2012 (64-bit);VM070F2K00;Producción
+BSC;Produccion3;santacruz.net;172.27.85.151;Microsoft Windows Server 2012 (64-bit);VM085F2K00;Producción
+BSC;Produccion3;santacruz.net;172.26.51.72;Windows 10 (64-bit);VM110CRM00;Producción
+BSC;Produccion3;santacruz.net;172.26.110.89;Windows 10 (64-bit);VM110F2K9501;Producción
+BSC;Produccion4;santacruz.net;172.26.10.231;Microsoft Windows 11 (64-bit);vm110tecno231;Producción
+BSC;Produccion4;santacruz.net;172.26.110.156;Microsoft Windows 10 (64-bit);VM110WS102;Producción
+BSC;Produccion4;santacruz.net;172.26.110.67;Windows 10 (64-bit);VM110WS67;Producción
+BSC;Produccion4;santacruz.net;172.26.110.73;Microsoft Windows 10 (64-bit);VM110WS73;Producción
+BSC;Produccion4;santacruz.net;172.26.110.81;Windows 10 (64-bit);VM110WS77;Producción
+BSC;Produccion4;santacruz.net;172.26.110.92;Windows 10 (64-bit);VM110WS82;Producción
+BSC;Produccion4;santacruz.net;172.26.110.40;Windows 10 (64-bit);VM110WS90;Producción
+BSC;Produccion4;dmz.com;10.0.0.15;Microsoft Windows Server 2016 or later (64-bit);VM000DC17;Producción
+BSC;Produccion4;santacruz.net;203.1.200.250, 10.26.4.46;Microsoft Windows 10 (64-bit);VM500WS02;Producción
+BSC;Produccion4;santacruz.net;10.26.4.45, 203.1.200.45;Microsoft Windows 7 (32-bit);VM500WS00;Producción
+BSC;Produccion4;santacruz.net;10.26.210.161, 10.26.4.10;Microsoft Windows Server 2016 (64-bit);VM500VEEM02;Producción
+BSC;Produccion4;santacruz.net;172.26.110.6;Microsoft Windows 10 (64-bit);VM110BMAIL00;Producción
+BSC;Produccion4;santacruz.net;172.26.110.121;Microsoft Windows 11 (64-bit);WS000CHALTEN000;Producción
+BSC;Produccion4;santacruz.net;172.26.10.116;Microsoft Windows 11 (64-bit);WS000MESA000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.118;Microsoft Windows 11 (64-bit);WS000MS365000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.119;Microsoft Windows 11 (64-bit);WS000MS365001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.120;Microsoft Windows 11 (64-bit);WS000SBCORP000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.104;Microsoft Windows 11 (64-bit);WS000SFB002;Producción
+BSC;Produccion4;santacruz.net;172.26.110.106;Microsoft Windows 11 (64-bit);WS000SFB004;Producción
+BSC;Produccion4;santacruz.net;172.26.110.107;Microsoft Windows 11 (64-bit);WS000SFB005;Producción
+BSC;Produccion4;santacruz.net;172.26.110.108;Microsoft Windows 11 (64-bit);WS000SFB006;Producción
+BSC;Produccion4;santacruz.net;172.26.110.3;Microsoft Windows 7 (64-bit);VM110FATC00;Producción
+BSC;Produccion4;santacruz.net;172.26.102.209;Microsoft Windows Server 2016 (64-bit);VM000ALGEIBA000;Producción
+BSC;Produccion4;santacruz.net;172.26.40.21;Microsoft Windows Server 2016 (64-bit);VM000TEMP000;Producción
+BSC;Produccion4;santacruz.net;172.26.102.165;Microsoft Windows 10 (32-bit);VM000KIWI000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.117;Microsoft Windows 10 (64-bit);WS000BSF000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.115;Microsoft Windows 10 (64-bit);WS000SFB000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.116;Microsoft Windows 10 (64-bit);WS000SFB001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.110;Microsoft Windows 11 (64-bit);WS000CORPO000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.111;Microsoft Windows 11 (64-bit);WS000CORPO001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.112;Microsoft Windows 11 (64-bit);WS000CORPO002;Producción
+BSC;Produccion4;santacruz.net;172.26.110.113;Microsoft Windows 11 (64-bit);WS000CORPO003;Producción
+BSC;Produccion4;santacruz.net;172.26.110.114;Microsoft Windows 11 (64-bit);WS000CORPO004;Producción
+BSC;Produccion4;santacruz.net;172.26.10.16;Microsoft Windows 11 (64-bit);WS000ITSERV000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.88;Microsoft Windows 11 (64-bit);WS000ITSERV001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.50;Microsoft Windows 11 (64-bit);WS000KIT000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.53;Microsoft Windows 11 (64-bit);WS000KIT001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.61;Microsoft Windows 11 (64-bit);WS000OCTVIO000;Producción
+BSC;Produccion4;santacruz.net;169.254.94.43;Microsoft Windows 11 (64-bit);WS000PAI000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.105;Microsoft Windows 11 (64-bit);WS000SFB003;Producción
+BSC;Produccion4;santacruz.net;172.26.110.130;Microsoft Windows 11 (64-bit);WS000SISOP000;Producción
+BSC;Produccion4;santacruz.net;172.26.110.131;Microsoft Windows 11 (64-bit);WS000SISOP001;Producción
+BSC;Produccion4;santacruz.net;172.26.110.132;Microsoft Windows 11 (64-bit);WS000SISOP002;Producción
+BSC;Produccion4;santacruz.net;172.26.110.52;Microsoft Windows 7 (32-bit);vm110ws52;Producción
+BSC;Produccion4;santacruz.net;172.26.100.122;Microsoft Windows Server 2008 R2 (64-bit);VM000TEC00;Producción
+BSC;Produccion4;santacruz.net;172.26.102.205;Microsoft Windows Server 2016 (64-bit);VM000IMPLE000;Producción
+BSC;Produccion4;santacruz.net;172.26.102.216;Microsoft Windows Server 2016 (64-bit);VM000NPS000;Producción
+BSC;Produccion4;santacruz.net;172.26.102.206;Microsoft Windows Server 2016 (64-bit);VM000PCEN000;Producción
+BSC;Produccion4;santacruz.net;172.26.102.207;Microsoft Windows Server 2016 (64-bit);VM000PUNIDT000;Producción
+BSC;Produccion4;santacruz.net;172.26.102.201;Microsoft Windows Server 2016 (64-bit);VM000RPAI000;Producción
+BSC;Testing1;dmz24.test;1,92168E+11;Windows Server 2012 (64-bit);App17201;Test
+BSC;Testing1;root.test;192.168.172.2;Windows Server 2016 (64-bit);VM172DC02;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);NTS36test;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172APL00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172APL07;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172APL11;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172APL13;Test
+BSC;Testing1;stacruz.test;192.168.172.80;Windows 10 (64-bit);VM172CRM00;Test
+BSC;Testing1;stacruz.test;192.168.172.50;Windows Server 2012 (64-bit);VM172DB05;Test
+BSC;Testing1;stacruz.test;192.168.172.42;Windows Server 2012 (64-bit);VM172DB07;Test
+BSC;Testing1;stacruz.test;192.168.172.53;Windows Server 2016 (64-bit);VM172DB13;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB15;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB17;Test
+BSC;Testing1;stacruz.test;192.168.172.19;Windows Server 2016 (64-bit);VM172DB19;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB21;Test
+BSC;Testing1;stacruz.test;192.168.172.64;Windows Server 2016 or later (64-bit);VM172DB23;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172DB25;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172DBINV00;Test
+BSC;Testing1;stacruz.test;192.168.172.93;Windows Server 2016 or later (64-bit);VM172EAE03;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172EXCH00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172F2K00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172IIS00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172IIS02;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172IIS04;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172IIS06;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172IIS08;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172IIS10;Test
+BSC;Testing1;stacruz.test;192.168.172.31;Windows Server 2012 (64-bit);VM172INVG00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172OLAP00;Test
+BSC;Testing1;stacruz.test;192.168.172.30;Windows Server 2012 (64-bit);VM172PP00;Test
+BSC;Testing1;stacruz.test;1,92186E+11;Windows Server 2016 (64-bit);VM172SERV00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172TOM00;Test
+BSC;Testing1;stacruz.test;192.168.172.20;Windows 10 (64-bit);VM172WS03;Test
+BSC;Testing1;stacruz.test;192.168.172.22;Windows 10 (64-bit);VM172WS22;Test
+BSC;Testing1;root.test;192.168.172.3;Windows Server 2016 (64-bit);VM172DC03;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);NTS32test;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2019 (64-bit);VM172ABTFS01;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172APL02;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172APL06;Test
+BSC;Testing1;stacruz.test;192.168.172.36;Windows Server 2016 or later (64-bit);VM172APL09;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172APL12;Test
+BSC;Testing1;stacruz.test;192.168.172.8;Windows Server 2012 (64-bit);VM172BOE00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172DB00;Test
+BSC;Testing1;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172DB02;Test
+BSC;Testing2;stacruz.test;192.168.172.49;Windows Server 2012 (64-bit);VM172DB06;Test
+BSC;Testing2;stacruz.test;192.168.172.43;Windows Server 2012 (64-bit);VM172DB08;Test
+BSC;Testing2;stacruz.test;192.168.172.45;Windows Server 2016 (64-bit);VM172DB10;Test
+BSC;Testing2;stacruz.test;192.168.172.52;Windows Server 2016 or later (64-bit);VM172DB14;Test
+BSC;Testing2;stacruz.test;192.168.172.57;Windows Server 2016 (64-bit);VM172DB16;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172DB18;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB20;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB22;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DB24;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172DBARE00;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172DBWF00;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172F2K95;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172IIS01;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);VM172IIS03;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172IIS05;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172IIS07;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172IIS09;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 or later (64-bit);VM172IIS11;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2016 (64-bit);VM172PBATCH03;Test
+BSC;Testing2;stacruz.test;192.168.172.28;Windows Server 2016 (64-bit);VM172PP02;Test
+BSC;Testing2;stacruz.test;192.168.172.95;Windows Server 2016 (64-bit);VM172SIB00;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Windows Server 2012 (64-bit);vm172webl00;Test
+BSC;Testing2;stacruz.test;192.168.172.21;Windows 10 (64-bit);VM172WS21;Test
+BSC;Testing2;stacruz.test;192.168.172.23;Windows 10 (64-bit);VM172WS23;Test
+BSC;Testing2;dmz24.test;1,92168E+11;Microsoft Windows Server 2012 (64-bit);App17201;Test
+BSC;Testing2;dmz4.test;1,92168E+11;Microsoft Windows Server 2012 (64-bit);App17201;Test
+BSC;Testing2;dmz4.test;1,92168E+11;Microsoft Windows Server 2016 (64-bit);VM172DMZ000;Test
+BSC;Testing2;stacruz.test;192.168.172.7;Microsoft Windows Server 2008 (32-bit);aplicatest03;Test
+BSC;Testing2;stacruz.test;192.168.172.17;Microsoft Windows Server 2008 (32-bit);aplicatest04;Test
+BSC;Testing2;stacruz.test;192.168.172.89;Microsoft Windows Server 2008 R2 (64-bit);aplicatest01;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);TESTWF00;Test
+BSC;Testing2;stacruz.test;192.168.172.67;Microsoft Windows Server 2008 R2 (64-bit);vm172apl01;Test
+BSC;Testing2;stacruz.test;192.168.172.91;Microsoft Windows Server 2008 R2 (64-bit);VM172EAE01;Test
+BSC;Testing2;stacruz.test;192.168.172.92;Microsoft Windows Server 2008 R2 (64-bit);VM172EAE02;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM172EKM00;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM172ESB01;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM172EX01;Test
+BSC;Testing2;stacruz.test;192.168.172.96;Microsoft Windows Server 2008 R2 (64-bit);VM172SOB01;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2008 R2 (64-bit);VM172WF01;Test
+BSC;Testing2;stacruz.test;1,92168E+11;Microsoft Windows Server 2012 (64-bit);VM172KMS001;Test
+BSC;Testing2;stacruz.test;192.168.172.66;Microsoft Windows Server 2016 (64-bit);VM172DB26;Test
+BSC;Testing2;stacruz.test;192.168.172.55;Microsoft Windows Server 2016 (64-bit);VM172DB27;Test
+BSC;Testing2;stacruz.test;192.168.172.54;Microsoft Windows Server 2016 (64-bit);VM172IIS12;Test

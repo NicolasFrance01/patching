@@ -1,0 +1,307 @@
+Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
+NBERSA;DCGrupo1;bersaservicios.net;172.28.7.14;Microsoft Windows Server 2022 (64-bit);bersaservdc01;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.5.17;Microsoft Windows Server 2012 (64-bit);SRV-005-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.13.17;Microsoft Windows Server 2022 (64-bit);SRV-013-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.21.17;Microsoft Windows Server 2012 (64-bit);SRV-021-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.29.17;Microsoft Windows Server 2022 (64-bit);SRV-029-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.38.17;Microsoft Windows Server 2012 (64-bit);SRV-038-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.49.17;Microsoft Windows Server 2012 (64-bit);SRV-049-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.62.17;Microsoft Windows Server 2022 (64-bit);SRV-062-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.71.17;Microsoft Windows Server 2012 (64-bit);SRV-071-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.84.17;Microsoft Windows Server 2022 (64-bit);SRV-084-DC;Producción
+NBERSA;DCGrupo1;nuevobersa.net;172.29.95.17;;SRV-095-DC;Producción
+NBERSA;DCGrupo1;root.nbersa;172.28.16.160;;SV-ROOTBER02;Producción
+NBERSA;DCGrupo2;bersaservicios.net;172.28.7.5;Microsoft Windows Server 2022 (64-bit);bersaservdc02;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.6.17;Microsoft Windows Server 2022 (64-bit);SRV-006-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.14.17;Microsoft Windows Server 2022 (64-bit);SRV-014-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.22.17;Microsoft Windows Server 2012 (64-bit);SRV-022-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.30.17;Microsoft Windows Server 2022 (64-bit);SRV-030-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.40.17;Microsoft Windows Server 2022 (64-bit);SRV-040-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.50.17;Microsoft Windows Server 2022 (64-bit);SRV-050-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.63.17;Microsoft Windows Server 2022 (64-bit);SRV-063-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.72.17;Microsoft Windows Server 2012 (64-bit);SRV-072-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.85.17;;SRV-085-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.29.197.17;Microsoft Windows Server 2022 (64-bit);SRV-197-DC;Producción
+NBERSA;DCGrupo2;nuevobersa.net;172.28.16.11;Microsoft Windows Server 2022 (64-bit);VM-SRVDC01;Producción
+NBERSA;DCGrupo3;erservicios.net;172.28.7.130;Microsoft Windows Server 2022 (64-bit);ER-SERVICIOS;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.7.17;Microsoft Windows Server 2012 (64-bit);SRV-007-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.15.17;Microsoft Windows Server 2012 (64-bit);SRV-015-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.23.17;Microsoft Windows Server 2022 (64-bit);SRV-023-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.31.17;Microsoft Windows Server 2022 (64-bit);SRV-031-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.41.17;Microsoft Windows Server 2022 (64-bit);SRV-041-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.51.17;Microsoft Windows Server 2022 (64-bit);SRV-051-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.64.17;Microsoft Windows Server 2022 (64-bit);SRV-064-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.73.17;Microsoft Windows Server 2022 (64-bit);SRV-073-DC;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.29.86.17;;SRV-086-DC;Producción
+NBERSA;DCGrupo3;bersatest.net;172.28.104.33;Microsoft Windows Server 2022 (64-bit);srv-203-dc;Producción
+NBERSA;DCGrupo3;nuevobersa.net;172.28.16.12;Microsoft Windows Server 2022 (64-bit);VM-SRVDC02;Producción
+NBERSA;DCGrupo4;erservicios.net;172.28.7.137;Microsoft Windows Server 2022 (64-bit);ERSERVICIOSDC03;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.8.17;Microsoft Windows Server 2012 (64-bit);SRV-008-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.16.17;Microsoft Windows Server 2012 (64-bit);SRV-016-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.24.17;Microsoft Windows Server 2022 (64-bit);SRV-024-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.32.17;Microsoft Windows Server 2012 (64-bit);SRV-032-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.42.17;Microsoft Windows Server 2022 (64-bit);SRV-042-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.52.17;Microsoft Windows Server 2012 (64-bit);SRV-052-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.65.17;Microsoft Windows Server 2022 (64-bit);SRV-065-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.78.17;;SRV-078-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;172.29.87.17;;SRV-087-DC;Producción
+NBERSA;DCGrupo4;nuevobersa.net;150.5.200.11;Microsoft Windows Server 2022 (64-bit);SRV-DC001;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.1.17;Microsoft Windows Server 2022 (64-bit);SRV-001-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.9.17;Microsoft Windows Server 2022 (64-bit);SRV-009-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.17.17;Microsoft Windows Server 2012 (64-bit);SRV-017-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.25.17;Microsoft Windows Server 2012 (64-bit);SRV-025-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.33.17;Microsoft Windows Server 2012 (64-bit);SRV-033-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.44.17;Microsoft Windows Server 2022 (64-bit);SRV-044-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.53.17;Microsoft Windows Server 2012 (64-bit);SRV-053-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.66.17;Microsoft Windows Server 2022 (64-bit);SRV-066-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.79.17;Microsoft Windows Server 2012 (64-bit);SRV-079-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;172.29.91.17;Microsoft Windows Server 2022 (64-bit);SRV-091-DC;Producción
+NBERSA;DCGrupo5;nuevobersa.net;150.5.200.12;Microsoft Windows Server 2022 (64-bit);SRV-DC002;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.2.17;Microsoft Windows Server 2022 (64-bit);SRV-002-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.10.17;Microsoft Windows Server 2022 (64-bit);SRV-010-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.18.17;Microsoft Windows Server 2012 (64-bit);SRV-018-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.26.17;Microsoft Windows Server 2022 (64-bit);SRV-026-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.34.17;Microsoft Windows Server 2022 (64-bit);SRV-034-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.46.17;Microsoft Windows Server 2022 (64-bit);SRV-046-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.55.17;Microsoft Windows Server 2022 (64-bit);SRV-055-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.68.17;Microsoft Windows Server 2022 (64-bit);SRV-068-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.80.17;Microsoft Windows Server 2022 (64-bit);SRV-080-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.29.92.17;;SRV-092-DC;Producción
+NBERSA;DCGrupo6;nuevobersa.net;172.30.10.199;;SRV-DCCERRITO;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.3.17;Microsoft Windows Server 2012 (64-bit);SRV-003-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.11.17;Microsoft Windows Server 2012 (64-bit);SRV-011-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.19.17;Microsoft Windows Server 2012 (64-bit);SRV-019-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.27.17;Microsoft Windows Server 2012 (64-bit);SRV-027-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.35.17;Microsoft Windows Server 2012 (64-bit);SRV-035-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.47.17;Microsoft Windows Server 2012 (64-bit);SRV-047-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.57.17;Microsoft Windows Server 2012 (64-bit);SRV-057-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.69.17;Microsoft Windows Server 2012 (64-bit);SRV-069-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.81.17;Microsoft Windows Server 2022 (64-bit);SRV-081-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.29.93.17;Microsoft Windows Server 2022 (64-bit);SRV-093-DC;Producción
+NBERSA;DCGrupo7;nuevobersa.net;172.28.0.89;Microsoft Windows Server 2022 (64-bit);SV-DCCENTRAL01;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.4.17;Microsoft Windows Server 2012 (64-bit);SRV-004-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.12.17;Microsoft Windows Server 2012 (64-bit);SRV-012-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.20.17;Microsoft Windows Server 2022 (64-bit);SRV-020-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.28.17;Microsoft Windows Server 2012 (64-bit);SRV-028-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.36.17;Microsoft Windows Server 2012 (64-bit);SRV-036-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.48.17;Microsoft Windows Server 2012 (64-bit);SRV-048-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.60.17;Microsoft Windows Server 2022 (64-bit);SRV-060-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.70.17;Microsoft Windows Server 2022 (64-bit);SRV-070-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.83.17;Microsoft Windows Server 2022 (64-bit);SRV-083-DC;Producción
+NBERSA;DCGrupo8;nuevobersa.net;172.29.94.17;Microsoft Windows Server 2022 (64-bit);SRV-094-DC;Producción
+NBERSA;DCGrupo8;root.nbersa;172.28.16.13;;SV-ROOTBER01;Producción
+NBERSA;Desarrollo1;nuevobersa.net;172.28.48.171;Microsoft Windows Server 2016 or later (64-bit);ADINTAP-D;Desarrollo
+NBERSA;Desarrollo1;nuevobersa.net;172.28.48.155;Microsoft Windows Server 2016 or later (64-bit);sv-adintarWS-D;Desarrollo
+NBERSA;Desarrollo1;nuevobersa.net;172.28.48.211;Microsoft Windows Server 2022 (64-bit);SVENGAP-D;Desarrollo
+NBERSA;Desarrollo1;nuevobersa.net;172.28.48.202;Microsoft Windows Server 2022 (64-bit);SVENGDB-DESA;Desarrollo
+NBERSA;Desarrollo1;nuevobersa.net;172.28.17.1;Microsoft Windows Server 2016 or later (64-bit);sv-f2ku-desa-2;Desarrollo
+NBERSA;Produccion1;nuevobersa.net;172.28.1.195;Microsoft Windows Server 2016 or later (64-bit);ABSDEVPROD;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.201;Microsoft Windows Server 2016 or later (64-bit);ADINTARWS-BEE-P;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV.009-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-023-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-030-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-042-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-051-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-064-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-197-DC-2022;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);sv-apexOne-agent;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.157;Microsoft Windows Server 2016 or later (64-bit);sv-bejerman8-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-BKP-VEEAM-SUC;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.58;Microsoft Windows Server 2016 or later (64-bit);sv-collector-p;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.209;Microsoft Windows Server 2019 (64-bit);SVDEBMEDIABDP;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.190;Microsoft Windows Server 2016 or later (64-bit);sv-echeqDB-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.73;Microsoft Windows Server 2022 (64-bit);sv-engdb-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;169.254.2.235;Microsoft Windows Server 2016 or later (64-bit);SV-EXC02;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.69;Microsoft Windows Server 2022 (64-bit);SV-FIRMADB-PR;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.6.36;Microsoft Windows Server 2016 or later (64-bit);SV-GOA-GW02;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-HELIX-P;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.186;Microsoft Windows Server 2016 or later (64-bit);sv-inventario-cb;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.164;Microsoft Windows Server 2016 or later (64-bit);SV-LD-AP-P;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.200;Microsoft Windows Server 2016 or later (64-bit);sv-mepbd-p;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.6.15;Microsoft Windows Server 2016 or later (64-bit);sv-modoDMZ-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-npspai1;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.2.23;Microsoft Windows Server 2022 (64-bit);SV-PAI-SERVER22;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.16.41;Microsoft Windows Server 2016 or later (64-bit);sv-pivot-bersa;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2019 (64-bit);SVPROXY-VEEAM2;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.41;Microsoft Windows Server 2019 (64-bit);SV-RIOP;Producción
+NBERSA;Produccion1;nuevobersa.net;10.20.100.95;Microsoft Windows Server 2016 or later (64-bit);SV-SFBSoaV3V4B;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.136;Microsoft Windows Server 2016 or later (64-bit);SV-SOAV34B-P;Producción
+NBERSA;Produccion1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-SQL13-01-PROD;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.172;Microsoft Windows Server 2016 or later (64-bit);SV-SQL8-PROD;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.161;Microsoft Windows Server 2016 or later (64-bit);SV-STANDINDB-P;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.251.99;Microsoft Windows Server 2022 (64-bit);SVSWIFTQA;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.62;Microsoft Windows Server 2016 or later (64-bit);sv-veeamone-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.85;Microsoft Windows Server 2016 or later (64-bit);sv-wamp-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.1.153;Microsoft Windows Server 2016 or later (64-bit);sv-webServices-prod;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.0.190;Microsoft Windows Server 2016 or later (64-bit);SV-WSUS-CEN;Producción
+NBERSA;Produccion1;nuevobersa.net;129.100.92.87;Microsoft Windows Server 2016 or later (64-bit);ws-proccoe-p;Producción
+NBERSA;Produccion1;nuevobersa.net;172.28.48.169;Microsoft Windows Server 2016 or later (64-bit);sv-tfs-test2;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2019 (64-bit);ABSRUNDRS;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-001-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-013-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-024-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-031-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-044-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-055-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-065-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-073-DC-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-ABSTFS9;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.64;Microsoft Windows Server 2016 or later (64-bit);sv-ApexOne-SERVER;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-BERAVISODB-PROD;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.70;Microsoft Windows Server 2016 or later (64-bit);sv-bpm-one;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.206;Microsoft Windows Server 2022 (64-bit);SV-CONTROLWF-22;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.6.47;Microsoft Windows Server 2016 or later (64-bit);SV-DepRMT2-P;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.18;Microsoft Windows Server 2016 or later (64-bit);sv-eflow-prod;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.165;Microsoft Windows Server 2016 or later (64-bit);sv-esco-prod;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.100;Microsoft Windows Server 2016 or later (64-bit);SV-EXC03;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-FIRMA-GRA-PR;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.55;Microsoft Windows Server 2016 or later (64-bit);SV-GOA-MFT01;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.117;Microsoft Windows Server 2016 or later (64-bit);sv-HikVision-p;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-invgate-proxy;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.226;Microsoft Windows Server 2022 (64-bit);SV-LDDB-PROD;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.168;Microsoft Windows Server 2016 or later (64-bit);sv-mim-prod;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.197;Microsoft Windows Server 2016 or later (64-bit);SV-MONITOREO;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-npspai2;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.185;Microsoft Windows Server 2022 (64-bit);SV-PassSafe1;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-printserver;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.218;Microsoft Windows Server 2016 (64-bit);SV-PWS-01;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-ROOTBER01-2022;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.147;Microsoft Windows Server 2016 or later (64-bit);SVSIBANK(para  Interbanking TCP);Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.94;Microsoft Windows Server 2016 or later (64-bit);SV-SOJCOELSA-PROD;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-SQL13-02-PROD;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.40;Microsoft Windows Server 2022 (64-bit);SV-SQL9-PROD;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);sv-stdinWEBP;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.1.106;Microsoft Windows Server 2016 or later (64-bit);SV-TESINWEB-PR;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.137;Microsoft Windows Server 2022 (64-bit);SV-VEEAM-SUC;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.163;Microsoft Windows Server 2016 or later (64-bit);sv-web6-prod;Producción
+NBERSA;Produccion2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);svwebxprod;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.0.77;Microsoft Windows Server 2016 or later (64-bit);sv-wsus-suc;Producción
+NBERSA;Produccion2;nuevobersa.net;172.28.251.100;Microsoft Windows Server 2022 (64-bit);SVSWIFTPROD;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.196;Microsoft Windows Server 2016 or later (64-bit);ABSRUNPROD;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.48.89;Microsoft Windows Server 2022 (64-bit);mercap-bd-t22;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-002-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-014-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-026-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-034-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-046-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-062-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-066-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-080-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-093-DC-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.202;Microsoft Windows Server 2016 or later (64-bit);SRV-DB2;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.86;Microsoft Windows Server 2016 or later (64-bit);SV-ADINTARWS-P;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVATEAPPR;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2019 (64-bit);SV-BER-PIVOT;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.173;Microsoft Windows Server 2016 or later (64-bit);SV-CCTV-STORAGE;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.7.142;Microsoft Windows Server 2016 or later (64-bit);sv-Echeck-PROD;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.184;Microsoft Windows Server 2016 or later (64-bit);SV-EKM-PR;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.251.107;Microsoft Windows Server 2016 or later (64-bit);SV-Evo-Tran-C;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.154;Microsoft Windows Server 2016 or later (64-bit);sv-Extcom7-Prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.104;Microsoft Windows Server 2016 or later (64-bit);SV-FTPS-PROD;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.56;Microsoft Windows Server 2016 or later (64-bit);SV-GOA-MFT02;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.6.46;Microsoft Windows Server 2016 or later (64-bit);sv-iis-externo;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-invgate-proxy2;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.159;Microsoft Windows Server 2016 or later (64-bit);sv-lexdr-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.102;Microsoft Windows Server 2016 or later (64-bit);sv-modoApi-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.150;Microsoft Windows Server 2016 or later (64-bit);SV-MONITOREO-POOL;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.16.220;Microsoft Windows Server 2016 or later (64-bit);SV-NTP;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.186;Microsoft Windows Server 2022 (64-bit);SV-PassSafe2;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.143;Microsoft Windows Server 2016 or later (64-bit);sv-probatch-p;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.219;Microsoft Windows Server 2016 (64-bit);SV-PWS-02;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-ROOTBER02-2022;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.74;Microsoft Windows Server 2016 or later (64-bit);sv-simgo-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.34;Microsoft Windows Server 2016 or later (64-bit);SV-SONDAS-PRTG;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.90;Microsoft Windows Server 2016 or later (64-bit);sv-sql6-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.59;Microsoft Windows Server 2016 or later (64-bit);SV-SQL-Algeiba;Producción
+NBERSA;Produccion3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVSWIFTCONT_restore;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.96;Microsoft Windows Server 2016 or later (64-bit);sv-uasapp-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.48.76;Microsoft Windows Server 2016 or later (64-bit);sv-vinculados;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.0.144;Microsoft Windows Server 2016 or later (64-bit);sv-web8-prod;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.212;Microsoft Windows Server 2022 (64-bit);SV-WF-DB-PROD;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.16.49;Microsoft Windows Server 2016 or later (64-bit);SV-XCOM-P;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.1.156;Microsoft Windows Server 2016 or later (64-bit);WhatsUpV21-DB;Producción
+NBERSA;Produccion3;nuevobersa.net;172.28.251.101;;SVSWIFTCONT;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);ADINTAP-P;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.198;Microsoft Windows Server 2016 or later (64-bit);Dimensional-P;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.12;Microsoft Windows Server 2016 or later (64-bit);PROBATCHWEBP;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-006-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-020-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-050-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-063-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-083-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SRV-094-DC-2022;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.6.49;Microsoft Windows Server 2016 or later (64-bit);sv-anywhere-gw;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVATEDBPR;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.110;Microsoft Windows Server 2016 or later (64-bit);SV-BESMART-PROD;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.187;Microsoft Windows Server 2016 or later (64-bit);SV-CEDIPCOELSA-P;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.210;Microsoft Windows Server 2016 or later (64-bit);SVDEBMEDIAAPP;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.7.15;Microsoft Windows Server 2016 or later (64-bit);SV-Echeck-SA;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVENGAPP;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.251.106;Microsoft Windows Server 2016 or later (64-bit);SV-Evo-Tran-P;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVFEDEOL22-PR;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.6.35;Microsoft Windows Server 2016 or later (64-bit);SV-GOA-GW01;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.199;Microsoft Windows Server 2022 (64-bit);SV-GRAFANA-PROD;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.66;Microsoft Windows Server 2016 or later (64-bit);sv-invdb-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.77;Microsoft Windows Server 2022 (64-bit);sv-inv-web (intelektron);Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.66;Microsoft Windows Server 2016 or later (64-bit);sv-mae-pr16;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.103;Microsoft Windows Server 2016 or later (64-bit);sv-mododb-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-NBERSAMAIL-P;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.13;Microsoft Windows Server 2016 or later (64-bit);SV-OTRS-HIST;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.39;Microsoft Windows Server 2016 or later (64-bit);SV-PGC-PROD;Producción
+NBERSA;Produccion4;nuevobersa.net;-;Microsoft Windows Server 2019 (64-bit);SVPROXY-VEEAM1;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.35;Microsoft Windows Server 2022 (64-bit);SV-RELAYWL;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.42;Microsoft Windows Server 2016 or later (64-bit);sv-servicios-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.63;Microsoft Windows Server 2016 or later (64-bit);SV-SOAV34A-P;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.214;Microsoft Windows Server 2022 (64-bit);sv-sql10-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.160;Microsoft Windows Server 2016 or later (64-bit);sv-sql7-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.191;Microsoft Windows Server 2016 or later (64-bit);sv-sqlsoc-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.95;Microsoft Windows Server 2016 or later (64-bit);sv-uasdb-prod;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.187;Microsoft Windows Server 2022 (64-bit);SV-VPROXY3-PR;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.1.185;Microsoft Windows Server 2016 or later (64-bit);SV-WEB9-PROD;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.47;Microsoft Windows Server 2016 or later (64-bit);sv-whatsup21-p;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.6.56;Microsoft Windows Server 2022 (64-bit);TESINWEBP;Producción
+NBERSA;Produccion4;nuevobersa.net;172.28.0.147;Microsoft Windows Server 2016 or later (64-bit);WhatsUpV21-Poller;Producción
+NBERSA;Testing1;nuevobersa.net;172.28.48.206;Microsoft Windows Server 2016 or later (64-bit);absclontest;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.176;Microsoft Windows Server 2016 or later (64-bit);ADINTDB-T;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.192;Microsoft Windows Server 2016 or later (64-bit);RITEST-TEST;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.110;Microsoft Windows Server 2022 (64-bit);SV-ATE-AP-T;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.212;Microsoft Windows Server 2022 (64-bit);SV-ATE-DB-T;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.210;Microsoft Windows Server 2022 (64-bit);SVENGAP-T;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.63;Microsoft Windows Server 2016 or later (64-bit);sv-esco-test;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.104.13;Microsoft Windows Server 2016 or later (64-bit);SV-F2KU-TEST-1;Testing
+NBERSA;Testing1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-HELIX-T;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.48;Microsoft Windows Server 2016 or later (64-bit);sv-probatch16-t;Testing
+NBERSA;Testing1;nuevobersa.net;10.20.100.93;Microsoft Windows Server 2016 or later (64-bit);SV-SFBSoaV3-V4-T;Testing
+NBERSA;Testing1;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);sv-siopel-test;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.146;Microsoft Windows Server 2016 or later (64-bit);sv-sisdpt-test;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.123;Microsoft Windows Server 2016 or later (64-bit);sv-smartlocks-test;Testing
+NBERSA;Testing1;nuevobersa.net;172.28.48.90;Microsoft Windows Server 2016 or later (64-bit);sv-test-w2016;Testing
+NBERSA;Testing2;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);ABSRUNTEST_replica;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.181;Microsoft Windows Server 2016 or later (64-bit);ADINTAP-T;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.193;Microsoft Windows Server 2016 or later (64-bit);PROBATCHWEBT;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.149;Microsoft Windows Server 2016 or later (64-bit);SV-ADINTARWS-T;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.81;Microsoft Windows Server 2016 or later (64-bit);SV-ARE-TEST;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.173;Microsoft Windows Server 2016 or later (64-bit);SV-CEDIPCOELSA-T;Testing
+NBERSA;Testing2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SVENGDB-TEST;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.251.105;Microsoft Windows Server 2016 or later (64-bit);SV-Evo-Translator-QA;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.17.2;Microsoft Windows Server 2016 or later (64-bit);SV-F2KU-TEST-2;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.151;Microsoft Windows Server 2016 or later (64-bit);SV-MEP-BD-T;Testing
+NBERSA;Testing2;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-NBERSAMAIL-T;Testing
+NBERSA;Testing2;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);sv-sisdpt2-test;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.207;Microsoft Windows Server 2022 (64-bit);sv-sql11-test;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.7.3;Microsoft Windows Server 2016 or later (64-bit);sv-sql2019-t;Testing
+NBERSA;Testing2;nuevobersa.net;172.28.48.158;Microsoft Windows Server 2016 or later (64-bit);SV-TESINWEB-TE;Testing
+NBERSA;Testing3;nuevobersa.net;-;Microsoft Windows Server 2016 or later (64-bit);ABSDEVTEST_restore;Testing
+NBERSA;Testing3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-ABSDEV9-T;Testing
+NBERSA;Testing3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-ABSRUN9-T;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.108;Microsoft Windows Server 2016 or later (64-bit);SV-BeSmart-Test;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.187;Microsoft Windows Server 2016 or later (64-bit);sv-bpm19-t;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.152;Microsoft Windows Server 2016 or later (64-bit);SV-Dimensional-T;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.186;Microsoft Windows Server 2016 or later (64-bit);sv-enginedb-test;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.156;Microsoft Windows Server 2016 or later (64-bit);sv-ExtCom7-Test;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.7.16;Microsoft Windows Server 2016 or later (64-bit);SV-PAYAPI-T;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.135;Microsoft Windows Server 2016 or later (64-bit);SV-PGC-Test;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.140;Microsoft Windows Server 2019 (64-bit);SV-RI-RO-T;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.188;Microsoft Windows Server 2016 or later (64-bit);SV-SD-JEE-TEST;Testing
+NBERSA;Testing3;nuevobersa.net;172.28.48.117;Microsoft Windows Server 2016 or later (64-bit);sv-soj-test;Testing
+NBERSA;Testing3;nuevobersa.net;-;Microsoft Windows Server 2022 (64-bit);SV-WEB22-TEST;Testing
