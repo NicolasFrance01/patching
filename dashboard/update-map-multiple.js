@@ -47,6 +47,16 @@ const groupArr = Array.from(groupSet).sort();
 const sortedServers = Object.keys(servers).sort().reduce((acc, k) => { acc[k] = servers[k]; return acc; }, {});
 const sortedIPs = Object.keys(ips).sort().reduce((acc, k) => { acc[k] = ips[k]; return acc; }, {});
 
+let fallbacks = '';
+if (typeArr.includes('BSJ')) fallbacks += `  if (upper.includes('BSJ')) return { type: 'BSJ', ambiente: '' };\n`;
+if (typeArr.includes('NBSF')) fallbacks += `  if (upper.includes('NBSF') || upper.includes('BSF')) return { type: 'NBSF', ambiente: '' };\n`;
+if (typeArr.includes('NBERSA')) fallbacks += `  if (upper.includes('NBERSA') || upper.includes('BER')) return { type: 'NBERSA', ambiente: '' };\n`;
+if (typeArr.includes('BSC')) fallbacks += `  if (upper.includes('BSC')) return { type: 'BSC', ambiente: '' };\n`;
+if (typeArr.includes('ASJ')) fallbacks += `  if (upper.includes('ASJ')) return { type: 'ASJ', ambiente: '' };\n`;
+if (typeArr.includes('QUALIA')) fallbacks += `  if (upper.includes('QUALIA')) return { type: 'QUALIA', ambiente: '' };\n`;
+if (typeArr.includes('CORP')) fallbacks += `  if (upper.includes('CORP')) return { type: 'CORP', ambiente: '' };\n`;
+if (typeArr.includes('Corp')) fallbacks += `  if (upper.includes('CORP')) return { type: 'Corp', ambiente: '' };\n`;
+
 let tsContent = `// Auto-generated from multiple CSVs
 export type ServerType = ${typeArr.length > 0 ? typeArr.map(t => '\'' + t + '\'').join(' | ') : 'string'};
 export type Ambiente = string;
@@ -79,13 +89,7 @@ export function getServerInfo(serverName: string, ip?: string | null): ServerInf
   }
 
   const upper = nameTrimmed.toUpperCase();
-  if (upper.includes('BSJ')) return { type: 'BSJ', ambiente: '' };
-  if (upper.includes('NBSF') || upper.includes('BSF')) return { type: 'NBSF', ambiente: '' };
-  if (upper.includes('NBERSA') || upper.includes('BER')) return { type: 'NBERSA', ambiente: '' };
-  if (upper.includes('BSC')) return { type: 'BSC', ambiente: '' };
-  if (upper.includes('ASJ')) return { type: 'ASJ', ambiente: '' };
-  if (upper.includes('QUALIA')) return { type: 'QUALIA', ambiente: '' };
-  if (upper.includes('CORP')) return { type: 'Corp', ambiente: '' };
+${fallbacks}
 
   return null;
 }

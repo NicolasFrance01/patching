@@ -21736,9 +21736,8 @@ export function getServerInfo(serverName: string, ip?: string | null): ServerInf
   if (upper.includes('NBSF') || upper.includes('BSF')) return { type: 'NBSF', ambiente: '' };
   if (upper.includes('NBERSA') || upper.includes('BER')) return { type: 'NBERSA', ambiente: '' };
   if (upper.includes('BSC')) return { type: 'BSC', ambiente: '' };
-  if (upper.includes('ASJ')) return { type: 'ASJ', ambiente: '' };
-  if (upper.includes('QUALIA')) return { type: 'QUALIA', ambiente: '' };
-  if (upper.includes('CORP')) return { type: 'Corp', ambiente: '' };
+  if (upper.includes('CORP')) return { type: 'CORP', ambiente: '' };
+
 
   return null;
 }
