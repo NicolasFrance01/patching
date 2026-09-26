@@ -297,7 +297,17 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       const isNoData = !isError && (!s.os || s.os === "N/A");
       const status   = isError ? "error" : isNoData ? "nodata" : "ok";
       const extendedStatus = getExtendedStatus(status, s.comentarios ?? null, s.snap ?? null, s.confirmado ?? null);
-      return { ...s, info, isError, isNoData, status, extendedStatus };
+      
+      return { 
+        ...s, 
+        grupo: info?.grupo || s.grupo, 
+        ambiente: info?.ambiente || s.ambiente, 
+        info, 
+        isError, 
+        isNoData, 
+        status, 
+        extendedStatus 
+      };
     }),
   [serverData]);
 
