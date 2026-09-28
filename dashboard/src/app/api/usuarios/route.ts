@@ -88,6 +88,8 @@ export async function POST(req: Request) {
               Usuario: <strong>${finalUsername}</strong><br/>
               Contraseña: <strong>${finalPassword}</strong>
             </div>
+            <p>Puedes iniciar sesión en el siguiente enlace:</p>
+            <p><a href="https://patching.algeiba.com" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Ir al Sistema</a></p>
             <p style="color: #ef4444; font-size: 12px; font-weight: bold;">
               Importante: Esta contraseña caducará en 48 horas. Se te requerirá cambiarla en tu primer inicio de sesión.
             </p>
@@ -141,6 +143,8 @@ export async function PATCH(req: Request) {
           <div style="background-color: #f1f5f9; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; margin: 16px 0;">
             Contraseña: <strong>${newPassword}</strong>
           </div>
+          <p>Puedes iniciar sesión en el siguiente enlace:</p>
+          <p><a href="https://patching.algeiba.com" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Ir al Sistema</a></p>
           <p style="color: #ef4444; font-size: 12px; font-weight: bold;">
             Importante: Esta contraseña caducará en 48 horas. Se te requerirá cambiarla en tu primer inicio de sesión.
           </p>

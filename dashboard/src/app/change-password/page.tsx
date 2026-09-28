@@ -19,6 +19,24 @@ export default function ChangePasswordPage() {
       return;
     }
     
+    // Password complexity validation
+    if (newPassword.length < 12) {
+      setError("La contraseña debe tener al menos 12 caracteres");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setError("La contraseña debe tener al menos 1 letra mayúscula");
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setError("La contraseña debe tener al menos 1 número");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      setError("La contraseña debe tener al menos 1 símbolo especial");
+      return;
+    }
+
     setLoading(true);
     setError("");
     

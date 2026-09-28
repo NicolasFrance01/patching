@@ -24,8 +24,17 @@ export async function POST(req: Request) {
     }
 
     const { newPassword } = body;
-    if (!newPassword || newPassword.length < 6) {
-      return NextResponse.json({ error: "Contraseña demasiado corta" }, { status: 400 });
+    if (!newPassword || newPassword.length < 12) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 12 caracteres" }, { status: 400 });
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 1 letra mayúscula" }, { status: 400 });
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 1 número" }, { status: 400 });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      return NextResponse.json({ error: "La contraseña debe tener al menos 1 símbolo especial" }, { status: 400 });
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
@@ -83,6 +92,8 @@ export async function POST(req: Request) {
           <div style="background-color: #f1f5f9; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; margin: 16px 0;">
             Contraseña: <strong>${newPassword}</strong>
           </div>
+          <p>Puedes iniciar sesión en el siguiente enlace:</p>
+          <p><a href="https://patching.algeiba.com" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Ir al Sistema</a></p>
           <p style="color: #ef4444; font-size: 12px; font-weight: bold;">
             Importante: Esta contraseña caducará en 48 horas. Deberás cambiarla al iniciar sesión.
           </p>
