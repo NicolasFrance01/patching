@@ -788,7 +788,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       )}
 
       {/* ── Charts Row 3: Pipeline de Actualización ─────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1">
           <ChartCard title="Pipeline de actualización">
             <div className="space-y-8 py-4">
@@ -816,7 +816,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           </ChartCard>
         </div>
         
-        <div className="flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col gap-4 overflow-hidden lg:col-span-2">
           <ChartCard title="Detalle para seguimiento">
             <div className="overflow-x-auto overflow-y-auto max-h-[360px] custom-scrollbar">
               <table className="w-full text-[10px] text-left min-w-[500px]">

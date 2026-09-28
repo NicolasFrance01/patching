@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import SessionProvider from "@/components/SessionProvider";
+import PageTransition from "@/components/PageTransition";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -28,11 +29,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="flex min-h-screen">
               <Sidebar role={role} username={username} />
               <main className="flex-1 ml-56 min-h-screen overflow-y-auto">
-                {children}
+                <PageTransition>{children}</PageTransition>
               </main>
             </div>
           ) : (
-            children
+            <PageTransition>{children}</PageTransition>
           )}
         </SessionProvider>
       </body>
