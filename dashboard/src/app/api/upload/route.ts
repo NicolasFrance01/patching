@@ -19,8 +19,13 @@ export async function POST(req: Request) {
 
     const seen = new Set<string>();
     const validItems = data.filter((item: any) => {
-      const name = String(item.Servidor ?? "").trim();
-      if (!name || seen.has(name)) return false;
+      const rawName = String(item.Servidor ?? "").trim();
+      const rawDomain = item.Dominio ? String(item.Dominio).trim() : null;
+      const name = (rawDomain && rawDomain !== "N/A" && rawDomain !== "null") 
+        ? `${rawName} (${rawDomain})` 
+        : rawName;
+        
+      if (!rawName || seen.has(name)) return false;
       seen.add(name);
       return true;
     });
@@ -54,8 +59,14 @@ export async function POST(req: Request) {
       if (status === "ok") success++;
       else if (status === "error") errors++;
       else noData++;
+      const rawServerName = String(item.Servidor).trim();
+      const rawDomain = item.Dominio ? String(item.Dominio).trim() : null;
+      const finalServerName = (rawDomain && rawDomain !== "N/A" && rawDomain !== "null") 
+        ? `${rawServerName} (${rawDomain})` 
+        : rawServerName;
+
       return {
-        serverName: String(item.Servidor).trim(),
+        serverName: finalServerName,
         grupo: item.Grupo ? String(item.Grupo) : null,
         ambiente: item.Ambiente ? String(item.Ambiente) : null,
         domain: item.Dominio ? String(item.Dominio) : null,

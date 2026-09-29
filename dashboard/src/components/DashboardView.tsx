@@ -302,7 +302,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── Enriched servers ────────────────────────────────────────────────────────
   const enriched = useMemo(() =>
     serverData.map((s) => {
-      const info = getServerInfo(s.serverName, s.ip ?? undefined);
+      const info = getServerInfo(s.serverName);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
       const status   = isError ? "error" : isNoData ? "nodata" : "ok";

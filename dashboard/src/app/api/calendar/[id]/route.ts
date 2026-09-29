@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await props.params;
     const order = await prisma.patchOrder.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     return NextResponse.json(order);
@@ -14,11 +15,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await props.params;
     const body = await req.json();
     const existingOrder = await prisma.patchOrder.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
     
     if (!existingOrder) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -27,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const newLog = body.executionLog !== undefined ? body.executionLog : existingOrder.executionLog;
 
     const updated = await prisma.patchOrder.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: newStatus,
         executionLog: newLog,
@@ -39,7 +41,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // Find all users who should be notified (maybe the creator or all admins)
       // For now, let's just email the creator if they have an email, or a default email.
       // We will send to a generic address or we need to find the user's email based on createdBy.
-      const user = await prisma.user.findFirst({ where: { username: existingOrder.createdBy } });
+      let user = null;
+      if (existingOrder.createdBy) {
+        user = await prisma.user.findFirst({ where: { username: existingOrder.createdBy } });
+      }
       const sendTo = user?.email || process.env.SMTP_USER;
       
       if (sendTo && process.env.SMTP_USER && process.env.SMTP_PASS) {

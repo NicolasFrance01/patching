@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const publicDir = path.join(process.cwd(), 'public');
-const files = fs.readdirSync(publicDir).filter(f => f.endsWith('.csv'));
+const files = fs.readdirSync(publicDir).filter(f => f.endsWith('.csv') && !f.includes('septiembre'));
 
 const serverTypeMap = {};
 const groupsSet = new Set();
@@ -28,28 +28,19 @@ for (const file of files) {
     const parts = line.split(';');
     const cols = parts.length > 1 ? parts : line.split(',');
     
-    // Check if it's the new format: Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
+    // Format: Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
     if (headers.includes('cliente;grupo;dominio;ip;os;servidor;ambiente') || headers.includes('cliente,grupo,dominio,ip,os,servidor,ambiente')) {
       if (cols.length >= 7) {
         const grupo = cols[1].trim() || null;
+        const rawDomain = cols[2].trim() || null;
         const ip = cols[3].trim() || null;
-        const serverName = cols[5].trim();
+        const rawServerName = cols[5].trim();
         const ambiente = cols[6].trim() || null;
         
-        if (serverName && type !== 'all') {
-          serverTypeMap[serverName] = { type, grupo, ip, ambiente };
-          if (grupo) groupsSet.add(grupo);
-        }
-      }
-    } else {
-      // old format? Usually: serverName;ip;ambiente;grupo
-      if (cols.length >= 4) {
-        const serverName = cols[0].trim();
-        const ip = cols[1].trim() || null;
-        const ambiente = cols[2].trim() || null;
-        const grupo = cols[3].trim() || null;
-        
-        if (serverName && type !== 'all') {
+        if (rawServerName && type !== 'all') {
+          // If the server name is duplicated across domains, we must append the domain to make it unique
+          const serverName = rawDomain ? `${rawServerName} (${rawDomain})` : rawServerName;
+          
           serverTypeMap[serverName] = { type, grupo, ip, ambiente };
           if (grupo) groupsSet.add(grupo);
         }

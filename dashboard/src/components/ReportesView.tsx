@@ -451,7 +451,7 @@ export default function ReportesView({
       const extendedStatus = getExtendedStatus(status, s.errorDescription, (s as any).snap ?? null, (s as any).confirmado ?? null);
       return {
         ...s,
-        info: getServerInfo(s.serverName, s.ip),
+        info: getServerInfo(s.serverName),
         isError,
         isNoData,
         status,
@@ -490,7 +490,7 @@ export default function ReportesView({
 
     for (const s of data.currentServers) {
       if (!matchesBankFilter(s.serverName, selectedBanks)) continue;
-      const info = getServerInfo(s.serverName, s.ip);
+      const info = getServerInfo(s.serverName);
       const bank = info ? info.type : "Sin clasificar";
       const updatedDate = new Date(s.updatedAt);
 
