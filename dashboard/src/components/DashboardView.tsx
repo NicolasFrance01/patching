@@ -421,7 +421,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── Cumplimiento por banco ──────────────────────────────────────────────────
   const byBankData = useMemo(() => {
     const banks = bankFilters.includes("all")
-      ? [...SERVER_TYPES, "Sin clasificar"]
+      ? [...SERVER_TYPES]
       : bankFilters.map(b => b === "unclassified" ? "Sin clasificar" : b);
 
     return banks.map((bank) => {
