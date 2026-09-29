@@ -59,7 +59,7 @@ function persistReporters(list: JiraUser[]) {
 
 const BANK_TO_JIRA: Record<string, { projectKey: string; orgLabel: string; spaceLabel: string }> = {
   BSC:              { projectKey: "GP",  orgLabel: "Banco Santa Cruz",      spaceLabel: "Grupo Petersen (GP)" },
-  Corp:             { projectKey: "GP",  orgLabel: "Corporativo",            spaceLabel: "Grupo Petersen (GP)" },
+  Corporativo:      { projectKey: "GP",  orgLabel: "Corporativo",            spaceLabel: "Grupo Petersen (GP)" },
   BSJ:              { projectKey: "GP",  orgLabel: "Banco San Juan",         spaceLabel: "Grupo Petersen (GP)" },
   NBSF:             { projectKey: "GP",  orgLabel: "Banco Santa Fe",         spaceLabel: "Grupo Petersen (GP)" },
   NBERSA:           { projectKey: "GP",  orgLabel: "Nuevo Banco Entre Ríos", spaceLabel: "Grupo Petersen (GP)" },
@@ -70,7 +70,7 @@ const BANK_TO_JIRA: Record<string, { projectKey: string; orgLabel: string; space
 
 const TYPE_COLORS: Record<string, string> = {
   ASJ: "#6366f1", BSC: "#06b6d4", BSJ: "#10b981",
-  Corp: "#f59e0b", NBERSA: "#ef4444", NBSF: "#8b5cf6", QUALIA: "#ec4899",
+  Corporativo: "#f59e0b", NBERSA: "#ef4444", NBSF: "#8b5cf6", QUALIA: "#ec4899",
   "Sin clasificar": "#71717a",
 };
 
@@ -276,7 +276,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUs
   // Effect to fetch fields when selectedBank changes (like auto-skip)
   useEffect(() => {
     if (selectedBank) {
-      fetchFieldMapping((BANK_TO_JIRA[selectedBank] ?? BANK_TO_JIRA["Corp"]).projectKey);
+      fetchFieldMapping((BANK_TO_JIRA[selectedBank] ?? BANK_TO_JIRA["Corporativo"]).projectKey);
     }
   }, [selectedBank, fetchFieldMapping]);
 
@@ -301,7 +301,7 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUs
   const bankGroups = getBankGroups(errorGroup.servers);
   const availableBanks = Object.keys(bankGroups).sort();
   const serversForBank = selectedBank ? (bankGroups[selectedBank] ?? []) : [];
-  const jiraConfig = selectedBank ? BANK_TO_JIRA[selectedBank] ?? BANK_TO_JIRA["Corp"] : null;
+  const jiraConfig = selectedBank ? BANK_TO_JIRA[selectedBank] ?? BANK_TO_JIRA["Corporativo"] : null;
 
   const handleSelectBank = (bank: string) => {
     setSelectedBank(bank);
@@ -603,10 +603,10 @@ export default function JiraTicketModal({ isOpen, onClose, errorGroup, creatorUs
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
                   <FieldRow label="Start Date" value={new Date().toLocaleDateString("es-AR")} />
-                  <FieldRow label="Area" value={["BSC", "BSJ", "Corp", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "INO" : "SEC"} />
+                  <FieldRow label="Area" value={["BSC", "BSJ", "Corporativo", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "INO" : "SEC"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
-                  <FieldRow label="Account" value={jiraConfig?.projectKey === "ASJ" ? "ASJ | SEC | Abono" : (["BSC", "BSJ", "Corp", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "GP | InO | Abono" : "GP | SEC | Abono")} accent />
+                  <FieldRow label="Account" value={jiraConfig?.projectKey === "ASJ" ? "ASJ | SEC | Abono" : (["BSC", "BSJ", "Corporativo", "NBERSA", "NBSF"].includes(selectedBank ?? "") ? "GP | InO | Abono" : "GP | SEC | Abono")} accent />
                   <FieldRow label="Organización GP" value={jiraConfig?.orgLabel ?? "—"} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-800/60">

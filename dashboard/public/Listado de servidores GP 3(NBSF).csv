@@ -1,20 +1,20 @@
 Cliente;Grupo;Dominio;IP;OS;Servidor;Ambiente
-NBSF;DCGrupo1;corp.net;;Microsoft Windows Server 2016 or later (64-bit);CORP000DC1;Producción
+NBSF;DCGrupo1;corp.net;;Windows Server 2016 or later (64-bit);CORP000DC1;Producción
 NBSF;DCGrupo1;nbsf.com.ar;172.16.11.129;Windows Server 2022 Standard;NBSF000DC2;Producción
 NBSF;DCGrupo1;nbsf.com.ar;172.16.11.33;Windows Server 2022 Standard;NBSF000GC1;Producción
-NBSF;DCGrupo1;siteempresas.bancosantafe.com.ar;;Microsoft Windows Server 2016 (64-bit);NBSFSFEMPDC3;Producción
+NBSF;DCGrupo1;siteempresas.bancosantafe.com.ar;;Windows Server 2016 (64-bit);NBSFSFEMPDC3;Producción
 NBSF;DCGrupo2;nbsf.com.ar;172.16.11.34;Windows Server 2016 Standard;BSFDRPDCPW1;Producción
-NBSF;DCGrupo2;corp.net;;Microsoft Windows Server 2016 or later (64-bit);CORP000GC1;Producción
+NBSF;DCGrupo2;corp.net;;Windows Server 2016 or later (64-bit);CORP000GC1;Producción
 NBSF;DCGrupo2;nbsf.com.ar;172.16.11.42;Windows Server 2022 Standard;NBSF000DC3;Producción
-NBSF;DCGrupo2;siteempresas.bancosantafe.com.ar;172.16.8.16;Microsoft Windows Server 2016 (64-bit);NBSFSFEMPDC4   ;Producción
+NBSF;DCGrupo2;siteempresas.bancosantafe.com.ar;172.16.8.16;Windows Server 2016 (64-bit);NBSFSFEMPDC4   ;Producción
 NBSF;DCGrupo3;nbsf.com.ar;172.16.11.36;Windows Server 2016 Standard;BSFDRPDCPW2;Producción
 NBSF;DCGrupo3;corp.net;172.16.11.37;Windows Server 2016 Standard;CORPDRPDCPW1;Producción
 NBSF;DCGrupo3;nbsf.com.ar;172.16.11.29;Windows Server 2022 Standard;NBSF000DC4;Producción
-NBSF;DCGrupo3;siteempresas.bancosantafe.com.ar;172.16.8.17;Microsoft Windows Server 2016 (64-bit);SFEDRPDCPW1;Producción
+NBSF;DCGrupo3;siteempresas.bancosantafe.com.ar;172.16.8.17;Windows Server 2016 (64-bit);SFEDRPDCPW1;Producción
 NBSF;DCGrupo4;corp.net;172.16.11.38;Windows Server 2016 Standard;CORPDRPDCPW2;Producción
 NBSF;DCGrupo4;nbsf.com.ar;172.16.11.32;Windows Server 2022 Standard;NBSF000DC5;Producción
-NBSF;DCGrupo4;siteempresas.bancosantafe.com.ar;172.16.8.18;Microsoft Windows Server 2016 (64-bit);SFEDRPDCPW2 ;Producción
-NBSF;DCGrupo4;nbsf.com.ar;172.30.10.197;Microsoft Windows Server 2016 or later (64-bit);SRVDCBSF01;Producción
+NBSF;DCGrupo4;siteempresas.bancosantafe.com.ar;172.16.8.18;Windows Server 2016 (64-bit);SFEDRPDCPW2 ;Producción
+NBSF;DCGrupo4;nbsf.com.ar;172.30.10.197;Windows Server 2016 or later (64-bit);SRVDCBSF01;Producción
 NBSF;Fix1;nbsf.com.ar;192.168.1.199;Windows Server 2019;BSF001APPWP1;Producción
 NBSF;Fix1;nbsf.com.ar;192.168.4.199;Windows Server 2019;BSF004APPWP1;Producción
 NBSF;Fix1;nbsf.com.ar;192.168.8.199;Windows Server 2019;BSF008APPWP1;Producción
@@ -158,7 +158,7 @@ NBSF;Fix3;nbsf.com.ar;192.168.68.199;Windows Server 2019;BSF857APPWP1;Producción
 NBSF;Fix3;nbsf.com.ar;172.18.40.124;Windows Server 2019;BSF990APPWP1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.18.251.242;Windows Server 2019 Standard;BSF000XPRE02;Producción
 NBSF;Produccion1;nbsf.com.ar;1,92168E+11;Windows Server 2019 Standard;BSF202APPWP1;Producción
-NBSF;Produccion1;nbsf.com.ar;-;Microsoft Windows Server 2016 or later (64-bit);BSF526APPWP1;Producción
+NBSF;Produccion1;nbsf.com.ar;-;Windows Server 2016 or later (64-bit);BSF526APPWP1;Producción
 NBSF;Produccion1;nbsf.com.ar;1,92168E+11;Windows Server 2022 Standard;BSF550DC1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.16.1.44;Windows Server 2019 Standard;BSFACTPOLICYT1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.16.13.210;Windows Server 2019 Standard;BSFACTSRVINFRA1;Producción
@@ -166,7 +166,7 @@ NBSF;Produccion1;nbsf.com.ar;172.16.2.110;Windows Server 2022 Datacenter;BSFACTW
 NBSF;Produccion1;BSFCACC1P;172.18.1.3;Windows Server 2022 Standard;BSFAPI1P;Producción
 NBSF;Produccion1;nbsf.com.ar;172.18.2.79;Windows Server 2019 Standard;BSFCCPASSETPW1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.18.2.163;Windows Server 2016 Standard;BSFCCPESSPW02;Producción
-NBSF;Produccion1;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPGOAGWPW1;Producción
+NBSF;Produccion1;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPGOAGWPW1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.16.1.165;Windows Server 2019 Standard;BSFCCPLEXWP1;Producción
 NBSF;Produccion1;nbsf.com.ar;172.18.2.139;Windows Server 2019 Standard;BSFCCPPDFWP3;Producción
 NBSF;Produccion1;siteempresas.bancosantafe.com.ar;172.18.2.98;Windows Server 2022 Standard;BSFCCPSRVPW2;Producción
@@ -190,7 +190,7 @@ NBSF;Produccion2;nbsf.com.ar;172.18.2.153;Windows Server 2019 Standard;BSFCCPMOB
 NBSF;Produccion2;nbsf.com.ar;172.16.8.44;Windows Server 2016 Standard;BSFCCPMSGPW2;Producción
 NBSF;Produccion2;nbsf.com.ar;172.18.2.129;Windows Server 2019 Standard;BSFCCPSEGMIM1;Producción
 NBSF;Produccion2;nbsf.com.ar;172.16.1.51;Windows Server 2019 Standard;BSFCCPSOP0PW1;Producción
-NBSF;Produccion2;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFDMZTMC1P;Producción
+NBSF;Produccion2;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFDMZTMC1P;Producción
 NBSF;Produccion2;nbsf.com.ar;172.16.1.252;Windows Server 2019 Standard;BSFLEG1P;Producción
 NBSF;Produccion2;siteempresas.bancosantafe.com.ar;172.18.2.60;Windows Server 2022 Standard;BSFRAD2P;Producción
 NBSF;Produccion2;nbsf.com.ar;172.18.18.79;Windows Server 2022 Standard;BSFWEB1D;Producción
@@ -216,7 +216,7 @@ NBSF;Produccion3;nbsf.com.ar;172.18.2.117;Windows Server 2016 Standard;BSFCCPSIP
 NBSF;Produccion3;siteempresas.bancosantafe.com.ar;172.18.2.164;Windows Server 2019 Standard;BSFCCPTSNWP1;Producción
 NBSF;Produccion3;BSFDMZWSUS1P;172.18.2.119;Windows Server 2019 Standard;BSFCCPWEBWP1;Producción
 NBSF;Produccion3;nbsf.com.ar;172.18.2.186;Windows Server 2019 Standard;BSFCCPWEBWP2;Producción
-NBSF;Produccion3;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFDRPSNMPC902;Producción
+NBSF;Produccion3;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFDRPSNMPC902;Producción
 NBSF;Produccion3;nbsf.com.ar;172.18.2.38;Windows Server 2022 Standard;BSFPWS2P;Producción
 NBSF;Produccion3;nbsf.com.ar;172.18.18.80;Windows Server 2022 Standard;BSFTSC1D;Producción
 NBSF;Produccion3;nbsf.com.ar;172.16.16.11;Windows Server 2016 Standard;NBSF000DHCP2;Producción
@@ -229,11 +229,11 @@ NBSF;Produccion4;nbsf.com.ar;1,92168E+11;Windows Server 2019 Standard;BSF701APPW
 NBSF;Produccion4;nbsf.com.ar;1,92168E+11;Windows Server 2022 Standard;BSF716DC1;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.1.125;Windows Server 2016 Standard;BSFACTMAILPW2;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.18.158;Windows Server 2022 Standard;BSFACTPTFWT1;Producción
-NBSF;Produccion4;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFAPIMGRDMZT1;Producción
+NBSF;Produccion4;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFAPIMGRDMZT1;Producción
 NBSF;Produccion4;siteempresas.bancosantafe.com.ar;172.18.2.89;Windows Server 2019 Standard;BSFCCPACLWP1;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.2.76;Windows Server 2019 Standard;BSFCCPDBSITEPW1;Producción
-NBSF;Produccion4;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPDMZWEBPW1 ;Producción
-NBSF;Produccion4;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPLEXDMZWP1;Producción
+NBSF;Produccion4;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPDMZWEBPW1 ;Producción
+NBSF;Produccion4;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPLEXDMZWP1;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.2.73;Windows Server 2019 Standard;BSFCCPPEMPW1;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.18.64;Windows Server 2019 Standard;BSFCCPRNPERWP1;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.2.155;Windows Server 2019 Standard;BSFCCPSIPW22;Producción
@@ -245,7 +245,7 @@ NBSF;Produccion4;nbsf.com.ar;172.16.2.135;Windows Server 2022 Standard;BSFRAS1P;
 NBSF;Produccion4;siteempresas.bancosantafe.com.ar;172.18.2.167;Windows Server 2022 Standard;BSFREP1P;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.2.195;Windows Server 2022 Standard;BSFSVN1P;Producción
 NBSF;Produccion4;nbsf.com.ar;172.18.2.62;Windows Server 2016 Standard;NBSFINFRASQL01;Producción
-NBSF;Produccion4;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);WSUSWS;Producción
+NBSF;Produccion4;nbsf.com.ar;;Windows Server 2016 or later (64-bit);WSUSWS;Producción
 NBSF;Produccion5;nbsf.com.ar;10.14.1.11;Windows Server 2022 Standard;BSF014DC1;Producción
 NBSF;Produccion5;nbsf.com.ar;1,92168E+11;Windows Server 2022 Standard;BSF518DC1;Producción
 NBSF;Produccion5;nbsf.com.ar;1,92168E+11;Windows Server 2022 Standard;BSF596DC1;Producción
@@ -254,42 +254,42 @@ NBSF;Produccion5;nbsf.com.ar;172.18.2.90;Windows Server 2019 Standard;BSFACTPDFW
 NBSF;Produccion5;nbsf.com.ar;172.18.1.4;Windows Server 2022 Standard;BSFAPI2P;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.213;Windows Server 2022 Standard;BSFAPR1P;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.1.21;Windows Server 2016 Standard;BSFCCPMAILPW2;Producción
-NBSF;Produccion5;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPMODODMZP1;Producción
-NBSF;Produccion5;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPSAAPW2;Producción
+NBSF;Produccion5;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPMODODMZP1;Producción
+NBSF;Produccion5;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPSAAPW2;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.112;Windows Server 2019 Standard;BSFCCPSQLSDYW;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.150;Windows Server 2019 Standard;BSFCCPSQLW04;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.193;Windows Server 2019 Standard;BSFDEBMEDIAPW1;Producción
 NBSF;Produccion5;nbsf.com.ar;172.16.1.162;Windows Server 2022 Standard;BSFDEEP1P;Producción
 NBSF;Produccion5;BSFDRPSNMPCW1;172.18.2.165;Windows Server 2022 Standard;BSFDESAPP01;Producción
-NBSF;Produccion5;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFDRPDC1;Producción
+NBSF;Produccion5;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFDRPDC1;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.25;Windows Server 2022 Standard;BSFPTF1P;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.37;Windows Server 2022 Standard;BSFPWS1P;Producción
 NBSF;Produccion5;CORPDRPDCPW1.corp.net;172.16.11.141;Windows Server 2022 Standard;BSFSQL7P;Producción
-NBSF;Produccion5;nbsf.com.ar;;Microsoft Windows Server 2016 (64-bit);BSFSWP1P-WEB;Producción
+NBSF;Produccion5;nbsf.com.ar;;Windows Server 2016 (64-bit);BSFSWP1P-WEB;Producción
 NBSF;Produccion5;nbsf.com.ar;172.16.13.90;Windows Server 2016 Standard;NBSF000APPCSH01;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.33;Windows Server 2016 Datacenter;NBSF000DEXMGR01;Producción
 NBSF;Produccion5;nbsf.com.ar;172.18.2.56;Windows Server 2016 Standard;NBSFADDSPAI01;Producción
 NBSF;Produccion6;nbsf.com.ar;1,92168E+11;Windows Server 2019 Standard;BSF552APPWP1;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFACTDMZWEBTW1;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFACTDMZWEBTW1;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.18.45;Windows Server 2019 Standard;BSFACTWEBWT1;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.18.18;Windows Server 2022 Standard;BSFBS1T;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.152;Windows Server 2019 Standard;BSFCCPBSTW1;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFCCPEMSP1;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFCCPEMSP1;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.1.61;Windows Server 2019 Standard;BSFCCPGOAPW2;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.75;Windows Server 2019 Standard;BSFCCPMODOINPW1;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.72;Windows Server 2019 Standard;BSFCCPSRVPW1;Producción
 NBSF;Produccion6;nbsf.com.ar;172.16.11.142;Windows Server 2019 Standard;BSFCCSQLM4WP1;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFDRPDC2;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFDRPDC2;Producción
 NBSF;Produccion6;nbsf.com.ar;;Windows Server 2022 Standard;BSFENG3P;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.92;Windows Server 2022 Standard;BSFLOG1P;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.18;Windows Server 2022 Standard;BSFMBAM01;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.23;Windows Server 2022 Standard;BSFWEB1P;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.47;Windows Server 2016 Standard;NBSF000JIRA;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);NBSF000SQLALGN01;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);NBSF000SQLALGN01;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.18.29;Windows Server 2016 Standard;NBSFDESSQL06;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);NBSFDMZWEB12;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);NBSFDMZWEB12;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.2.50;Windows Server 2016 Standard;NBSFSIAPEX1;Producción
-NBSF;Produccion6;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);NBSFVMWDMZWEB04;Producción
+NBSF;Produccion6;nbsf.com.ar;;Windows Server 2016 or later (64-bit);NBSFVMWDMZWEB04;Producción
 NBSF;Produccion6;nbsf.com.ar;172.18.18.52;Windows Server 2019 Standard;NBSFVMWSIDESYS1;Producción
 NBSF;Sucursal1;nbsf.com.ar;192.168.22.102;Windows Server 2022 Standard;BSF022DC1;Producción
 NBSF;Sucursal1;nbsf.com.ar;;;BSF023DC1;Producción
@@ -440,7 +440,7 @@ NBSF;Testing1;nbsf.com.ar;172.18.18.43;Windows Server 2019 Standard;BSFACTEVOWT1
 NBSF;Testing1;NBSF.com.ar;172.18.18.66;Windows Server 2019 Standard;BSFACTHIKTW1;Test
 NBSF;Testing1;nbsf.com.ar;172.16.1.213;Windows Server 2022 Standard;BSFACTINFRASRV1;Test
 NBSF;Testing1;nbsf.com.ar;172.16.55.6;Windows Server 2016 Standard;BSFACTMSGWT1;Test
-NBSF;Testing1;nbsf.com.ar;;Microsoft Windows Server 2016 or later (64-bit);BSFACTMSGWT2;Test
+NBSF;Testing1;nbsf.com.ar;;Windows Server 2016 or later (64-bit);BSFACTMSGWT2;Test
 NBSF;Testing1;nbsf.com.ar;172.18.18.47;Windows Server 2019 Standard;BSFACTPWRDAWT1;Test
 NBSF;Testing1;nbsf.com.ar;172.16.8.218;Windows Server 2019 Standard;BSFACTSQL07TW1;Test
 NBSF;Testing1;nbsf.com.ar;172.18.18.70;Windows Server 2019 Standard;BSFACTSQLSDYW;Test
@@ -452,7 +452,7 @@ NBSF;Testing1;siteempresas.bancosantafe.com.ar;172.18.18.156;Windows Server 2022
 NBSF;Testing1;NBSF.com.ar;172.18.18.62;Windows Server 2019 Standard;BSFACTTSNWT1;Test
 NBSF;Testing1;nbsf.com.ar;172.18.18.38;Windows Server 2019 Standard;BSFAPIMGRTEST1;Test
 NBSF;Testing1;nbsf.com.ar;172.16.2.144;Windows Server 2022 Standard;BSFBRK1T;Test
-NBSF;Testing1;nbsf.com.ar;-;Microsoft Windows Server 2016 or later (64-bit);BSFDMZTMC1T;Test
+NBSF;Testing1;nbsf.com.ar;-;Windows Server 2016 or later (64-bit);BSFDMZTMC1T;Test
 NBSF;Testing1;nbsf.com.ar;172.18.18.184;Windows Server 2022 Standard;BSFENG3D;Desarrollo
 NBSF;Testing1;nbsf.com.ar;172.18.18.183;Windows Server 2022 Standard;BSFENG3T;Test
 NBSF;Testing1;nbsf.com.ar;172.18.2.202;Windows Server 2022 Standard;BSFHELIX1P;Test
@@ -488,5 +488,4 @@ NBSF;Veeam1;nbsf.com.ar;172.18.2.87;Windows Server 2019 Standard;NBSFVEEAMPXY03;
 NBSF;Veeam2;NBSF.com.ar;172.16.13.35;Windows Server 2019 Standard;NBSF000VEEAM02;Producción
 NBSF;Veeam2;nbsf.com.ar;172.16.12.180;Windows Server 2019 Standard;NBSF000VEEAMONE;Producción
 NBSF;Veeam2;nbsf.com.ar;172.18.2.136;Windows Server 2019 Standard;NBSFVEEAMPXY04;Producción
-NBSF;Veeam2;nbsf.com.ar;172.16.1.236;Windows Server 2019 Standard;NBSFVEEAMPXY05;Producción
 NBSF;Veeam2;nbsf.com.ar;172.16.1.236;Windows Server 2019 Standard;NBSFVEEAMPXY05;Producción

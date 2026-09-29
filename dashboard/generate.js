@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const publicDir = path.join(process.cwd(), 'public');
-const files = fs.readdirSync(publicDir).filter(f => f.endsWith('.csv') && !f.includes('septiembre'));
+const files = fs.readdirSync(publicDir).filter(f => f.endsWith('.csv') && !f.includes('septiembre') && !f.includes('Duplicados'));
 
 const serverTypeMap = {};
 const groupsSet = new Set();
@@ -9,14 +9,13 @@ const serverTypesSet = new Set();
 
 for (const file of files) {
   let type = 'Sin clasificar';
-  if (file.includes('1(BSC)')) type = 'Banco Santa Cruz';
-  else if (file.includes('1(BSJ)')) type = 'Banco San Juan';
-  else if (file.includes('1(CORP)')) type = 'Corpo';
-  else if (file.includes('1(NBERSA)')) type = 'Banco Entre Rios';
-  else if (file.includes('1(NBSF)')) type = 'Banco Santa Fe';
-  else if (file.includes('septiembre 26')) type = 'all'; 
+  if (file.includes('BSC')) type = 'BSC';
+  else if (file.includes('BSJ')) type = 'BSJ';
+  else if (file.includes('CORP')) type = 'Corporativo';
+  else if (file.includes('NBERSA')) type = 'NBERSA';
+  else if (file.includes('NBSF')) type = 'NBSF';
 
-  if (type !== 'all') serverTypesSet.add(type);
+  if (type !== 'Sin clasificar') serverTypesSet.add(type);
 
   const content = fs.readFileSync(path.join(publicDir, file), 'utf8');
   const lines = content.split('\n');
@@ -37,9 +36,8 @@ for (const file of files) {
         const rawServerName = cols[5].trim();
         const ambiente = cols[6].trim() || null;
         
-        if (rawServerName && type !== 'all') {
-          // If the server name is duplicated across domains, we must append the domain to make it unique
-          const serverName = rawDomain ? `${rawServerName} (${rawDomain})` : rawServerName;
+        if (rawServerName) {
+          const serverName = (rawDomain && rawDomain !== "N/A" && rawDomain !== "null") ? `${rawServerName} (${rawDomain})` : rawServerName;
           
           serverTypeMap[serverName] = { type, grupo, ip, ambiente };
           if (grupo) groupsSet.add(grupo);
@@ -60,10 +58,11 @@ export interface ServerInfo {
   ambiente?: string | null;
 }
 
-export type ServerType = ${serverTypes.map(t => `"${t}"`).join(' | ')};
+export type ServerType = ${serverTypes.map(t => `"${t}"`).join(' | ')} | "Sin clasificar";
 
 export const SERVER_TYPES: ServerType[] = [
-  ${serverTypes.map(t => `"${t}"`).join(',\n  ')}
+  ${serverTypes.map(t => `"${t}"`).join(',\n  ')},
+  "Sin clasificar"
 ];
 
 export const GROUPS: string[] = [
