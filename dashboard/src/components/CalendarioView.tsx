@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2, Check, Search } from "lucide-react";
-import { GROUPS, SERVER_TYPES } from "@/lib/serverTypeMap";
+import { GROUPS, SERVER_TYPES, serverTypeMap } from "@/lib/serverTypeMap";
 
 interface PatchOrder {
   id: string;
@@ -107,9 +108,23 @@ function ComboMultiSelect({
 
 export default function CalendarioView({ initialOrders, initialServers = [] }: { initialOrders: PatchOrder[], initialServers?: ServerInfo[] }) {
   const [orders, setOrders] = useState<PatchOrder[]>(initialOrders);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const searchParams = useSearchParams();
+  const orderIdParam = searchParams?.get("orderId");
+
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (orderIdParam) {
+      const o = initialOrders.find(ord => ord.id === orderIdParam);
+      if (o) return new Date(o.scheduledAt);
+    }
+    return new Date();
+  });
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<PatchOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<PatchOrder | null>(() => {
+    if (orderIdParam) return initialOrders.find(ord => ord.id === orderIdParam) || null;
+    return null;
+  });
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states for creating new order
@@ -121,6 +136,18 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filter groups based on selected banks
+  const availableGroups = useMemo(() => {
+    if (targetBanks.length === 0) return GROUPS;
+    const groupsForBanks = new Set<string>();
+    Object.values(serverTypeMap).forEach((s) => {
+      if (targetBanks.includes(s.type) && s.grupo) {
+        groupsForBanks.add(s.grupo);
+      }
+    });
+    return Array.from(groupsForBanks).sort();
+  }, [targetBanks]);
 
   // Calendar logic
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -138,6 +165,33 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
       default: return "bg-zinc-800 text-zinc-300";
     }
   };
+
+  // Real-time polling for selected order
+  useEffect(() => {
+    if (!selectedOrder) return;
+    if (selectedOrder.status !== "IN_PROGRESS") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/calendar/${selectedOrder.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedOrder(prev => {
+            if (prev && prev.id === data.id) {
+              return { ...prev, status: data.status, executionLog: data.executionLog };
+            }
+            return prev;
+          });
+          // Also update it in the `orders` list so the calendar reflects the change
+          setOrders(prevOrders => prevOrders.map(o => o.id === data.id ? data : o));
+        }
+      } catch (err) {
+        console.error("Polling error", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [selectedOrder?.id, selectedOrder?.status]);
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,6 +361,7 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
                 <select value={actionType} onChange={(e) => setActionType(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none">
                   <option value="CHECK">Solo Chequeo (CheckWSUS)</option>
                   <option value="INSTALL">Instalación y Reinicio (Install)</option>
+                  <option value="REPORT">Reporte automático (Reporte)</option>
                 </select>
               </div>
               
@@ -314,15 +369,33 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
                 label="Bancos Destino" 
                 options={PREDEFINED_BANKS} 
                 selected={targetBanks} 
-                onChange={setTargetBanks} 
+                onChange={(banks) => {
+                  setTargetBanks(banks);
+                  // Optionally clear selected groups that no longer belong to selected banks
+                  // but for now, we just update the banks.
+                }} 
               />
               
-              <ComboMultiSelect 
-                label="Grupos Destino" 
-                options={PREDEFINED_GROUPS} 
-                selected={targetGroups} 
-                onChange={setTargetGroups} 
-              />
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-zinc-400">Grupos Destino</label>
+                  {targetBanks.length > 0 && availableGroups.length > 0 && (
+                    <button 
+                      type="button" 
+                      onClick={() => setTargetGroups(availableGroups)}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium"
+                    >
+                      Seleccionar todos los grupos del banco
+                    </button>
+                  )}
+                </div>
+                <ComboMultiSelect 
+                  label="" 
+                  options={availableGroups} 
+                  selected={targetGroups} 
+                  onChange={setTargetGroups} 
+                />
+              </div>
 
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">Cancelar</button>

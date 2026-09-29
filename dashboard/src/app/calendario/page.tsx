@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import CalendarioView from "@/components/CalendarioView";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,9 @@ export default async function CalendarioPage() {
           Visualiza, programa y gestiona las ejecuciones de parcheo (WUU).
         </p>
       </div>
-      <CalendarioView initialOrders={serializedOrders} initialServers={servers} />
+      <Suspense fallback={<div className="text-zinc-400 text-sm">Cargando calendario...</div>}>
+        <CalendarioView initialOrders={serializedOrders} initialServers={servers} />
+      </Suspense>
     </div>
   );
 }

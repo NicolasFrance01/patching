@@ -13,7 +13,7 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const [raw, rawSyncRuns] = await Promise.all([
+  const [raw, rawSyncRuns, scheduledOrdersRaw] = await Promise.all([
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
@@ -21,18 +21,14 @@ export default async function Home() {
       include: {
         records: {
           select: {
-            serverName: true,
-            ip:         true,
-            grupo:      true,
-            ambiente:   true,
-            os:         true,
-            installedKBs: true,
-            status:     true,
-            errorDescription: true,
+            serverName: true, ip: true, grupo: true, ambiente: true, os: true, installedKBs: true, status: true, errorDescription: true,
           },
         },
       },
     }),
+    prisma.patchOrder.findMany({
+      where: { status: "PENDING" }
+    })
   ]);
 
   const servers: ServerStatus[] = raw.map((s) => ({
@@ -47,6 +43,11 @@ export default async function Home() {
     records: run.records,
   }));
 
+  const scheduledOrders = scheduledOrdersRaw.map(o => ({
+    ...o,
+    scheduledAt: o.scheduledAt.toISOString()
+  }));
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>
@@ -57,7 +58,7 @@ export default async function Home() {
           Monitoreo en tiempo real del estado de actualizaciones de servidores.
         </p>
       </div>
-      <DashboardView initialData={servers} syncRuns={syncRuns} />
+      <DashboardView initialData={servers} syncRuns={syncRuns} scheduledOrders={scheduledOrders} />
     </div>
   );
 }

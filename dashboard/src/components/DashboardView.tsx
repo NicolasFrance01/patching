@@ -36,10 +36,20 @@ interface SyncRun {
   records: SyncRecord[];
 }
 
+interface PatchOrder {
+  id: string;
+  title: string;
+  targetGroups: string | null;
+  targetServers: string | null;
+  status: string;
+  scheduledAt: string;
+}
+
 interface DashboardViewProps {
   initialData: ServerStatus[];
   syncRuns?: SyncRun[];
   creatorUsername?: string;
+  scheduledOrders?: PatchOrder[];
 }
 
 type BankFilter = "all" | ServerType | "unclassified";
@@ -230,7 +240,7 @@ function TruncatedCell({
     </td>
   );
 }
-export default function DashboardView({ initialData, syncRuns = [], creatorUsername }: DashboardViewProps) {
+export default function DashboardView({ initialData, syncRuns = [], creatorUsername, scheduledOrders = [] }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "reportes" | "historial" | "jira" | "mis-tickets">("dashboard");
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
@@ -370,14 +380,32 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     const sinConf   = filtered.filter((s) => s.extendedStatus === "Sin Confirmación").length;
     const sinSnap   = filtered.filter((s) => s.extendedStatus === "Sin Snap").length;
     const revision  = filtered.filter((s) => s.extendedStatus === "En Revisión").length;
-    const pendientes = filtered.filter((s) => s.extendedStatus === "Pendiente").length;
     const noData    = filtered.filter((s) => s.extendedStatus === "Sin Datos").length;
     
-    // Para % de cumplimiento seguimos considerando solo los que ya pasaron
-    // O si queremos que el pipeline sea la base: ok / total
+    // Calculate pending from scheduledOrders that match filtered servers
+    let pendientesCount = 0;
+    if (scheduledOrders.length > 0) {
+      const scheduledServers = new Set<string>();
+      scheduledOrders.forEach(order => {
+        const banks = order.targetGroups ? order.targetGroups.split(",").map(b => b.trim()) : [];
+        const groups = order.targetServers ? order.targetServers.split(",").map(g => g.trim()) : [];
+        filtered.forEach(s => {
+          // Check if server belongs to scheduled groups OR scheduled banks
+          const serverInfo = getServerInfo(s.serverName);
+          const serverBank = serverInfo?.type || "";
+          if (groups.includes(s.grupo || "") || banks.includes(serverBank)) {
+            scheduledServers.add(s.serverName);
+          }
+        });
+      });
+      pendientesCount = scheduledServers.size;
+    } else {
+      pendientesCount = filtered.filter((s) => s.extendedStatus === "Pendiente").length;
+    }
+
     const pct       = total > 0 ? Math.round((ok / total) * 100) : 0;
-    return { total, ok, errors, sinConf, sinSnap, revision, pendientes, noData, pct };
-  }, [filtered]);
+    return { total, ok, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct };
+  }, [filtered, scheduledOrders]);
 
   // ── Donut chart data ────────────────────────────────────────────────────────
   const donutData = useMemo(() => [
