@@ -14726,5 +14726,22 @@ export const serverTypeMap: Record<string, ServerInfo> = {
 };
 
 export function getServerInfo(serverName: string): ServerInfo | undefined {
-  return serverTypeMap[serverName];
+  if (serverTypeMap[serverName]) return serverTypeMap[serverName];
+  
+  // Fallback: If DB server name has no domain, try to find a match in the map that starts with "serverName ("
+  if (!serverName.includes(' (')) {
+    const prefix = serverName + ' (';
+    const match = Object.keys(serverTypeMap).find(k => k.startsWith(prefix) || k === serverName);
+    if (match) return serverTypeMap[match];
+  }
+  
+  // Fallback 2: If DB server name HAS domain, but map does not
+  const baseName = serverName.split(' (')[0];
+  if (serverTypeMap[baseName]) return serverTypeMap[baseName];
+  
+  // Fallback 3: Find any key in map that shares the same baseName
+  const matchBase = Object.keys(serverTypeMap).find(k => k.split(' (')[0].toLowerCase() === baseName.toLowerCase());
+  if (matchBase) return serverTypeMap[matchBase];
+  
+  return undefined;
 }
