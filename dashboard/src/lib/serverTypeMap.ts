@@ -6,13 +6,14 @@ export interface ServerInfo {
   ambiente?: string | null;
 }
 
-export type ServerType = "Banco Entre Rios" | "Banco San Juan" | "Banco Santa Cruz" | "Banco Santa Fe" | "Sin clasificar";
+export type ServerType = "Banco Entre Rios" | "Banco San Juan" | "Banco Santa Cruz" | "Banco Santa Fe" | "Corpo" | "Sin clasificar";
 
 export const SERVER_TYPES: ServerType[] = [
   "Banco Entre Rios",
   "Banco San Juan",
   "Banco Santa Cruz",
   "Banco Santa Fe",
+  "Corpo",
   "Sin clasificar"
 ];
 
@@ -5783,4213 +5784,4213 @@ export const serverTypeMap: Record<string, ServerInfo> = {
     "ambiente": "Test/QA"
   },
   "ASJDC01 (asj.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "172.30.39.12",
     "ambiente": "Producci�n"
   },
   "BERDC01P (ber01.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "172.30.158.11",
     "ambiente": "Producci�n"
   },
   "PTCDC03P (ptc.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "172.30.61.10",
     "ambiente": "Producci�n"
   },
   "QUALIADC03 (qualia.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "172.30.14.15",
     "ambiente": "Producci�n"
   },
   "SRVAZDCONN03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "10.50.212.46",
     "ambiente": "Producci�n"
   },
   "SRVDCOMNIPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo1",
     "ip": "172.30.118.20",
     "ambiente": "Producci�n"
   },
   "ASJDC04 (asj.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.39.11",
     "ambiente": "Producci�n"
   },
   "BSJDC01P (bsj01.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.128.11",
     "ambiente": "Producci�n"
   },
   "PTCEDC01 (petersenenergia.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.16.218",
     "ambiente": "Producci�n"
   },
   "ROOTDC1601 (root.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.10.183",
     "ambiente": "Producci�n"
   },
   "SRVDC01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.10.184",
     "ambiente": "Producci�n"
   },
   "SRVDCOMNIPP02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo2",
     "ip": "172.30.118.21",
     "ambiente": "Producci�n"
   },
   "ASJDC05 (asj.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo3",
     "ip": "172.19.241.10",
     "ambiente": "Producci�n"
   },
   "DCP100VRT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo3",
     "ip": "172.20.1.100",
     "ambiente": "Producci�n"
   },
   "PTCEDC02 (petersenenergia.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo3",
     "ip": "172.30.16.219",
     "ambiente": "Producci�n"
   },
   "ROOTDC1602 (root.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo3",
     "ip": "172.30.10.187",
     "ambiente": "Producci�n"
   },
   "SRVDC01BSF (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo3",
     "ip": "172.16.10.57",
     "ambiente": "Producci�n"
   },
   "ASJDC06 (asj.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo4",
     "ip": "172.19.252.10",
     "ambiente": "Producci�n"
   },
   "PTCDC01 (petersenthieleycruz.com.ar)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo4",
     "ip": "172.10.0.101",
     "ambiente": "Producci�n"
   },
   "QUALIADC01 (qualia.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo4",
     "ip": "172.30.14.11",
     "ambiente": "Producci�n"
   },
   "ROOTDC1603 (root.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo4",
     "ip": "172.30.10.208",
     "ambiente": "Producci�n"
   },
   "SRVDC02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo4",
     "ip": "172.30.10.185",
     "ambiente": "Producci�n"
   },
   "BERDC01 (asj.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo5",
     "ip": "172.30.39.14",
     "ambiente": "Producci�n"
   },
   "PTCDC02P (ptc.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo5",
     "ip": "172.30.61.11",
     "ambiente": "Producci�n"
   },
   "QUALIADC02 (qualia.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo5",
     "ip": "172.30.14.12",
     "ambiente": "Producci�n"
   },
   "SRVAZADCONN01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo5",
     "ip": "10.50.212.45",
     "ambiente": "Producci�n"
   },
   "SRVDCDRS01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "DCGrupo5",
     "ip": "172.30.10.209",
     "ambiente": "Producci�n"
   },
   "ABS9-AZUDEV (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.17.36",
     "ambiente": "Desarrollo"
   },
   "ABS9-DEVSU (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.17.38",
     "ambiente": "Desarrollo"
   },
   "BERINSTWEB01DEV (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "10.50.211.145",
     "ambiente": "Desarrollo"
   },
   "BEROCEAPI01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.70",
     "ambiente": "Desarrollo"
   },
   "BEROCEIS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.72",
     "ambiente": "Desarrollo"
   },
   "BEROCEMS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.71",
     "ambiente": "Desarrollo"
   },
   "BERSTDINSQL01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.40",
     "ambiente": "Desarrollo"
   },
   "BERSTDINWEB01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.41",
     "ambiente": "Desarrollo"
   },
   "BERSTDINWEB02D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.88.42",
     "ambiente": "Desarrollo"
   },
   "BSCOCEAPI01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.70",
     "ambiente": "Desarrollo"
   },
   "BSCOCEIS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.72",
     "ambiente": "Desarrollo"
   },
   "BSCOCEMS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.71",
     "ambiente": "Desarrollo"
   },
   "BSCSTDINSQL01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.40",
     "ambiente": "Desarrollo"
   },
   "BSCSTDINWEB01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.41",
     "ambiente": "Desarrollo"
   },
   "BSCSTDINWEB02D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.98.42",
     "ambiente": "Desarrollo"
   },
   "BSFOCEAPI01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.83.70",
     "ambiente": "Desarrollo"
   },
   "BSFOCEIS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.83.72",
     "ambiente": "Desarrollo"
   },
   "BSFOCEMS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.83.71",
     "ambiente": "Desarrollo"
   },
   "BSJOCEAPI01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.70",
     "ambiente": "Desarrollo"
   },
   "BSJOCEIS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.72",
     "ambiente": "Desarrollo"
   },
   "BSJOCEMS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.71",
     "ambiente": "Desarrollo"
   },
   "BSJSTDINSQL01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.40",
     "ambiente": "Desarrollo"
   },
   "BSJSTDINWEB01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.41",
     "ambiente": "Desarrollo"
   },
   "BSJSTDINWEB02D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.93.42",
     "ambiente": "Desarrollo"
   },
   "PTCDMZ01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "10.50.211.91",
     "ambiente": "Desarrollo"
   },
   "PWCCI-DAS-01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.86",
     "ambiente": "Desarrollo"
   },
   "SRVBPRISM01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.60",
     "ambiente": "Desarrollo"
   },
   "SRVPWRCRVDA01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.51",
     "ambiente": "Desarrollo"
   },
   "SRVPWRCRVDA02D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.52",
     "ambiente": "Desarrollo"
   },
   "SRVPWRCRVDA03D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.53",
     "ambiente": "Desarrollo"
   },
   "SRVPWRCRVDAS01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.50",
     "ambiente": "Desarrollo"
   },
   "SRVSQL01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.125",
     "ambiente": "Desarrollo"
   },
   "SRVSQL02D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.210.126",
     "ambiente": "Desarrollo"
   },
   "SRVTABBRIDGE01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Desarrollo1",
     "ip": "172.30.213.34",
     "ambiente": "Desarrollo"
   },
   "ABS9-BUILD01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.43",
     "ambiente": "Producci�n"
   },
   "ABS9-TOOLS (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.37",
     "ambiente": "Producci�n"
   },
   "BERENROLLWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.89.98",
     "ambiente": "Producci�n"
   },
   "BERINSTWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.89.96",
     "ambiente": "Producci�n"
   },
   "BERMCISIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.179",
     "ambiente": "Producci�n"
   },
   "BEROCEDB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.89.82",
     "ambiente": "Producci�n"
   },
   "BEROCEMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.89.64",
     "ambiente": "Producci�n"
   },
   "BERPRICINGWEBP (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.28",
     "ambiente": "Producci�n"
   },
   "BERSONPRTG01P (petersenthieleycruz.com.ar)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.89.73",
     "ambiente": "Producci�n"
   },
   "BSCBPRISMSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSCINSTBFF01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.95",
     "ambiente": "Producci�n"
   },
   "BSCMCESIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.207",
     "ambiente": "Producci�n"
   },
   "BSCOCEAPI03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.62",
     "ambiente": "Producci�n"
   },
   "BSCOCEIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.68",
     "ambiente": "Producci�n"
   },
   "BSCONBOARDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.194",
     "ambiente": "Producci�n"
   },
   "BSCPWRCRVDA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.59",
     "ambiente": "Producci�n"
   },
   "BSCVUFADB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.99.186",
     "ambiente": "Producci�n"
   },
   "BSFDEBMEDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.196",
     "ambiente": "Producci�n"
   },
   "BSFINSTWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.84.95",
     "ambiente": "Producci�n"
   },
   "BSFMCISIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.173",
     "ambiente": "Producci�n"
   },
   "BSFOCEAPI02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.61",
     "ambiente": "Producci�n"
   },
   "BSFOCEIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.67",
     "ambiente": "Producci�n"
   },
   "BSFOCEMS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.65",
     "ambiente": "Producci�n"
   },
   "BSFPWRCRVDA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.59",
     "ambiente": "Producci�n"
   },
   "BSFSONPRTG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.73",
     "ambiente": "Producci�n"
   },
   "BSJAPIWSO2TDMZ (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.92.141",
     "ambiente": "Producci�n"
   },
   "BSJENROLLWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.94.98",
     "ambiente": "Producci�n"
   },
   "BSJINSTWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.94.96",
     "ambiente": "Producci�n"
   },
   "BSJOCEAPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.94.60",
     "ambiente": "Producci�n"
   },
   "BSJOCEDB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.94.83",
     "ambiente": "Producci�n"
   },
   "BSJOCEMS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.94.65",
     "ambiente": "Producci�n"
   },
   "BSJPWRCRVDA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.94.58",
     "ambiente": "Producci�n"
   },
   "BSJSONPRTG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.94.73",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.112",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI07P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.120",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.215.78",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS06P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.215.85",
     "ambiente": "Producci�n"
   },
   "EDH-SUPPORTWIN (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.213.10",
     "ambiente": "Producci�n"
   },
   "PTCEXC02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PWCCI-SIS-01D (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.210.88",
     "ambiente": "Producci�n"
   },
   "SRVAGCTRLR01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.200.50",
     "ambiente": "Producci�n"
   },
   "SRVBTAUX01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.3",
     "ambiente": "Producci�n"
   },
   "SRVCAMPADOBEP03 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.215.184",
     "ambiente": "Producci�n"
   },
   "SRVCITASWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.250.50",
     "ambiente": "Producci�n"
   },
   "SRVCOMFRON01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.140",
     "ambiente": "Producci�n"
   },
   "SRVEFLOWTWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.8.63",
     "ambiente": "Producci�n"
   },
   "SRVENGWABSJ01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.79",
     "ambiente": "Producci�n"
   },
   "SRVFDAPIDIC01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.246",
     "ambiente": "Producci�n"
   },
   "SRVFSSAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.90",
     "ambiente": "Producci�n"
   },
   "SRVGOADMZHA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.102",
     "ambiente": "Producci�n"
   },
   "SRVINTEG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.84.79",
     "ambiente": "Producci�n"
   },
   "SRVKIWICT01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.56",
     "ambiente": "Producci�n"
   },
   "SRVMOODLSQL02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.115",
     "ambiente": "Producci�n"
   },
   "SRVNUCLEUS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.42",
     "ambiente": "Producci�n"
   },
   "SRVPACTAS01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.47",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.215.71",
     "ambiente": "Producci�n"
   },
   "SRVPRTG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.2",
     "ambiente": "Producci�n"
   },
   "SRVPWCSQLC1P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.184",
     "ambiente": "Producci�n"
   },
   "SRVPWRCRVSDS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.71",
     "ambiente": "Producci�n"
   },
   "SRVSNMPC02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.218.50",
     "ambiente": "Producci�n"
   },
   "SRVSQLCITAS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.5",
     "ambiente": "Producci�n"
   },
   "SRVSQLTYS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.181",
     "ambiente": "Producci�n"
   },
   "SRVTACTAS01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.8",
     "ambiente": "Producci�n"
   },
   "SRVTMMOBILE01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.33",
     "ambiente": "Producci�n"
   },
   "SRVTRENDMAC01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.212.55",
     "ambiente": "Producci�n"
   },
   "SRVTS06P (Nuevo Servidor Licencias TS) (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVTSGDD02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.10.105",
     "ambiente": "Producci�n"
   },
   "SRVUASM01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "10.50.212.41",
     "ambiente": "Producci�n"
   },
   "UNISYS-BUILD01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.197",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT03 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.121",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT-QA03 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.212",
     "ambiente": "Producci�n"
   },
   "UNISYS-TFS2 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n1",
     "ip": "172.30.17.111",
     "ambiente": "Producci�n"
   },
   "ABS9-BUILD02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.17.44",
     "ambiente": "Producci�n"
   },
   "BERBPRISMSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BERFDSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.89.246",
     "ambiente": "Producci�n"
   },
   "BERMCESIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.202",
     "ambiente": "Producci�n"
   },
   "BEROCEAPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.89.60",
     "ambiente": "Producci�n"
   },
   "BEROCEDB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.89.83",
     "ambiente": "Producci�n"
   },
   "BEROCEMS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.89.65",
     "ambiente": "Producci�n"
   },
   "BERPWRCRVDA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.89.58",
     "ambiente": "Producci�n"
   },
   "BERSONPRTG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.89.73",
     "ambiente": "Producci�n"
   },
   "BSCBPRISMSRV01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSCINSTBFF02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.99.96",
     "ambiente": "Producci�n"
   },
   "BSCMCISIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.182",
     "ambiente": "Producci�n"
   },
   "BSCOCEDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.99.81",
     "ambiente": "Producci�n"
   },
   "BSCOCEIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.99.69",
     "ambiente": "Producci�n"
   },
   "BSCONBOARDMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.99.194",
     "ambiente": "Producci�n"
   },
   "BSCSBALSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.99.74",
     "ambiente": "Producci�n"
   },
   "BSCVUFADB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.99.187",
     "ambiente": "Producci�n"
   },
   "BSFENROLLWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.84.98",
     "ambiente": "Producci�n"
   },
   "BSFINSTWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.84.96",
     "ambiente": "Producci�n"
   },
   "BSFMCISIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.174",
     "ambiente": "Producci�n"
   },
   "BSFOCEAPI03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.84.62",
     "ambiente": "Producci�n"
   },
   "BSFOCEIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.84.68",
     "ambiente": "Producci�n"
   },
   "BSFONBOARDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.84.194",
     "ambiente": "Producci�n"
   },
   "BSFPWRCRVDA03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.84.56",
     "ambiente": "Producci�n"
   },
   "BSFSONPRTG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.84.73",
     "ambiente": "Producci�n"
   },
   "BSJBPRISMSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSJFDSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.246",
     "ambiente": "Producci�n"
   },
   "BSJMCESIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.204",
     "ambiente": "Producci�n"
   },
   "BSJOCEAPI02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.61",
     "ambiente": "Producci�n"
   },
   "BSJOCEIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.67",
     "ambiente": "Producci�n"
   },
   "BSJONBOARDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.194",
     "ambiente": "Producci�n"
   },
   "BSJPWRCRVDA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.59",
     "ambiente": "Producci�n"
   },
   "BSJVUFADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.94.185",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.212.116",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI08P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.212.121",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.215.80",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS07P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.215.86",
     "ambiente": "Producci�n"
   },
   "GPSECMODO01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.84.203",
     "ambiente": "Producci�n"
   },
   "PWCCE-DAS-01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.199",
     "ambiente": "Producci�n"
   },
   "SRVAPIWIN03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.6.210",
     "ambiente": "Producci�n"
   },
   "SRVAZRSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.215.73",
     "ambiente": "Producci�n"
   },
   "SRVBTAUX02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.10.21",
     "ambiente": "Producci�n"
   },
   "SRVCAMPADOBEP04 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.215.186",
     "ambiente": "Producci�n"
   },
   "SRVCITASWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.8.120",
     "ambiente": "Producci�n"
   },
   "SRVCORPWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.131",
     "ambiente": "Producci�n"
   },
   "SRVDCBSF1 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVDEPIIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.27",
     "ambiente": "Producci�n"
   },
   "SRVEMANAGDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.10.73",
     "ambiente": "Producci�n"
   },
   "SRVEXGPSA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.10.59",
     "ambiente": "Producci�n"
   },
   "SRVFS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.10.135",
     "ambiente": "Producci�n"
   },
   "SRVFSUSR01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.106",
     "ambiente": "Producci�n"
   },
   "SRVGOAHA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.141",
     "ambiente": "Producci�n"
   },
   "SRVINVAM02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.101",
     "ambiente": "Producci�n"
   },
   "SRVMEPSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.118",
     "ambiente": "Producci�n"
   },
   "SRVMSTIO01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.35",
     "ambiente": "Producci�n"
   },
   "SRVOCRBAL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.236",
     "ambiente": "Producci�n"
   },
   "SRVPDBACTAS01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.10.5",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.215.69",
     "ambiente": "Producci�n"
   },
   "SRVPSWSAFE01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVPWCSQLC2P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.185",
     "ambiente": "Producci�n"
   },
   "SRVRECGP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.11.34",
     "ambiente": "Producci�n"
   },
   "SRVSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.91",
     "ambiente": "Producci�n"
   },
   "SRVSQLMON02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.230",
     "ambiente": "Producci�n"
   },
   "SRVSQLTYS04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.40",
     "ambiente": "Producci�n"
   },
   "SRVTDATAETL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.57",
     "ambiente": "Producci�n"
   },
   "SRVTOUCHONE (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "10.50.212.55",
     "ambiente": "Producci�n"
   },
   "SRVTS02P (TS usos varios)_restored_20072025 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVTSAWS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.218.51",
     "ambiente": "Producci�n"
   },
   "SRVTSPAI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.212.10",
     "ambiente": "Producci�n"
   },
   "SRVUNISYSFS (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.17.81",
     "ambiente": "Producci�n"
   },
   "UNISYS-BUILD02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.17.198",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT04 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.17.122",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT-REL01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": "172.30.17.127",
     "ambiente": "Producci�n"
   },
   "VM600DC00 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "ABS9-RT01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BERBPRISMSRV01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BERINSTBFF01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.95",
     "ambiente": "Producci�n"
   },
   "BERMCESIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.203",
     "ambiente": "Producci�n"
   },
   "BEROCEAPI02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.61",
     "ambiente": "Producci�n"
   },
   "BEROCEIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.67",
     "ambiente": "Producci�n"
   },
   "BERONBOARDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.194",
     "ambiente": "Producci�n"
   },
   "BERPWRCRVDA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.59",
     "ambiente": "Producci�n"
   },
   "BERVUFADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.89.185",
     "ambiente": "Producci�n"
   },
   "BSCDEBMEDAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.212.80",
     "ambiente": "Producci�n"
   },
   "BSCINSTWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.99.95",
     "ambiente": "Producci�n"
   },
   "BSCMCISIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.183",
     "ambiente": "Producci�n"
   },
   "BSCOCEDB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.99.82",
     "ambiente": "Producci�n"
   },
   "BSCOCEMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.99.63",
     "ambiente": "Producci�n"
   },
   "BSCONBOARDMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.99.184",
     "ambiente": "Producci�n"
   },
   "BSCSONPRTG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.99.73",
     "ambiente": "Producci�n"
   },
   "BSFBPRISMSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSFFDSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.84.246",
     "ambiente": "Producci�n"
   },
   "BSFINSTWEB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.84.99",
     "ambiente": "Producci�n"
   },
   "BSFMCISIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.175",
     "ambiente": "Producci�n"
   },
   "BSFOCEDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.84.81",
     "ambiente": "Producci�n"
   },
   "BSFOCEIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.84.69",
     "ambiente": "Producci�n"
   },
   "BSFONBOARDMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.84.150",
     "ambiente": "Producci�n"
   },
   "BSFPWRCRVDAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.84.57",
     "ambiente": "Producci�n"
   },
   "BSFVUFADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.84.185",
     "ambiente": "Producci�n"
   },
   "BSJBPRISMSRV01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSJINSTBFF01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.94.95",
     "ambiente": "Producci�n"
   },
   "BSJMCESIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.205",
     "ambiente": "Producci�n"
   },
   "BSJOCEAPI03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.94.62",
     "ambiente": "Producci�n"
   },
   "BSJOCEIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.94.69",
     "ambiente": "Producci�n"
   },
   "BSJONBOARDMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.94.150",
     "ambiente": "Producci�n"
   },
   "BSJPWRCRVDAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.94.57",
     "ambiente": "Producci�n"
   },
   "BSJVUFADB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.94.186",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.212.117",
     "ambiente": "Producci�n"
   },
   "CLOUDERADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.215.79",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.215.82",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS08P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.215.87",
     "ambiente": "Producci�n"
   },
   "INVGCONEC01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.34",
     "ambiente": "Producci�n"
   },
   "PTCDMZ01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PWCCE-SDS-01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.198",
     "ambiente": "Producci�n"
   },
   "SRVAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "10.50.22.54",
     "ambiente": "Producci�n"
   },
   "SRVBEYOND01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.115",
     "ambiente": "Producci�n"
   },
   "SRVCA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.22",
     "ambiente": "Producci�n"
   },
   "SRVCAPAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.79",
     "ambiente": "Producci�n"
   },
   "SRVCMSBO01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.104",
     "ambiente": "Producci�n"
   },
   "SRVCORPWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.132",
     "ambiente": "Producci�n"
   },
   "SRVDEPSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.28",
     "ambiente": "Producci�n"
   },
   "SRVENGWABER01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.29",
     "ambiente": "Producci�n"
   },
   "SRVEXGPSA03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.118.70",
     "ambiente": "Producci�n"
   },
   "SRVFSBKPSQL (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.146",
     "ambiente": "Producci�n"
   },
   "SRVGDS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.54",
     "ambiente": "Producci�n"
   },
   "SRVGOAHA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.142",
     "ambiente": "Producci�n"
   },
   "SRVINVSD02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.100",
     "ambiente": "Producci�n"
   },
   "SRVMERCAPDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.130",
     "ambiente": "Producci�n"
   },
   "SRVNAP1601P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.62",
     "ambiente": "Producci�n"
   },
   "SRVOMNIBOPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.58",
     "ambiente": "Producci�n"
   },
   "SRVPROBATCH01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.35",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.215.68",
     "ambiente": "Producci�n"
   },
   "SRVPSWSAFE02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVPWCSQLC3P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.186",
     "ambiente": "Producci�n"
   },
   "SRVSMARTRISK01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.231",
     "ambiente": "Producci�n"
   },
   "SRVSQL02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.92",
     "ambiente": "Producci�n"
   },
   "SRVSQLTIPAI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.43",
     "ambiente": "Producci�n"
   },
   "SRVSTGSQLVB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.26",
     "ambiente": "Producci�n"
   },
   "SRVTDBACTAS01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.19",
     "ambiente": "Producci�n"
   },
   "SRVTRENDAPEX01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.212.50",
     "ambiente": "Producci�n"
   },
   "SRVTS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.61",
     "ambiente": "Producci�n"
   },
   "SRVTSCCM01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.211.68",
     "ambiente": "Producci�n"
   },
   "SRVTSVISA01P (Recupero) (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVWSUS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.10.57",
     "ambiente": "Producci�n"
   },
   "UNISYS-CLIENT-TOOLS (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "UNISYS-RT05 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.17.123",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT-REL02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.17.126",
     "ambiente": "Producci�n"
   },
   "VMCORP029 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n3",
     "ip": "172.30.11.106",
     "ambiente": "Producci�n"
   },
   "ABS9-SUP01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.17.40",
     "ambiente": "Producci�n"
   },
   "BERDEBMEDIADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BERINSTBFF02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.89.96",
     "ambiente": "Producci�n"
   },
   "BERMCISIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.177",
     "ambiente": "Producci�n"
   },
   "BEROCEAPI03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.89.62",
     "ambiente": "Producci�n"
   },
   "BEROCEIS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.89.69",
     "ambiente": "Producci�n"
   },
   "BERONBOARDMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.89.150",
     "ambiente": "Producci�n"
   },
   "BERPWRCRVDAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.89.57",
     "ambiente": "Producci�n"
   },
   "BERVUFADB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.89.186",
     "ambiente": "Producci�n"
   },
   "BSCDEBMEDIADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSCINSTWEB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.99.96",
     "ambiente": "Producci�n"
   },
   "BSCOCEAPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.99.60",
     "ambiente": "Producci�n"
   },
   "BSCOCEDB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.99.83",
     "ambiente": "Producci�n"
   },
   "BSCOCEMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.99.64",
     "ambiente": "Producci�n"
   },
   "BSCPRICINGWEBP (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.114",
     "ambiente": "Producci�n"
   },
   "BSCSONPRTG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.99.73",
     "ambiente": "Producci�n"
   },
   "BSFBPRISMSRV01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSFINSTBFF01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.84.95",
     "ambiente": "Producci�n"
   },
   "BSFMCESIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.200",
     "ambiente": "Producci�n"
   },
   "BSFMCISIS04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.176",
     "ambiente": "Producci�n"
   },
   "BSFOCEDB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.84.82",
     "ambiente": "Producci�n"
   },
   "BSFOCEMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.84.63",
     "ambiente": "Producci�n"
   },
   "BSFONBOARDMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.84.184",
     "ambiente": "Producci�n"
   },
   "BSFREGFIRMSQL (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSFVUFADB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.84.186",
     "ambiente": "Producci�n"
   },
   "BSJDEBMEDDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.194",
     "ambiente": "Producci�n"
   },
   "BSJINSTBFF02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.96",
     "ambiente": "Producci�n"
   },
   "BSJMCISIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.180",
     "ambiente": "Producci�n"
   },
   "BSJOCEDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.81",
     "ambiente": "Producci�n"
   },
   "BSJOCEMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.63",
     "ambiente": "Producci�n"
   },
   "BSJONBOARDMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.184",
     "ambiente": "Producci�n"
   },
   "BSJSBALSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.74",
     "ambiente": "Producci�n"
   },
   "BSJVUFADB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.94.187",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI05P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.212.118",
     "ambiente": "Producci�n"
   },
   "CLOUDERAIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.215.77",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.215.83",
     "ambiente": "Producci�n"
   },
   "CONECADINVP (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.15",
     "ambiente": "Producci�n"
   },
   "INVGCONEC02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.36",
     "ambiente": "Producci�n"
   },
   "PTCEDC03 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PWCCI-DAS-01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.172",
     "ambiente": "Producci�n"
   },
   "SRVAPPFCI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.13",
     "ambiente": "Producci�n"
   },
   "SRVBEYOND02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.116",
     "ambiente": "Producci�n"
   },
   "SRVCAMPADOBEP01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.215.182",
     "ambiente": "Producci�n"
   },
   "SRVCAPDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.89",
     "ambiente": "Producci�n"
   },
   "SRVCOMANAG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.22",
     "ambiente": "Producci�n"
   },
   "SRVDBFCI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.14",
     "ambiente": "Producci�n"
   },
   "SRVDCNBER01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVDMZ01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.8.55",
     "ambiente": "Producci�n"
   },
   "SRVENGWABSC01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.83",
     "ambiente": "Producci�n"
   },
   "SRVEXGPSA04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.118.71",
     "ambiente": "Producci�n"
   },
   "SRVFSCORP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.31",
     "ambiente": "Producci�n"
   },
   "SRVGENVCARD01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.212.50",
     "ambiente": "Producci�n"
   },
   "SRVHELIX01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.8",
     "ambiente": "Producci�n"
   },
   "SRVJIRA02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.8.27",
     "ambiente": "Producci�n"
   },
   "SRVMONAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.13",
     "ambiente": "Producci�n"
   },
   "SRVNOCSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.81",
     "ambiente": "Producci�n"
   },
   "SRVOMNIPRTG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.111",
     "ambiente": "Producci�n"
   },
   "SRVPROBCORP01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.50",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN05P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.215.105",
     "ambiente": "Producci�n"
   },
   "SRVPVTDBA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.171",
     "ambiente": "Producci�n"
   },
   "SRVPWCSQLCID (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVSNIPE01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.170",
     "ambiente": "Producci�n"
   },
   "SRVSQL03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.93",
     "ambiente": "Producci�n"
   },
   "SRVSQLTYS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.193",
     "ambiente": "Producci�n"
   },
   "SRVSTGSQLVB1P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.31",
     "ambiente": "Producci�n"
   },
   "SRVTMERCAPDB01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.16.19",
     "ambiente": "Producci�n"
   },
   "SRVTRENDDSM01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.76",
     "ambiente": "Producci�n"
   },
   "SRVTS04P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.7",
     "ambiente": "Producci�n"
   },
   "SRVTSCOM01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.10.17",
     "ambiente": "Producci�n"
   },
   "SRVTSVM01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.212.11",
     "ambiente": "Producci�n"
   },
   "SRVXCOM01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "10.50.8.21",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.17.119",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT-QA01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.17.210",
     "ambiente": "Producci�n"
   },
   "UNISYS-SUPP01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": "172.30.17.163",
     "ambiente": "Producci�n"
   },
   "VMCORP038 (AM) (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n4",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "ABS9-SUP02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.39",
     "ambiente": "Producci�n"
   },
   "BERDEBMEDIAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BERINSTWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.89.95",
     "ambiente": "Producci�n"
   },
   "BERMCISIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.178",
     "ambiente": "Producci�n"
   },
   "BEROCEDB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.89.81",
     "ambiente": "Producci�n"
   },
   "BEROCEMS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.89.63",
     "ambiente": "Producci�n"
   },
   "BERONBOARDMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.89.184",
     "ambiente": "Producci�n"
   },
   "BERSBALSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.89.74",
     "ambiente": "Producci�n"
   },
   "BERVUFADB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.89.187",
     "ambiente": "Producci�n"
   },
   "BSCFDSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.246",
     "ambiente": "Producci�n"
   },
   "BSCMCESIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.206",
     "ambiente": "Producci�n"
   },
   "BSCOCEAPI02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.61",
     "ambiente": "Producci�n"
   },
   "BSCOCEIS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.67",
     "ambiente": "Producci�n"
   },
   "BSCOCEMS03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.65",
     "ambiente": "Producci�n"
   },
   "BSCPWRCRVDA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.58",
     "ambiente": "Producci�n"
   },
   "BSCVUFADB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.99.185",
     "ambiente": "Producci�n"
   },
   "BSFDEBMEDAPP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.212.82",
     "ambiente": "Producci�n"
   },
   "BSFINSTBFF02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.96",
     "ambiente": "Producci�n"
   },
   "BSFMCESIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.201",
     "ambiente": "Producci�n"
   },
   "BSFOCEAPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.60",
     "ambiente": "Producci�n"
   },
   "BSFOCEDB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.83",
     "ambiente": "Producci�n"
   },
   "BSFOCEMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.64",
     "ambiente": "Producci�n"
   },
   "BSFPWRCRVDA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.58",
     "ambiente": "Producci�n"
   },
   "BSFSBALSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.74",
     "ambiente": "Producci�n"
   },
   "BSFVUFADB03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.187",
     "ambiente": "Producci�n"
   },
   "BSJDEBMEDIAP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "BSJINSTWEB01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.94.95",
     "ambiente": "Producci�n"
   },
   "BSJMCISIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.181",
     "ambiente": "Producci�n"
   },
   "BSJOCEDB02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.94.82",
     "ambiente": "Producci�n"
   },
   "BSJOCEMS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.94.64",
     "ambiente": "Producci�n"
   },
   "BSJPRICINGWEBP (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.98",
     "ambiente": "Producci�n"
   },
   "BSJSONPRTG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.94.73",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.212.81",
     "ambiente": "Producci�n"
   },
   "CLOUDERAAPI06P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.212.119",
     "ambiente": "Producci�n"
   },
   "CLOUDERAIS02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.215.81",
     "ambiente": "Producci�n"
   },
   "CLOUDERAMS05P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.215.84",
     "ambiente": "Producci�n"
   },
   "edh-POC-BI-SRV01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PAI-BLACKLIST (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PTCEDC04 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "PWCCI-SDS-01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.171",
     "ambiente": "Producci�n"
   },
   "SIOPELBSC_RST (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVBSJDC01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVCAMPADOBEP02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.215.183",
     "ambiente": "Producci�n"
   },
   "SRVCCTVGP01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVCOMBACK01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.23",
     "ambiente": "Producci�n"
   },
   "SRVEAE03P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.196",
     "ambiente": "Producci�n"
   },
   "SRVENGWABSF01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.66",
     "ambiente": "Producci�n"
   },
   "SRVEXSR01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.212.40",
     "ambiente": "Producci�n"
   },
   "SRVFSCORP02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.32",
     "ambiente": "Producci�n"
   },
   "SRVGOADMZHA01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.212.101",
     "ambiente": "Producci�n"
   },
   "SRVINTEG01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.84.71",
     "ambiente": "Producci�n"
   },
   "SRVJMETERT01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.220",
     "ambiente": "Producci�n"
   },
   "SRVMOODLSQL01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.114",
     "ambiente": "Producci�n"
   },
   "SRVNSCACHE01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "10.50.8.30",
     "ambiente": "Producci�n"
   },
   "SRVOMNIPRTG02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.112",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.215.70",
     "ambiente": "Producci�n"
   },
   "SRVPROCAN06P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.215.106",
     "ambiente": "Producci�n"
   },
   "SRVPWCESQLC1P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.208",
     "ambiente": "Producci�n"
   },
   "SRVPWRCRVDAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.105",
     "ambiente": "Producci�n"
   },
   "SRVSNMPC01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.109",
     "ambiente": "Producci�n"
   },
   "SRVSQLCITAS01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.251",
     "ambiente": "Producci�n"
   },
   "SRVSQLTYS02P_restored (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "SRVTABLEAU01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.86",
     "ambiente": "Producci�n"
   },
   "SRVTMERCAPP01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.16.17",
     "ambiente": "Producci�n"
   },
   "SRVTRENDDSM02P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.24",
     "ambiente": "Producci�n"
   },
   "SRVTS05P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.212.37",
     "ambiente": "Producci�n"
   },
   "SRVTSGDD01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.104",
     "ambiente": "Producci�n"
   },
   "SRVTSWET01P (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.10.194",
     "ambiente": "Producci�n"
   },
   "TFS-UNISYS (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.152",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.120",
     "ambiente": "Producci�n"
   },
   "UNISYS-RT-QA02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.211",
     "ambiente": "Producci�n"
   },
   "UNISYS-SUPP02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Producci�n5",
     "ip": "172.30.17.128",
     "ambiente": "Producci�n"
   },
   "CTRWET01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXCL11 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.29",
     "ambiente": "Producci�n"
   },
   "VEEAMPRXCL21 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.164",
     "ambiente": "Producci�n"
   },
   "VEEAMPRXGCVE02 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXGCVE05 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-BM-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.220",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD05-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.12",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD05-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.32",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD-07C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.161",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.3",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.69",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-08C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.85",
     "ambiente": "Producci�n"
   },
   "VPRX-CTRL-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.140",
     "ambiente": "Producci�n"
   },
   "VPRX-HBE-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.58",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.41.47",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.214",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-05T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-07C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.217",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-09T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-12T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-15T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-18T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.64",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.16",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-07C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.219",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-10C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": "10.50.13.19",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-06C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy1",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "CTRWET02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXCL17 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.45",
     "ambiente": "Producci�n"
   },
   "VEEAMPRXCL23 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.222",
     "ambiente": "Producci�n"
   },
   "VEEAMPRXGCVE03 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VMware Backup Proxy (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-BM-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.122",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD05-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.13",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD05-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.12.43",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD-08C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.157",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.36",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-06C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.13.14",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-09C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.66",
     "ambiente": "Producci�n"
   },
   "VPRX-CTRL-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.110",
     "ambiente": "Producci�n"
   },
   "VPRX-HBE-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.13.57",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.13.212",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-04T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-06C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.41.37",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-07T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-10T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-13T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-16T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-19T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.42.65",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.42.17",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-08C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": "10.50.13.220",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-PROD-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-07C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy2",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXAWSG01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXCL19 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.46",
     "ambiente": "Producci�n"
   },
   "VEEAMPRXGCVE01 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VEEAMPRXGCVE04 (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-BM-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.226",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.50",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD05-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.14",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD-06C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.153",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.2",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.128",
     "ambiente": "Producci�n"
   },
   "VPRX-CLD3-07C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.83",
     "ambiente": "Producci�n"
   },
   "VPRX-CTRL-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.139",
     "ambiente": "Producci�n"
   },
   "VPRX-HBE-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.53",
     "ambiente": "Producci�n"
   },
   "VPRX-HBE-04C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.15",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.41.112",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-03T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.215",
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-06T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-08T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-11T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-14T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-HBI-17T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-PROD-01C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.75",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-06C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.218",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD02-09C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": "10.50.13.221",
     "ambiente": "Producci�n"
   },
   "VPRX-PROD-03C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-02C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "VPRX-TESTP1-05C (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Proxy3",
     "ip": null,
     "ambiente": "Producci�n"
   },
   "AONOCEDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.130",
     "ambiente": "Test"
   },
   "BERCBANKIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.87.161",
     "ambiente": "Test"
   },
   "BERDEBMEDIAPP01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": null,
     "ambiente": "Test"
   },
   "BERINSTWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.87.95",
     "ambiente": "Test"
   },
   "BEROCEAPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.87.70",
     "ambiente": "Test"
   },
   "BEROMNIPB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.85.81",
     "ambiente": "Test"
   },
   "BERPREX01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.16.160",
     "ambiente": "Test"
   },
   "BERPWRCRVDA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.87.69",
     "ambiente": "Test"
   },
   "BERVUFADB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.87.186",
     "ambiente": "Test"
   },
   "BSCFDSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.122",
     "ambiente": "Test"
   },
   "BSCINSTWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.97.95",
     "ambiente": "Test"
   },
   "BSCMCESIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.221",
     "ambiente": "Test"
   },
   "BSCOCEAPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.70",
     "ambiente": "Test"
   },
   "BSCOMNIWS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.81",
     "ambiente": "Test"
   },
   "BSCSBALSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.74",
     "ambiente": "Test"
   },
   "BSCSONPRTG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.73",
     "ambiente": "Test"
   },
   "BSCVUFADB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.97.186",
     "ambiente": "Test"
   },
   "BSFFDSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.82.122",
     "ambiente": "Test"
   },
   "BSFMCESIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.218",
     "ambiente": "Test"
   },
   "BSFOCEAPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.82.70",
     "ambiente": "Test"
   },
   "BSFOCEIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.82.72",
     "ambiente": "Test"
   },
   "BSFONBOARDMS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.82.181",
     "ambiente": "Test"
   },
   "BSFREGFIRMSQLT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": null,
     "ambiente": "Test"
   },
   "BSFSONPRTG02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.82.73",
     "ambiente": "Test"
   },
   "BSJDEBMEDAPP01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.211.50",
     "ambiente": "Test"
   },
   "BSJFDSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.122",
     "ambiente": "Test"
   },
   "BSJGCONTAWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.187",
     "ambiente": "Test"
   },
   "BSJOCEMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.71",
     "ambiente": "Test"
   },
   "BSJONBOARDMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.92.140",
     "ambiente": "Test"
   },
   "BSJPWRCRVDA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.69",
     "ambiente": "Test"
   },
   "BSJSONPRTG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.73",
     "ambiente": "Test"
   },
   "BSJSONPRTG02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "10.50.92.73",
     "ambiente": "Test"
   },
   "BSJVUFADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.92.185",
     "ambiente": "Test"
   },
   "SRVAPPFCI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.13",
     "ambiente": "Test"
   },
   "SRVDEPSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.145",
     "ambiente": "Test"
   },
   "SRVEFLOWTSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.90",
     "ambiente": "Test"
   },
   "SRVFDAPIDIC01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.122",
     "ambiente": "Test"
   },
   "SRVINVAM02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.101",
     "ambiente": "Test"
   },
   "SRVJIRA02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.16.50",
     "ambiente": "Test"
   },
   "SRVPACOREIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.160",
     "ambiente": "Test"
   },
   "SRVPWCDASCET (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.215",
     "ambiente": "Test"
   },
   "SRVPWCSQLCIT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.212",
     "ambiente": "Test"
   },
   "SRVSELENI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.211.50",
     "ambiente": "Test"
   },
   "SRVSQL2019T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing1",
     "ip": "172.30.16.84",
     "ambiente": "Test"
   },
   "BERABSDEV-W2019S01T- Octavio Palomino (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": null,
     "ambiente": "Test"
   },
   "BERENROLLBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.87.97",
     "ambiente": "Test"
   },
   "BERENROLLWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.87.97",
     "ambiente": "Test"
   },
   "BERINSTWEB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.87.98",
     "ambiente": "Test"
   },
   "BERJENKCON01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.87.191",
     "ambiente": "Test"
   },
   "BEROMNIFS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.87.85",
     "ambiente": "Test"
   },
   "BEROMNIWS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.87.81",
     "ambiente": "Test"
   },
   "BERPRICINGWEBT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.28",
     "ambiente": "Test"
   },
   "BERPWRCRVDAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.87.68",
     "ambiente": "Test"
   },
   "BSCABSRUNUAT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": null,
     "ambiente": "Test"
   },
   "BSCGCONTASQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.97.184",
     "ambiente": "Test"
   },
   "BSCINSTWEB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.97.98",
     "ambiente": "Test"
   },
   "BSCMCISIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.173",
     "ambiente": "Test"
   },
   "BSCOCEIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.97.72",
     "ambiente": "Test"
   },
   "BSCONBOARDMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.97.140",
     "ambiente": "Test"
   },
   "BSCSONPRTG02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.97.73",
     "ambiente": "Test"
   },
   "BSFDEBMEDIADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": null,
     "ambiente": "Test"
   },
   "BSFDEBMEDIAPP01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": null,
     "ambiente": "Test"
   },
   "BSFINSTBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.95",
     "ambiente": "Test"
   },
   "BSFOCEMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.71",
     "ambiente": "Test"
   },
   "BSFOMNISQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.90",
     "ambiente": "Test"
   },
   "BSFPWRCRVDAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.68",
     "ambiente": "Test"
   },
   "BSFSBALSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.74",
     "ambiente": "Test"
   },
   "BSJABSRUNUAT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": null,
     "ambiente": "Test"
   },
   "BSJINSTBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.92.95",
     "ambiente": "Test"
   },
   "BSJINSTWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.92.95",
     "ambiente": "Test"
   },
   "BSJINSTWEB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.92.98",
     "ambiente": "Test"
   },
   "BSJMCESIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.220",
     "ambiente": "Test"
   },
   "BSJOMNIFS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.92.85",
     "ambiente": "Test"
   },
   "BSJONBOARDMS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.92.181",
     "ambiente": "Test"
   },
   "BSJPWRCRVDAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.92.68",
     "ambiente": "Test"
   },
   "CLOUDERAAPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.211.81",
     "ambiente": "Test"
   },
   "CLOUDERAMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.78",
     "ambiente": "Test"
   },
   "SRVCOMANAG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.45",
     "ambiente": "Test"
   },
   "SRVCOMFRON01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "10.50.211.140",
     "ambiente": "Test"
   },
   "SRVDBACADGDD01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.212.149",
     "ambiente": "Test"
   },
   "SRVDOCDIN01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.212.189",
     "ambiente": "Test"
   },
   "SRVEAE01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.17.91",
     "ambiente": "Test"
   },
   "SRVINTEG02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.82.82",
     "ambiente": "Test"
   },
   "SRVINVSD02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.100",
     "ambiente": "Test"
   },
   "SRVMERCAPDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.16.70",
     "ambiente": "Test"
   },
   "SRVPACORESQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.161",
     "ambiente": "Test"
   },
   "SRVPWCDASCIT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.211",
     "ambiente": "Test"
   },
   "SRVPWCSYSCIT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.213",
     "ambiente": "Test"
   },
   "SRVPWRCRVDAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.105",
     "ambiente": "Test"
   },
   "SRVSELENI02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.211.55",
     "ambiente": "Test"
   },
   "SRVSQLTYS03T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing2",
     "ip": "172.30.16.181",
     "ambiente": "Test"
   },
   "BERABSRUNUAT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": null,
     "ambiente": "Test"
   },
   "BERFDSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.122",
     "ambiente": "Test"
   },
   "BERGCONTASQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.184",
     "ambiente": "Test"
   },
   "BERJENKCON02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.192",
     "ambiente": "Test"
   },
   "BERMCESIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.219",
     "ambiente": "Test"
   },
   "BEROCEIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.72",
     "ambiente": "Test"
   },
   "BERONBOARDDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.183",
     "ambiente": "Test"
   },
   "BERONBOARDMS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.181",
     "ambiente": "Test"
   },
   "BERSBALSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.74",
     "ambiente": "Test"
   },
   "BERSONPRTG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.87.73",
     "ambiente": "Test"
   },
   "BSCDEBMEDIADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": null,
     "ambiente": "Test"
   },
   "BSCGCONTAWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.187",
     "ambiente": "Test"
   },
   "BSCOCEMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.71",
     "ambiente": "Test"
   },
   "BSCOMNIFS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.85",
     "ambiente": "Test"
   },
   "BSCONBOARDDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.183",
     "ambiente": "Test"
   },
   "BSCONBOARDMS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.181",
     "ambiente": "Test"
   },
   "BSCPWRCRVDA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.97.69",
     "ambiente": "Test"
   },
   "BSFENROLLBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.97",
     "ambiente": "Test"
   },
   "BSFGCONTASQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.184",
     "ambiente": "Test"
   },
   "BSFINSTWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "10.50.82.95",
     "ambiente": "Test"
   },
   "BSFMCISIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.170",
     "ambiente": "Test"
   },
   "BSFONBOARDDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.183",
     "ambiente": "Test"
   },
   "BSFPWRCRVDA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.69",
     "ambiente": "Test"
   },
   "BSFSONPRTG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.73",
     "ambiente": "Test"
   },
   "BSFVUFADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.82.185",
     "ambiente": "Test"
   },
   "BSJAPIWSO2T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.92.188",
     "ambiente": "Test"
   },
   "BSJMCISIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.172",
     "ambiente": "Test"
   },
   "BSJOCEAPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.92.70",
     "ambiente": "Test"
   },
   "BSJOMNIRATL02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.92.88",
     "ambiente": "Test"
   },
   "BSJOMNIWS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.92.81",
     "ambiente": "Test"
   },
   "BSJONBOARDMS03T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.92.76",
     "ambiente": "Test"
   },
   "BSJSIBLINKUAT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": null,
     "ambiente": "Test"
   },
   "CLOUDERADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.79",
     "ambiente": "Test"
   },
   "PTCDMZ01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "10.50.211.90",
     "ambiente": "Test"
   },
   "PWCCE-DAS-01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.216",
     "ambiente": "Test"
   },
   "SRVCOMBACK01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.140",
     "ambiente": "Test"
   },
   "SRVDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.210.85",
     "ambiente": "Test"
   },
   "SRVEFLOWTWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "10.50.8.63",
     "ambiente": "Test"
   },
   "SRVHELIX01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.8",
     "ambiente": "Test"
   },
   "SRVIIS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.16.180",
     "ambiente": "Test"
   },
   "SRVNUCLEUS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "10.50.211.42",
     "ambiente": "Test"
   },
   "SRVOCRBAL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.36",
     "ambiente": "Test"
   },
   "SRVOMNITOSCA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.57",
     "ambiente": "Test"
   },
   "SRVPWCESQLCI2T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.222",
     "ambiente": "Test"
   },
   "SRVPWCSDSCI2T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": null,
     "ambiente": "Test"
   },
   "SRVSQLCITAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.193",
     "ambiente": "Test"
   },
   "SRVSQLTYS04T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing3",
     "ip": "172.30.211.40",
     "ambiente": "Test"
   },
   "BERABSTFS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": null,
     "ambiente": "Test"
   },
   "BERAPPRAT01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.233.30",
     "ambiente": "Test"
   },
   "BERGCONTAWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.87.187",
     "ambiente": "Test"
   },
   "BERINSTBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.87.95",
     "ambiente": "Test"
   },
   "BERMCISIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.171",
     "ambiente": "Test"
   },
   "BEROCEMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.87.71",
     "ambiente": "Test"
   },
   "BERONBOARDMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.87.140",
     "ambiente": "Test"
   },
   "BERSONPRTG02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.87.73",
     "ambiente": "Test"
   },
   "BERVUFADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.87.185",
     "ambiente": "Test"
   },
   "BSCCBANKIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.97.161",
     "ambiente": "Test"
   },
   "BSCDEBMEDIAPP01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": null,
     "ambiente": "Test"
   },
   "BSCINSTBFF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.97.95",
     "ambiente": "Test"
   },
   "BSCOMNIRATL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.97.88",
     "ambiente": "Test"
   },
   "BSCOMNISQL02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.97.91",
     "ambiente": "Test"
   },
   "BSCPWRCRVDAS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.97.68",
     "ambiente": "Test"
   },
   "BSCVUFADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.97.185",
     "ambiente": "Test"
   },
   "BSFCBANKIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.82.161",
     "ambiente": "Test"
   },
   "BSFENROLLWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.82.97",
     "ambiente": "Test"
   },
   "BSFGCONTAWEB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.187",
     "ambiente": "Test"
   },
   "BSFINSTWEB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.82.98",
     "ambiente": "Test"
   },
   "BSFOMNIFS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.85",
     "ambiente": "Test"
   },
   "BSFONBOARDMS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.82.140",
     "ambiente": "Test"
   },
   "BSFPWRCRVDA02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.67",
     "ambiente": "Test"
   },
   "BSFVUFADB02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.186",
     "ambiente": "Test"
   },
   "BSJCBANKIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "10.50.92.161",
     "ambiente": "Test"
   },
   "BSJDEBMEDIADB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": null,
     "ambiente": "Test"
   },
   "BSJGCONTASQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.92.184",
     "ambiente": "Test"
   },
   "BSJOCEIS01T_03_12_restored (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": null,
     "ambiente": "Test"
   },
   "BSJOMNISQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.92.90",
     "ambiente": "Test"
   },
   "BSJOMNISQL02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.92.91",
     "ambiente": "Test"
   },
   "BSJONBOARDDB01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.92.183",
     "ambiente": "Test"
   },
   "BSJSBALSQL01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.92.74",
     "ambiente": "Test"
   },
   "CLOUDERAIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.77",
     "ambiente": "Test"
   },
   "GPSECMODO01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.203",
     "ambiente": "Test"
   },
   "PWCCI-DAS-01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.175",
     "ambiente": "Test"
   },
   "SRVDBFCI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.14",
     "ambiente": "Test"
   },
   "SRVDEPIIS01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.135",
     "ambiente": "Test"
   },
   "SRVENGAGEWA01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.16.51",
     "ambiente": "Test"
   },
   "SRVENGWABSF01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.66",
     "ambiente": "Test"
   },
   "SRVINTEG01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.82.81",
     "ambiente": "Test"
   },
   "SRVMIGEKM01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.102",
     "ambiente": "Test"
   },
   "SRVOMNIBOPI01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.56",
     "ambiente": "Test"
   },
   "SRVPWCESQLCIT (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.223",
     "ambiente": "Test"
   },
   "SRVPWCSQLCI2T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.174",
     "ambiente": "Test"
   },
   "SRVPWCSYSCET (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.211.217",
     "ambiente": "Test"
   },
   "SRVSQLTYS02T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.16.193",
     "ambiente": "Test"
   },
   "SRVTSACADGDD01T (petersen.corp)": {
-    "type": "Sin clasificar",
+    "type": "Corpo",
     "grupo": "Testing4",
     "ip": "172.30.212.148",
     "ambiente": "Test"

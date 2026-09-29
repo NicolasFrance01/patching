@@ -11,7 +11,7 @@ for (const file of files) {
   let type = 'Sin clasificar';
   if (file.includes('1(BSC)')) type = 'Banco Santa Cruz';
   else if (file.includes('1(BSJ)')) type = 'Banco San Juan';
-  else if (file.includes('1(CORPO)')) type = 'Corpo';
+  else if (file.includes('1(CORP)')) type = 'Corpo';
   else if (file.includes('1(NBERSA)')) type = 'Banco Entre Rios';
   else if (file.includes('1(NBSF)')) type = 'Banco Santa Fe';
   else if (file.includes('septiembre 26')) type = 'all'; 
