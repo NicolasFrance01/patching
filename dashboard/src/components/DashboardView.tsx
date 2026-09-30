@@ -717,7 +717,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                 <Pie data={donutData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
                   {donutData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
-                <Tooltip {...tooltipStyle} formatter={(v, n) => [`${v} servidores`, n]} />
+                <Tooltip {...tooltipStyle} formatter={(v, n) => [`${v} servidores (${((Number(v) / stats.total) * 100).toFixed(1)}%)`, n]} />
                 <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-zinc-400 text-xs">{v}</span>} />
               </PieChart>
             </ResponsiveContainer>

@@ -47,17 +47,22 @@ export async function POST(req: Request) {
         fechaVentana.includes(`/${currentMonthNum}/${currentYear}`) ||
         fechaVentana.includes(`${currentYear}-${currentMonthNum}-`);
       
-      let status = "ok";
-      if (!isCurrentMonth) {
-        status = "nodata";
-      } else {
-        const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
-        const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
-        status = isError ? "error" : isNoData ? "nodata" : "ok";
+      let status = String(item.Estado || "").trim();
+      
+      if (!status) {
+        if (!isCurrentMonth) {
+          status = "Sin Datos";
+        } else {
+          const isError = !!(item.Descripcion_Error && item.Descripcion_Error !== "N/A");
+          const isNoData = !isError && (!item.Sistema_Operativo || item.Sistema_Operativo === "N/A");
+          status = isError ? "Error" : isNoData ? "Sin Datos" : "Actualizado";
+        }
       }
 
-      if (status === "ok") success++;
-      else if (status === "error") errors++;
+      const statusLower = status.toLowerCase();
+      if (statusLower === "ok" || statusLower === "actualizado") success++;
+      else if (statusLower === "error" || statusLower === "no actualizado") errors++;
+      else if (statusLower !== "sin datos" && statusLower !== "nodata") success++; // Other statuses like Pendiente, etc. are counted as sync data
       else noData++;
       const rawServerName = String(item.Servidor).trim();
       const rawDomain = item.Dominio ? String(item.Dominio).trim() : null;

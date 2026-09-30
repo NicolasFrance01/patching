@@ -15,45 +15,33 @@ export function getExtendedStatus(
   snap: string | null,
   confirmado: string | null
 ): ExtendedStatus {
-  const c = (comentarios || "").toLowerCase();
-  const s = (snap || "").toLowerCase();
-  const conf = (confirmado || "").toLowerCase();
-
-  // 1. En Revisión (Comodín administrativo si lo desean, pero primero checamos si hay falta de confirmación)
-  // Según el embudo: ¿Confirmación OK?
-  if (
-    c.includes("el cliente no confirmo") || 
-    conf.includes("el cliente no confirmo")
-  ) {
-    return "Sin Confirmación";
-  }
-
-  // 2. ¿SNAP OK?
-  if (
-    c.includes("no se recibio la confirmacion de la ejecucion del snapshot") || 
-    s.includes("no se recibio la confirmacion") ||
-    s.includes("no se recibio la confirmacion de la ejecucion del snapshot")
-  ) {
-    return "Sin Snap";
-  }
-
-  // 3. Revisión de reporte
-  if (c.includes("revisión de reporte") || c.includes("revision de reporte")) {
-    return "En Revisión";
-  }
-
-  // 4. Pendiente (programado sin ejecutar)
-  if (status.toLowerCase() === "pending" || status.toLowerCase() === "pendiente") {
-    return "Pendiente";
-  }
-
-  // 5. Ejecución (Actualizado o Error)
-  if (status.toLowerCase() === "ok") {
-    return "Actualizado";
+  const s = status.trim();
+  
+  // If it exactly matches one of our valid ExtendedStatus, just return it.
+  if (EXTENDED_STATUS_LABELS[s as ExtendedStatus]) {
+    return s as ExtendedStatus;
   }
   
-  if (status.toLowerCase() === "error") {
+  // Otherwise, fallback mapping
+  const lower = s.toLowerCase();
+  
+  if (lower === "ok" || lower === "actualizado") {
+    return "Actualizado";
+  }
+  if (lower === "error" || lower === "no actualizado") {
     return "Error";
+  }
+  if (lower.includes("sin confirmaci")) {
+    return "Sin Confirmación";
+  }
+  if (lower.includes("sin snap")) {
+    return "Sin Snap";
+  }
+  if (lower.includes("revisión") || lower.includes("revision")) {
+    return "En Revisión";
+  }
+  if (lower === "pending" || lower === "pendiente") {
+    return "Pendiente";
   }
 
   return "Sin Datos";

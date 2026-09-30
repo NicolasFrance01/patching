@@ -89,6 +89,14 @@ export function getServerInfo(serverName: string): ServerInfo | undefined {
   const matchBase = Object.keys(serverTypeMap).find(k => k.split(' (')[0].toLowerCase() === baseName.toLowerCase());
   if (matchBase) return serverTypeMap[matchBase];
   
+  // Fallback 4: Loose match (startsWith) to handle things like BERDC01 vs BERDC01P
+  const looseMatch = Object.keys(serverTypeMap).find(k => {
+    const kBase = k.split(' (')[0].toLowerCase();
+    const sBase = baseName.toLowerCase();
+    return (kBase.startsWith(sBase) || sBase.startsWith(kBase)) && Math.min(kBase.length, sBase.length) > 5;
+  });
+  if (looseMatch) return serverTypeMap[looseMatch];
+  
   return undefined;
 }
 `;
