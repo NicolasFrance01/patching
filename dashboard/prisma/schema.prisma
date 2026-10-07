@@ -158,3 +158,12 @@ model PatchOrder {
   @@index([scheduledAt])
 }
 
+
+
+model ServerMappingOverride {
+  id         String   @id @default(uuid())
+  serverName String   @unique
+  bank       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

@@ -50,6 +50,7 @@ interface DashboardViewProps {
   syncRuns?: SyncRun[];
   creatorUsername?: string;
   scheduledOrders?: PatchOrder[];
+  initialOverrides?: Record<string, string>;
 }
 
 type BankFilter = "all" | ServerType | "unclassified";
@@ -83,9 +84,11 @@ const tooltipStyle = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function matchesBankFilter(serverName: string, bankFilters: BankFilter[]): boolean {
+function matchesBankFilter(serverName: string, bankFilters: BankFilter[], overrides: Record<string, string> = {}): boolean {
   if (bankFilters.includes("all")) return true;
   const info = getServerInfo(serverName);
+    const overrideBank = overrides[serverName];
+    if (overrideBank && bankFilters.includes(overrideBank as BankFilter)) return true;
   if (!info && bankFilters.includes("unclassified")) return true;
   if (info && bankFilters.includes(info.type as BankFilter)) return true;
   return false;
@@ -240,7 +243,13 @@ function TruncatedCell({
     </td>
   );
 }
-export default function DashboardView({ initialData, syncRuns = [], creatorUsername, scheduledOrders = [] }: DashboardViewProps) {
+export default function DashboardView({ initialData, syncRuns = [], creatorUsername, scheduledOrders = [], initialOverrides = {} }: DashboardViewProps) {
+  const [overrides, setOverrides] = useState<Record<string, string>>(initialOverrides);
+  const [selectedBankManager, setSelectedBankManager] = useState<string | null>(null);
+  const [showNoActDetails, setShowNoActDetails] = useState(false);
+  const [localData, setLocalData] = useState<ServerStatus[]>(initialData);
+  const [pieMode, setPieMode] = useState<"standard" | "no_act_details">("standard");
+  
   const [activeTab, setActiveTab] = useState<"dashboard" | "reportes" | "historial" | "jira" | "mis-tickets">("dashboard");
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
@@ -263,7 +272,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [estadoFilters, setEstadoFilters] = useState<string[]>([]);
   const [emailPayload, setEmailPayload] = useState<EmailPayload | null>(null);
   const [chartsMounted, setChartsMounted] = useState(false);
-  const [serverData, setServerData] = useState<ServerStatus[]>(initialData);
+  const [serverData, setServerData] = useState<ServerStatus[]>(localData);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
 
@@ -276,7 +285,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   useEffect(() => {
     async function fetchData() {
       if (timeFilter !== "mes" || !selectedMonth) {
-        // If not using month filter, we might want to default to initialData or a specific behavior.
+        // If not using month filter, we might want to default to localData or a specific behavior.
         // For now, if they choose custom time range, we will just use whatever data is loaded,
         // or we could fetch the latest. 
         return;
@@ -325,7 +334,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return enriched.filter((s) => {
-      if (!matchesBankFilter(s.serverName, bankFilters)) return false;
+      if (!matchesBankFilter(s.serverName, bankFilters, overrides)) return false;
       if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, selectedMonth, customFrom, customTo)) return false;
       
       // Advanced Filters
@@ -424,15 +433,18 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       ? [...SERVER_TYPES, "Sin clasificar"]
       : bankFilters.map(b => b === "unclassified" ? "Sin clasificar" : b);
 
-    // Filter duplicates just in case
     const uniqueBanks = Array.from(new Set(banks));
 
     return uniqueBanks.map((bank) => {
-      const expectedTotal = Object.values(serverTypeMap).filter(info => info.type === bank).length;
+      // Calculate expected total considering overrides!
+      const expectedTotal = Object.keys(serverTypeMap).filter(k => {
+        const type = overrides[k] || serverTypeMap[k].type;
+        return type === bank;
+      }).length;
 
       const srvs = filtered.filter((s) => {
         const info = getServerInfo(s.serverName);
-        const b = info ? info.type : "Sin clasificar";
+        const b = overrides[s.serverName] || (info ? info.type : "Sin clasificar");
         return b === bank;
       });
       
@@ -445,7 +457,6 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       const sinSnap = srvs.filter((s) => s.extendedStatus === "Sin Snap").length;
       const pendientes = srvs.filter((s) => s.extendedStatus === "Pendiente").length;
       
-      // Keep old variables for other dependent memos
       const errors = srvs.filter((s) => s.extendedStatus === "Error").length;
       const revision = srvs.filter((s) => s.extendedStatus === "En Revisión").length;
       const nodata = srvs.filter((s) => s.extendedStatus === "Sin Datos").length;
@@ -456,7 +467,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       return { 
         name: bank, 
         total, 
-        ok, // alias for actualizados
+        ok, 
         actualizados: ok,
         noActualizados,
         pctActualizados: total > 0 ? (ok / total * 100).toFixed(2) : "0.00",
@@ -465,14 +476,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         sinSnap, 
         pendientes, 
         otroMotivo,
-        // Legacy fields for compilation compatibility:
         errors,
         revision,
         nodata,
         pct
       };
     }).filter((d) => d.total > 0).sort((a, b) => b.total - a.total);
-  }, [filtered, bankFilters]);
+  }, [filtered, bankFilters, overrides]);
 
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
   const trendData = useMemo(() => {
@@ -553,8 +563,8 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       .map((b) => ({ name: b.name, errors: b.errors, pct: b.pct })),
   [byBankData]);
 
-  const lastUpdated = initialData.length > 0
-    ? new Date(initialData[0].updatedAt).toLocaleString("es-AR")
+  const lastUpdated = localData.length > 0
+    ? new Date(localData[0].updatedAt).toLocaleString("es-AR")
     : "—";
 
   const getPeriodoString = () => {
@@ -731,11 +741,18 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
       {/* ── KPIs ────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetricCard title="Total Servidores"   value={Object.keys(serverTypeMap).length} subtitle="Inventario evaluado" icon={<Server className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
-        <MetricCard title="Actualizados"  value={stats.ok} subtitle="Seguridad al día" icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
-        <MetricCard title="No Actualizados" value={stats.sinConf + stats.sinSnap + stats.revision + stats.noData} subtitle="Requieren gestión" icon={<AlertCircle className="w-5 h-5 text-amber-400"  />} accent="amber"  />
-        <MetricCard title="Errores"        value={stats.errors} subtitle="Requieren remediación" icon={<XCircle className="w-5 h-5 text-rose-400"    />} accent="rose"    />
-        <MetricCard title="Pendientes"     value={stats.pendientes} subtitle="Programados a futuro" icon={<Clock className="w-5 h-5 text-violet-400" />} accent="violet" />
+        <MetricCard title="Total Servidores" value={byBankData.reduce((acc, curr) => acc + curr.total, 0)} subtitle="Inventario evaluado" icon={<Server className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
+        <MetricCard title="Actualizados"  value={byBankData.reduce((acc, curr) => acc + curr.actualizados, 0)} subtitle="Seguridad al día" icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
+        <div className="cursor-pointer transition-transform hover:scale-105 relative" onClick={() => setShowNoActDetails(!showNoActDetails)}>
+          <MetricCard title="No Actualizados" value={byBankData.reduce((acc, curr) => acc + curr.noActualizados, 0)} subtitle="Click para ver desglose" icon={<AlertCircle className="w-5 h-5 text-amber-400"  />} accent="amber"  />
+          {showNoActDetails && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-amber-500/30 p-3 rounded-xl shadow-xl z-10 text-xs flex flex-col gap-1 text-zinc-300">
+              <div className="flex justify-between"><span>Errores:</span><span className="font-bold text-rose-400">{byBankData.reduce((acc, curr) => acc + curr.errors, 0)}</span></div>
+              <div className="flex justify-between"><span>Sin Confirmar:</span><span className="font-bold text-orange-400">{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0)}</span></div>
+              <div className="flex justify-between"><span>Sin Snap:</span><span className="font-bold text-yellow-400">{byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0)}</span></div>
+            </div>
+          )}
+        </div>
         <MetricCard title="Sincronizados este mes" value={stats.total} subtitle="Servidores analizados" icon={<CheckCircle2 className="w-5 h-5 text-cyan-400" />} accent="cyan" />
       </div>
 
@@ -746,7 +763,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           {chartsMounted && stats.total > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={donutData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
+                <Pie data={donutData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none" onClick={(data) => { if (data.name === "No Actualizado") setPieMode("no_act_details"); else setPieMode("standard"); }} className="cursor-pointer">
                   {donutData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip {...tooltipStyle} formatter={(v, n) => [`${v} servidores (${((Number(v) / stats.total) * 100).toFixed(1)}%)`, n]} />
@@ -787,7 +804,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border"
                                 style={{ color, borderColor: color + "44", backgroundColor: color + "15" }}>{b.name}</span>
                             </td>
-                            <td className="px-2 py-2 text-right text-zinc-300 font-medium">{b.total}</td>
+                            <td className="px-2 py-2 text-right text-zinc-300 font-medium cursor-pointer hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-2" onClick={() => setSelectedBankManager(b.name)} title="Ver y gestionar servidores">{b.total}</td>
                             <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>{b.actualizados}</td>
                             <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>{b.noActualizados}</td>
                             <td className="px-2 py-2 text-right text-emerald-400">{b.pctActualizados}%</td>
@@ -1019,7 +1036,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           <h2 className="text-base font-semibold text-zinc-200">
             Detalle de Servidores
             <span className="ml-2 text-xs font-normal text-zinc-500">
-              ({filtered.length} de {initialData.length})
+              ({filtered.length} de {localData.length})
             </span>
           </h2>
           <div className="relative">

@@ -13,7 +13,7 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const [raw, rawSyncRuns, scheduledOrdersRaw] = await Promise.all([
+  const [raw, rawSyncRuns, scheduledOrdersRaw, overridesRaw] = await Promise.all([
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
@@ -28,7 +28,8 @@ export default async function Home() {
     }),
     prisma.patchOrder.findMany({
       where: { status: "PENDING" }
-    })
+    }),
+    prisma.serverMappingOverride.findMany()
   ]);
 
   const servers: ServerStatus[] = raw.map((s) => ({
@@ -48,6 +49,11 @@ export default async function Home() {
     scheduledAt: o.scheduledAt.toISOString()
   }));
 
+  const overrides = overridesRaw.reduce((acc, curr) => {
+    acc[curr.serverName] = curr.bank;
+    return acc;
+  }, {} as Record<string, string>);
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>
@@ -58,7 +64,7 @@ export default async function Home() {
           Monitoreo en tiempo real del estado de actualizaciones de servidores.
         </p>
       </div>
-      <DashboardView initialData={servers} syncRuns={syncRuns} scheduledOrders={scheduledOrders} />
+      <DashboardView initialData={servers} syncRuns={syncRuns} scheduledOrders={scheduledOrders} initialOverrides={overrides} />
     </div>
   );
 }
