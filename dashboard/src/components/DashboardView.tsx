@@ -16,6 +16,7 @@ import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
 import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
 import KbInfoModal from "./KbInfoModal";
 import KbExplorerModal from "./KbExplorerModal";
+import ServerBankManagerModal from "./ServerBankManagerModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -481,7 +482,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         nodata,
         pct
       };
-    }).filter((d) => d.total > 0).sort((a, b) => b.total - a.total);
+    }).filter((d) => d.total > 0 && d.name !== "Sin clasificar").sort((a, b) => b.total - a.total);
   }, [filtered, bankFilters, overrides]);
 
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
@@ -740,7 +741,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       )}
 
       {/* ── KPIs ────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
         <MetricCard title="Total Servidores" value={byBankData.reduce((acc, curr) => acc + curr.total, 0)} subtitle="Inventario evaluado" icon={<Server className="w-5 h-5 text-indigo-400"  />} accent="indigo"  />
         <MetricCard title="Actualizados"  value={byBankData.reduce((acc, curr) => acc + curr.actualizados, 0)} subtitle="Seguridad al día" icon={<CheckCircle2 className="w-5 h-5 text-emerald-400" />} accent="emerald" />
         <div className="cursor-pointer transition-transform hover:scale-105 relative" onClick={() => setShowNoActDetails(!showNoActDetails)}>
@@ -1168,6 +1169,18 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       {isKbExplorerOpen && (
         <KbExplorerModal kbs={allKBs} onClose={() => setIsKbExplorerOpen(false)} />
       )}
+
+      <ServerBankManagerModal
+        isOpen={!!selectedBankManager}
+        onClose={() => setSelectedBankManager(null)}
+        bank={selectedBankManager || ""}
+        syncedServers={filtered}
+        overrides={overrides}
+        onOverrideChange={(srv, newBank) => setOverrides(prev => ({ ...prev, [srv]: newBank }))}
+        onServerDelete={(srv) => {
+          setLocalData(prev => prev.filter(s => s.serverName !== srv));
+        }}
+      />
     </div>
   );
 }
@@ -1205,7 +1218,9 @@ function MetricCard({
         <p className="text-2xl font-bold tracking-tight text-white leading-none">{value}</p>
         {subtitle && <p className="text-[10px] text-zinc-400 mt-1.5 font-medium truncate">{subtitle}</p>}
       </div>
-    </div>
+    
+      
+</div>
   );
 }
 
