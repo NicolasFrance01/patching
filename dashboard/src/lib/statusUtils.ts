@@ -28,9 +28,17 @@ export function getExtendedStatus(
   if (lower === "ok" || lower === "actualizado") {
     return "Actualizado";
   }
-  if (lower === "error" || lower === "no actualizado") {
+  if (lower === "error" || lower === "no actualizado" || lower === "fallo") {
+    // Check specific reasons if it's an error/not updated
+    if (confirmado && confirmado.toLowerCase().includes("no")) {
+      return "Sin Confirmación";
+    }
+    if (snap && snap.toLowerCase().includes("no")) {
+      return "Sin Snap";
+    }
     return "Error";
   }
+
   if (lower.includes("sin confirmaci")) {
     return "Sin Confirmación";
   }
@@ -42,6 +50,14 @@ export function getExtendedStatus(
   }
   if (lower === "pending" || lower === "pendiente") {
     return "Pendiente";
+  }
+
+  // Final fallback if we have extra data but state was something else
+  if (confirmado && confirmado.toLowerCase().includes("no")) {
+    return "Sin Confirmación";
+  }
+  if (snap && snap.toLowerCase().includes("no")) {
+    return "Sin Snap";
   }
 
   return "Sin Datos";
