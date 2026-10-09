@@ -439,7 +439,22 @@ export default function ReportesView({
   const [metricModalOpen, setMetricModalOpen] = useState(false);
   const [metricModalData, setMetricModalData] = useState<MetricModalData | null>(null);
 
-  const hasSyncHistory = data.syncRuns.length > 0;
+  // Map literal WUU statuses to ok/error/nodata for sync history backwards compatibility
+  const enrichedSyncRuns = useMemo(() => {
+    return data.syncRuns.map(run => ({
+      ...run,
+      records: run.records.map(r => {
+        const isError = !!(r.errorDescription && r.errorDescription !== "N/A");
+        const isNoData = (!r.os || r.os === "N/A") && !isError;
+        return {
+          ...r,
+          status: isError ? "error" : isNoData ? "nodata" : "ok"
+        };
+      })
+    }));
+  }, [data.syncRuns]);
+
+  const hasSyncHistory = enrichedSyncRuns.length > 0;
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
@@ -611,7 +626,7 @@ export default function ReportesView({
       return [{ label: "Estado actual", errores, ok, total: filteredEnrichedServers.length }];
     }
 
-    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
+    let runs = enrichedSyncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
 
     const dayMap: Record<string, SyncRunData> = {};
     for (const run of runs) {
@@ -649,13 +664,13 @@ export default function ReportesView({
         return row;
       })
       .filter((d) => d.total > 0);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, timeFilter, trendFrom, trendTo, selectedBanks]);
+  }, [enrichedSyncRuns, filteredEnrichedServers, hasSyncHistory, timeFilter, trendFrom, trendTo, selectedBanks]);
 
   // ── Top Errores ───────────────────────────────────────────────────────────
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
+      const validRuns = enrichedSyncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
       for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
@@ -678,7 +693,7 @@ export default function ReportesView({
     return Object.entries(map)
       .map(([message, servers]) => ({ message, servers: Array.from(servers).sort(), count: servers.size }))
       .sort((a, b) => b.count - a.count);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, selectedBanks, timeFilter, trendFrom, trendTo]);
+  }, [enrichedSyncRuns, filteredEnrichedServers, hasSyncHistory, selectedBanks, timeFilter, trendFrom, trendTo]);
 
   const filteredErrorGroups = useMemo(() => {
     if (!errorSearch) return errorGroups;
@@ -688,7 +703,7 @@ export default function ReportesView({
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
     const validRuns = hasSyncHistory
-      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true))
+      ? enrichedSyncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true))
       : (() => {
           if (filteredEnrichedServers.length === 0) return [];
           const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
@@ -746,7 +761,7 @@ export default function ReportesView({
         };
       })
       .filter((g) => g.serverCount > 0);
-  }, [data.syncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks, timeFilter, trendFrom, trendTo]);
+  }, [enrichedSyncRuns, filteredEnrichedServers, hasSyncHistory, data.currentServers, selectedBanks, timeFilter, trendFrom, trendTo]);
 
   // ── EVOLUCIONES COMPUTE ──────────────────────────────────────────────────
   const evolucionesData = useMemo(() => {
@@ -757,8 +772,8 @@ export default function ReportesView({
       baselineDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     } else if (timeFilter === "mes") {
       baselineDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else if (timeFilter === "all" && data.syncRuns.length > 0) {
-      const sorted = [...data.syncRuns].sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime());
+    } else if (timeFilter === "all" && enrichedSyncRuns.length > 0) {
+      const sorted = [...enrichedSyncRuns].sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime());
       baselineDate = new Date(sorted[0].syncedAt);
     } else if (timeFilter === "custom" && trendFrom) {
       baselineDate = new Date(trendFrom);
@@ -776,9 +791,9 @@ export default function ReportesView({
     }
 
     let baselineRun: SyncRunData | null = null;
-    if (data.syncRuns.length > 0) {
+    if (enrichedSyncRuns.length > 0) {
       let minDiff = Infinity;
-      for (const run of data.syncRuns) {
+      for (const run of enrichedSyncRuns) {
         const diff = Math.abs(new Date(run.syncedAt).getTime() - baselineDate.getTime());
         if (diff < minDiff) {
           minDiff = diff;
@@ -788,9 +803,9 @@ export default function ReportesView({
     }
 
     let targetRun: SyncRunData | null = null;
-    if (!isTargetToday && data.syncRuns.length > 0) {
+    if (!isTargetToday && enrichedSyncRuns.length > 0) {
       let minDiff = Infinity;
-      for (const run of data.syncRuns) {
+      for (const run of enrichedSyncRuns) {
         const diff = Math.abs(new Date(run.syncedAt).getTime() - targetDate.getTime());
         if (diff < minDiff) {
           minDiff = diff;
@@ -923,7 +938,7 @@ export default function ReportesView({
       targetTotal, targetErrors, targetOk, targetNoData, targetSuccessRate, targetRecordsMap,
       solucionados, nuevosErrores, nuevosServidores, servidoresInactivos,
     };
-  }, [data.syncRuns, filteredEnrichedServers, timeFilter, trendFrom, trendTo, selectedBanks]);
+  }, [enrichedSyncRuns, filteredEnrichedServers, timeFilter, trendFrom, trendTo, selectedBanks]);
 
   // COMPILED FULL REPORT PAYLOAD ACROSS ALL 6 SUBMODULES
   const fullReportPayload = useMemo((): FullReportPDFPayload => {

@@ -11,7 +11,7 @@ export default async function HistorialPage() {
         orderBy: { serverName: "asc" },
       },
     },
-    take: 10,
+    take: 150,
   });
 
   const serialized = syncRuns.map((run) => ({

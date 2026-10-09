@@ -190,7 +190,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
         const latestFiltered = latest.records.filter((r) => matchesBankFilter(r.serverName, bankFilters));
         const latestTotal = latestFiltered.length;
 
-        const mappedRuns = runs.map(r => r.records.filter(rec => matchesBankFilter(rec.serverName, bankFilters)).map(rec => getExtendedStatus(rec.status, rec.comentarios, rec.snap, rec.confirmado)));
+        const mappedRuns = runs.map(r => r.records.filter(rec => matchesBankFilter(rec.serverName, bankFilters)).map(rec => getExtendedStatus(rec.status, rec.errorDescription, rec.snap, rec.confirmado)));
         const allMappedStatuses = mappedRuns.flat();
 
         const totalSuccess = allMappedStatuses.filter(s => s === "Actualizado").length;
@@ -223,7 +223,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
     const sf = statusFilter[run.id] ?? "all";
     return run.records.filter((r) => {
       if (!matchesBankFilter(r.serverName, bankFilters)) return false;
-      if (sf !== "all" && r.status !== sf) return false;
+      if (sf !== "all" && getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado) !== sf) return false;
       if (!q) return true;
       return (
         r.serverName.toLowerCase().includes(q) ||
@@ -342,7 +342,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                     fechaInstalacion: r.installDate || "—",
                     kbsInstaladas: r.installedKBs || "—",
                     fechaReinicio: r.runningTime || "—",
-                    estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
+                    estado: getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado),
                     error: r.errorDescription || "—",
                     comentarios: r.comentarios || "—",
                     snap: r.snap || "—",
@@ -477,10 +477,11 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                         hour: "2-digit", minute: "2-digit",
                       });
                       const records = getFilteredRecords(run);
-                      const filteredTotal = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters)).length;
-                      const filteredSuccess = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "ok").length;
-                      const filteredErrors = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "error").length;
-                      const filteredNoData = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters) && r.status === "nodata").length;
+                      const mappedRecords = run.records.filter((r) => matchesBankFilter(r.serverName, bankFilters)).map(r => getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado));
+                      const filteredTotal = mappedRecords.length;
+                      const filteredSuccess = mappedRecords.filter((s) => s === "Actualizado").length;
+                      const filteredErrors = mappedRecords.filter((s) => s === "Error").length;
+                      const filteredNoData = mappedRecords.filter((s) => s === "Sin Datos").length;
                       const syncSuccessRate = filteredTotal > 0 ? Math.round((filteredSuccess / filteredTotal) * 100) : 0;
 
                       return (
@@ -545,7 +546,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                       fechaInstalacion: r.installDate || "—",
                                       kbsInstaladas: r.installedKBs || "—",
                                       fechaReinicio: r.runningTime || "—",
-                                      estado: r.status === "ok" ? "OK" : r.status === "error" ? "Error" : "Sin Datos",
+                                      estado: getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado),
                                       error: r.errorDescription || "—",
                                       comentarios: r.comentarios || "—",
                                       snap: r.snap || "—",
@@ -645,8 +646,8 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                         <TruncatedCell title="Ambiente" content={r.ambiente} onClick={setSelectedDetail}>{r.ambiente ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-300 border border-violet-500/20">{r.ambiente}</span> : <span className="text-zinc-700">—</span>}</TruncatedCell>
                                         <TruncatedCell title="Dominio" content={r.domain} onClick={setSelectedDetail} />
                                         <TruncatedCell title="IP" content={r.ip} onClick={setSelectedDetail} />
-                                        <TruncatedCell title="Estado" content={getExtendedStatus(r.status, r.comentarios, r.snap, r.confirmado)} onClick={setSelectedDetail}>
-                                          <StatusBadge status={r.status} extendedStatus={getExtendedStatus(r.status, r.comentarios, r.snap, r.confirmado)} />
+                                        <TruncatedCell title="Estado" content={getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado)} onClick={setSelectedDetail}>
+                                          <StatusBadge status={r.status} extendedStatus={getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado)} />
                                         </TruncatedCell>
                                         <TruncatedCell title="Analista" content={r.analista} onClick={setSelectedDetail} />
                                         <TruncatedCell title="OS" content={r.os} onClick={setSelectedDetail} />
@@ -659,7 +660,7 @@ export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
                                         <TruncatedCell title="Fecha de Instalación" content={r.installDate} onClick={setSelectedDetail} />
                                         <TruncatedCell title="Running Time" content={r.runningTime} onClick={setSelectedDetail} />
                                         <TruncatedCell title="Espacio en Disco" content={r.diskSpace} onClick={setSelectedDetail} />
-                                        <TruncatedCell title="Detalle del Error" content={r.errorDescription} isError={r.status === "error"} onClick={setSelectedDetail} />
+                                        <TruncatedCell title="Detalle del Error" content={r.errorDescription} isError={getExtendedStatus(r.status, r.errorDescription, r.snap, r.confirmado) === "Error"} onClick={setSelectedDetail} />
                                         <TruncatedCell title="Comentarios" content={r.comentarios} onClick={setSelectedDetail} />
                                         <TruncatedCell title="Snap" content={r.snap} onClick={setSelectedDetail} />
                                         <TruncatedCell title="Confirmado" content={r.confirmado} onClick={setSelectedDetail} />

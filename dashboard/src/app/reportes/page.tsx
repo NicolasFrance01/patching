@@ -9,7 +9,7 @@ export default async function ReportesPage() {
   const [syncRuns, currentServers, session] = await Promise.all([
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
-      take: 10, // Limit to recent runs to avoid massive payload/timeout
+      take: 150, // Limit to recent runs to avoid massive payload/timeout, but enough for a full month
       include: { records: { select: { serverName: true, ip: true, status: true, errorDescription: true } } },
     }),
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
