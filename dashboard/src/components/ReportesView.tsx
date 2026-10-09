@@ -449,9 +449,14 @@ export default function ReportesView({
       const isNoData = (!s.os || s.os === "N/A") && !isError;
       const status = isError ? "error" : isNoData ? "nodata" : "ok";
       const extendedStatus = getExtendedStatus(status, s.errorDescription, (s as any).snap ?? null, (s as any).confirmado ?? null);
+      let rawStatus = (s as any).status;
+      if (!rawStatus) {
+        rawStatus = isError ? "Error" : isNoData ? "Sin Datos" : "Actualizado";
+      }
+
       // New two-level classification
       const cl = classifyServer(
-        (s as any).status ?? null,
+        rawStatus,
         (s as any).snap ?? null,
         (s as any).confirmado ?? null,
         s.errorDescription ?? null

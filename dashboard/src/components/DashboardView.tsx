@@ -313,9 +313,17 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const enriched = useMemo(() =>
     serverData.map((s) => {
       const info = getServerInfo(s.serverName);
+      let rawStatus = s.status;
+      if (!rawStatus) {
+        // Fallback for legacy DB records where status is missing
+        const isErr  = !!(s.errorDescription && s.errorDescription !== "N/A");
+        const isNoDat = !isErr && (!s.os || s.os === "N/A");
+        rawStatus = isErr ? "Error" : isNoDat ? "Sin Datos" : "Actualizado";
+      }
+
       // Classify using the new two-level system
-      const cl = classifyServer(s.status ?? null, s.snap ?? null, s.confirmado ?? null, s.errorDescription ?? null);
-      const extendedStatus = getExtendedStatus(s.status ?? "", s.errorDescription ?? null, s.snap ?? null, s.confirmado ?? null);
+      const cl = classifyServer(rawStatus, s.snap ?? null, s.confirmado ?? null, s.errorDescription ?? null);
+      const extendedStatus = getExtendedStatus(rawStatus, s.errorDescription ?? null, s.snap ?? null, s.confirmado ?? null);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
       const status   = isError ? "error" : isNoData ? "nodata" : "ok";
