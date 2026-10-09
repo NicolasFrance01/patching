@@ -30,6 +30,7 @@ model ServerStatus {
   comentarios      String?
   snap             String?
   confirmado       String?
+  status           String?
   updatedAt        DateTime @updatedAt
   createdAt        DateTime @default(now())
 }

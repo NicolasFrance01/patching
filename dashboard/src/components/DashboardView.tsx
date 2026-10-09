@@ -13,7 +13,7 @@ import {
 import { getServerInfo, SERVER_TYPES, ServerType, serverTypeMap } from "@/lib/serverTypeMap";
 import EmailModal, { EmailPayload } from "./EmailModal";
 import { getPDFBase64, ExportRow } from "@/lib/exportUtils";
-import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
+import { getExtendedStatus, classifyServer, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, SECONDARY_FLAG_COLORS, ExtendedStatus } from "@/lib/statusUtils";
 import KbInfoModal from "./KbInfoModal";
 import KbExplorerModal from "./KbExplorerModal";
 import ServerBankManagerModal from "./ServerBankManagerModal";
@@ -313,10 +313,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const enriched = useMemo(() =>
     serverData.map((s) => {
       const info = getServerInfo(s.serverName);
+      // Classify using the new two-level system
+      const cl = classifyServer(s.status ?? null, s.snap ?? null, s.confirmado ?? null, s.errorDescription ?? null);
+      const extendedStatus = getExtendedStatus(s.status ?? "", s.errorDescription ?? null, s.snap ?? null, s.confirmado ?? null);
       const isError  = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = !isError && (!s.os || s.os === "N/A");
       const status   = isError ? "error" : isNoData ? "nodata" : "ok";
-      const extendedStatus = getExtendedStatus(status, s.comentarios ?? null, s.snap ?? null, s.confirmado ?? null);
       
       return { 
         ...s, 
@@ -326,7 +328,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         isError, 
         isNoData, 
         status, 
-        extendedStatus 
+        extendedStatus,
+        // New classification
+        primaryStatus: cl.primary,
+        secondaryFlags: cl.flags,
+        hasErrorFlag: cl.flags.includes("Error"),
+        hasSConfFlag: cl.flags.includes("S. Conf"),
+        hasSSnapFlag: cl.flags.includes("S. Snap"),
       };
     }),
   [serverData]);
@@ -384,13 +392,17 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
   // ── KPI Stats ───────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const total     = filtered.length;
-    const ok        = filtered.filter((s) => s.extendedStatus === "Actualizado").length;
-    const errors    = filtered.filter((s) => s.extendedStatus === "Error").length;
-    const sinConf   = filtered.filter((s) => s.extendedStatus === "Sin Confirmación").length;
-    const sinSnap   = filtered.filter((s) => s.extendedStatus === "Sin Snap").length;
-    const revision  = filtered.filter((s) => s.extendedStatus === "En Revisión").length;
-    const noData    = filtered.filter((s) => s.extendedStatus === "Sin Datos").length;
+    const total         = filtered.length;
+    // Primary groups
+    const ok            = filtered.filter((s) => (s as any).primaryStatus === "Actualizado").length;
+    const noActualizados = filtered.filter((s) => (s as any).primaryStatus === "No Actualizado").length;
+    // Secondary flags (cross-cutting: can appear in both Actualizado and No Actualizado)
+    const errors        = filtered.filter((s) => (s as any).hasErrorFlag).length;
+    const sinConf       = filtered.filter((s) => (s as any).hasSConfFlag).length;
+    const sinSnap       = filtered.filter((s) => (s as any).hasSSnapFlag).length;
+    // Legacy counts for other chart compatibility
+    const revision      = filtered.filter((s) => s.extendedStatus === "En Revisión").length;
+    const noData        = filtered.filter((s) => s.extendedStatus === "Sin Datos").length;
     
     // Calculate pending from scheduledOrders that match filtered servers
     let pendientesCount = 0;
@@ -400,7 +412,6 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         const banks = order.targetGroups ? order.targetGroups.split(",").map(b => b.trim()) : [];
         const groups = order.targetServers ? order.targetServers.split(",").map(g => g.trim()) : [];
         filtered.forEach(s => {
-          // Check if server belongs to scheduled groups OR scheduled banks
           const serverInfo = getServerInfo(s.serverName);
           const serverBank = serverInfo?.type || "";
           if (groups.includes(s.grupo || "") || banks.includes(serverBank)) {
@@ -413,20 +424,20 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       pendientesCount = filtered.filter((s) => s.extendedStatus === "Pendiente").length;
     }
 
-    const pct       = total > 0 ? Math.round((ok / total) * 100) : 0;
-    return { total, ok, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct };
+    const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
+    return { total, ok, noActualizados, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct };
   }, [filtered, scheduledOrders]);
 
   // ── Donut chart data ────────────────────────────────────────────────────────
   const donutData = useMemo(() => [
     { name: "Actualizado", value: stats.ok, color: EXTENDED_STATUS_COLORS["Actualizado"] },
-    { name: "Error", value: stats.errors, color: EXTENDED_STATUS_COLORS["Error"] },
-    { name: "Sin Confirmación", value: stats.sinConf, color: EXTENDED_STATUS_COLORS["Sin Confirmación"] },
-    { name: "Sin Snap", value: stats.sinSnap, color: EXTENDED_STATUS_COLORS["Sin Snap"] },
-    { name: "En Revisión", value: stats.revision, color: EXTENDED_STATUS_COLORS["En Revisión"] },
+    { name: "No Actualizado", value: stats.noActualizados, color: "#ef4444" },
+    { name: "Con Error", value: stats.errors, color: SECONDARY_FLAG_COLORS["Error"] },
+    { name: "Sin Confirmación", value: stats.sinConf, color: SECONDARY_FLAG_COLORS["S. Conf"] },
+    { name: "Sin Snap", value: stats.sinSnap, color: SECONDARY_FLAG_COLORS["S. Snap"] },
     { name: "Pendiente", value: stats.pendientes, color: EXTENDED_STATUS_COLORS["Pendiente"] },
-    { name: "Sin datos", value: stats.noData, color: EXTENDED_STATUS_COLORS["Sin Datos"] },
   ].filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [stats]);
+
 
   // ── Cumplimiento por banco ──────────────────────────────────────────────────
   const byBankData = useMemo(() => {
@@ -437,7 +448,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     const uniqueBanks = Array.from(new Set(banks));
 
     return uniqueBanks.map((bank) => {
-      // Calculate expected total considering overrides!
+      // Calculate expected total considering overrides
       const expectedTotal = Object.keys(serverTypeMap).filter(k => {
         const type = overrides[k] || serverTypeMap[k].type;
         return type === bank;
@@ -451,33 +462,32 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       
       const total = expectedTotal > 0 ? expectedTotal : srvs.length;
       
-      const ok = srvs.filter((s) => s.extendedStatus === "Actualizado").length;
-      const noActualizados = total - ok;
+      // PRIMARY counts (Actualizado / No Actualizado)
+      const actualizados    = srvs.filter((s) => (s as any).primaryStatus === "Actualizado").length;
+      const noActualizados  = total - actualizados;
       
-      const sinConf = srvs.filter((s) => s.extendedStatus === "Sin Confirmación").length;
-      const sinSnap = srvs.filter((s) => s.extendedStatus === "Sin Snap").length;
+      // SECONDARY flag counts (cross-cutting across both primary groups)
+      const errors   = srvs.filter((s) => (s as any).hasErrorFlag).length;
+      const sinConf  = srvs.filter((s) => (s as any).hasSConfFlag).length;
+      const sinSnap  = srvs.filter((s) => (s as any).hasSSnapFlag).length;
+      
       const pendientes = srvs.filter((s) => s.extendedStatus === "Pendiente").length;
-      
-      const errors = srvs.filter((s) => s.extendedStatus === "Error").length;
-      const revision = srvs.filter((s) => s.extendedStatus === "En Revisión").length;
-      const nodata = srvs.filter((s) => s.extendedStatus === "Sin Datos").length;
-      const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
-      
-      const otroMotivo = noActualizados - (sinConf + sinSnap + pendientes);
+      const revision   = srvs.filter((s) => s.extendedStatus === "En Revisión").length;
+      const nodata     = srvs.filter((s) => s.extendedStatus === "Sin Datos").length;
+      const pct = total > 0 ? Math.round((actualizados / total) * 100) : 0;
 
       return { 
         name: bank, 
         total, 
-        ok, 
-        actualizados: ok,
+        ok: actualizados,
+        actualizados,
         noActualizados,
-        pctActualizados: total > 0 ? (ok / total * 100).toFixed(2) : "0.00",
+        pctActualizados: total > 0 ? (actualizados / total * 100).toFixed(2) : "0.00",
         pctNoActualizados: total > 0 ? (noActualizados / total * 100).toFixed(2) : "0.00",
+        errors,
         sinConf, 
         sinSnap, 
-        pendientes, 
-        otroMotivo,
-        errors,
+        pendientes,
         revision,
         nodata,
         pct
@@ -748,9 +758,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           <MetricCard title="No Actualizados" value={byBankData.reduce((acc, curr) => acc + curr.noActualizados, 0)} subtitle="Click para ver desglose" icon={<AlertCircle className="w-5 h-5 text-amber-400"  />} accent="amber"  />
           {showNoActDetails && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-amber-500/30 p-3 rounded-xl shadow-xl z-10 text-xs flex flex-col gap-1 text-zinc-300">
-              <div className="flex justify-between"><span>Errores:</span><span className="font-bold text-rose-400">{byBankData.reduce((acc, curr) => acc + curr.errors, 0)}</span></div>
-              <div className="flex justify-between"><span>Sin Confirmar:</span><span className="font-bold text-orange-400">{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0)}</span></div>
-              <div className="flex justify-between"><span>Sin Snap:</span><span className="font-bold text-yellow-400">{byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0)}</span></div>
+              <div className="flex justify-between"><span>Con Error:</span><span className="font-bold" style={{color: SECONDARY_FLAG_COLORS["Error"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0) === 0 && byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0) === 0 ? byBankData.reduce((acc, curr) => acc + curr.errors, 0) : byBankData.filter(b => b.errors > 0).reduce((acc, curr) => acc + curr.errors, 0)}</span></div>
+              <div className="flex justify-between"><span>Sin Confirmar:</span><span className="font-bold" style={{color: SECONDARY_FLAG_COLORS["S. Conf"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0)}</span></div>
+              <div className="flex justify-between"><span>Sin Snap:</span><span className="font-bold" style={{color: SECONDARY_FLAG_COLORS["S. Snap"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0)}</span></div>
             </div>
           )}
         </div>
@@ -781,19 +791,18 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           <ChartCard title="Cumplimiento por Banco">
             {byBankData.length > 0 ? (
               <div className="overflow-auto">
-                <table className="w-full text-xs table-fixed min-w-[750px]">
+                <table className="w-full text-xs table-fixed min-w-[820px]">
                     <thead className="text-zinc-500 uppercase text-[10px]">
                       <tr>
                         <th className="px-2 py-2 text-left font-medium">Banco</th>
                         <th className="px-2 py-2 text-right font-medium">Servidores</th>
                         <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>Act.</th>
-                        <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>No Act.</th>
+                        <th className="px-2 py-2 text-right font-medium text-rose-400">No Act.</th>
                         <th className="px-2 py-2 text-right font-medium text-emerald-400">% Act</th>
                         <th className="px-2 py-2 text-right font-medium text-rose-400">% No Act</th>
-                        <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>S. Conf</th>
-                        <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>S. Snap</th>
-                        <th className="px-2 py-2 text-right font-medium" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>Pend</th>
-                        <th className="px-2 py-2 text-right font-medium text-zinc-400">Otro</th>
+                        <th className="px-2 py-2 text-right font-medium" style={{color: SECONDARY_FLAG_COLORS["Error"]}}>Error</th>
+                        <th className="px-2 py-2 text-right font-medium" style={{color: SECONDARY_FLAG_COLORS["S. Conf"]}}>S. Conf</th>
+                        <th className="px-2 py-2 text-right font-medium" style={{color: SECONDARY_FLAG_COLORS["S. Snap"]}}>S. Snap</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60">
@@ -807,13 +816,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                             </td>
                             <td className="px-2 py-2 text-right text-zinc-300 font-medium cursor-pointer hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-2" onClick={() => setSelectedBankManager(b.name)} title="Ver y gestionar servidores">{b.total}</td>
                             <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>{b.actualizados}</td>
-                            <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>{b.noActualizados}</td>
+                            <td className="px-2 py-2 text-right text-rose-400">{b.noActualizados}</td>
                             <td className="px-2 py-2 text-right text-emerald-400">{b.pctActualizados}%</td>
                             <td className="px-2 py-2 text-right text-rose-400">{b.pctNoActualizados}%</td>
-                            <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>{b.sinConf}</td>
-                            <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>{b.sinSnap}</td>
-                            <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>{b.pendientes}</td>
-                            <td className="px-2 py-2 text-right text-zinc-400">{b.otroMotivo}</td>
+                            <td className="px-2 py-2 text-right font-medium" style={{color: SECONDARY_FLAG_COLORS["Error"]}}>{b.errors > 0 ? b.errors : <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-2 py-2 text-right" style={{color: SECONDARY_FLAG_COLORS["S. Conf"]}}>{b.sinConf > 0 ? b.sinConf : <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-2 py-2 text-right" style={{color: SECONDARY_FLAG_COLORS["S. Snap"]}}>{b.sinSnap > 0 ? b.sinSnap : <span className="text-zinc-700">—</span>}</td>
                           </tr>
                         );
                       })}
@@ -822,13 +830,12 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                         <td className="px-2 py-2 text-zinc-300">Total general</td>
                         <td className="px-2 py-2 text-right text-zinc-200">{byBankData.reduce((acc, curr) => acc + curr.total, 0)}</td>
                         <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Actualizado"]}}>{byBankData.reduce((acc, curr) => acc + curr.actualizados, 0)}</td>
-                        <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Error"]}}>{byBankData.reduce((acc, curr) => acc + curr.noActualizados, 0)}</td>
+                        <td className="px-2 py-2 text-right text-rose-400">{byBankData.reduce((acc, curr) => acc + curr.noActualizados, 0)}</td>
                         <td className="px-2 py-2 text-right text-emerald-400">{byBankData.reduce((acc, curr) => acc + curr.total, 0) > 0 ? ((byBankData.reduce((acc, curr) => acc + curr.actualizados, 0) / byBankData.reduce((acc, curr) => acc + curr.total, 0)) * 100).toFixed(2) : "0.00"}%</td>
                         <td className="px-2 py-2 text-right text-rose-400">{byBankData.reduce((acc, curr) => acc + curr.total, 0) > 0 ? ((byBankData.reduce((acc, curr) => acc + curr.noActualizados, 0) / byBankData.reduce((acc, curr) => acc + curr.total, 0)) * 100).toFixed(2) : "0.00"}%</td>
-                        <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Confirmación"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0)}</td>
-                        <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Sin Snap"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0)}</td>
-                        <td className="px-2 py-2 text-right" style={{color: EXTENDED_STATUS_COLORS["Pendiente"]}}>{byBankData.reduce((acc, curr) => acc + curr.pendientes, 0)}</td>
-                        <td className="px-2 py-2 text-right text-zinc-400">{byBankData.reduce((acc, curr) => acc + curr.otroMotivo, 0)}</td>
+                        <td className="px-2 py-2 text-right font-medium" style={{color: SECONDARY_FLAG_COLORS["Error"]}}>{byBankData.reduce((acc, curr) => acc + curr.errors, 0) || <span className="text-zinc-700">—</span>}</td>
+                        <td className="px-2 py-2 text-right" style={{color: SECONDARY_FLAG_COLORS["S. Conf"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinConf, 0) || <span className="text-zinc-700">—</span>}</td>
+                        <td className="px-2 py-2 text-right" style={{color: SECONDARY_FLAG_COLORS["S. Snap"]}}>{byBankData.reduce((acc, curr) => acc + curr.sinSnap, 0) || <span className="text-zinc-700">—</span>}</td>
                       </tr>
                     </tbody>
                   </table>

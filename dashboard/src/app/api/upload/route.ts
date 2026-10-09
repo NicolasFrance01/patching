@@ -122,6 +122,7 @@ export async function POST(req: Request) {
         comentarios: item.comentarios,
         snap: item.snap,
         confirmado: item.confirmado,
+        status: item.status,
       };
 
       await prisma.serverStatus.upsert({

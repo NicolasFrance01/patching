@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
-import { getExtendedStatus, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, ExtendedStatus } from "@/lib/statusUtils";
+import { getExtendedStatus, classifyServer, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, SECONDARY_FLAG_COLORS, ExtendedStatus } from "@/lib/statusUtils";
 import {
   ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
@@ -449,13 +449,25 @@ export default function ReportesView({
       const isNoData = (!s.os || s.os === "N/A") && !isError;
       const status = isError ? "error" : isNoData ? "nodata" : "ok";
       const extendedStatus = getExtendedStatus(status, s.errorDescription, (s as any).snap ?? null, (s as any).confirmado ?? null);
+      // New two-level classification
+      const cl = classifyServer(
+        (s as any).status ?? null,
+        (s as any).snap ?? null,
+        (s as any).confirmado ?? null,
+        s.errorDescription ?? null
+      );
       return {
         ...s,
         info: getServerInfo(s.serverName),
         isError,
         isNoData,
         status,
-        extendedStatus
+        extendedStatus,
+        primaryStatus: cl.primary,
+        secondaryFlags: cl.flags,
+        hasErrorFlag: cl.flags.includes("Error"),
+        hasSConfFlag: cl.flags.includes("S. Conf"),
+        hasSSnapFlag: cl.flags.includes("S. Snap"),
       };
     }),
     [data.currentServers]
@@ -547,13 +559,16 @@ export default function ReportesView({
       const key = s.info?.type ?? "Sin clasificar";
       if (!counts[key]) counts[key] = { total: 0, ok: 0, error: 0, nodata: 0, sinConf: 0, sinSnap: 0, revision: 0, pendientes: 0 };
       counts[key].total++;
-      if (s.extendedStatus === "Actualizado") counts[key].ok++;
-      else if (s.extendedStatus === "Error") counts[key].error++;
-      else if (s.extendedStatus === "Sin Confirmación") counts[key].sinConf++;
-      else if (s.extendedStatus === "Sin Snap") counts[key].sinSnap++;
-      else if (s.extendedStatus === "En Revisión") counts[key].revision++;
+      // PRIMARY counts: Actualizado / No Actualizado
+      if ((s as any).primaryStatus === "Actualizado") counts[key].ok++;
+      else counts[key].error++;
+      // SECONDARY flag counts (cross-cutting)
+      if ((s as any).hasSConfFlag) counts[key].sinConf++;
+      if ((s as any).hasSSnapFlag) counts[key].sinSnap++;
+      // Legacy
+      if (s.extendedStatus === "En Revisión") counts[key].revision++;
       else if (s.extendedStatus === "Pendiente") counts[key].pendientes++;
-      else counts[key].nodata++;
+      else if (s.extendedStatus === "Sin Datos") counts[key].nodata++;
     }
 
     return Object.entries(counts)
@@ -622,15 +637,17 @@ export default function ReportesView({
       for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
-          if (r.status === "error" && r.errorDescription) {
+          // Include any record with a non-empty error description (regardless of primary status)
+          if (r.errorDescription && r.errorDescription !== "N/A" && r.errorDescription.trim()) {
             if (!map[r.errorDescription]) map[r.errorDescription] = new Set();
             map[r.errorDescription].add(r.serverName);
           }
         }
       }
     } else {
+      // Use hasErrorFlag: captures Actualizado+Error AND No Actualizado+Error
       for (const s of filteredEnrichedServers) {
-        if (s.isError && s.errorDescription) {
+        if ((s as any).hasErrorFlag && s.errorDescription) {
           if (!map[s.errorDescription]) map[s.errorDescription] = new Set();
           map[s.errorDescription].add(s.serverName);
         }

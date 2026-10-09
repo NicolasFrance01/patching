@@ -21,6 +21,7 @@ export interface ServerStatus {
   comentarios?: string | null;
   snap?: string | null;
   confirmado?: string | null;
+  status?: string | null;
   updatedAt: Date;
   createdAt: Date;
 }
