@@ -125,8 +125,11 @@ function TruncatedCell({
 export default function HistorialView({ syncRuns }: { syncRuns: SyncRun[] }) {
   const [search, setSearch] = useState("");
   const [bankFilters, setBankFilters] = useState<BankFilter[]>(["all"]);
-  const [timeFilter, setTimeFilter] = useState<"all" | "month" | "custom">("all");
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [timeFilter, setTimeFilter] = useState<"all" | "month" | "custom">("month");
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [expandedDay, setExpandedDay] = useState<string | null>(() => {

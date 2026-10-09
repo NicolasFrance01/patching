@@ -420,8 +420,11 @@ export default function ReportesView({
   // Multi-bank selection state
   const [selectedBanks, setSelectedBanks] = useState<BankFilter[]>(["all"]);
   // Unified Time Filter State across ALL modules
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("mes");
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
 
