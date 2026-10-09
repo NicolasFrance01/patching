@@ -42,10 +42,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  const role = (token as any).role;
+  const role = ((token as any).role || "").toLowerCase();
 
   // "Dashboard" role logic: can only access "/" and some basic utility routes
-  if (role === "Dashboard") {
+  if (role === "dashboard") {
     const allowedPaths = ["/", "/change-password"];
     if (!allowedPaths.includes(pathname) && !pathname.startsWith("/api")) {
       return NextResponse.redirect(new URL("/", request.url));
@@ -53,7 +53,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // "Base" role logic: can only access basic modules
-  if (role === "Base") {
+  if (role === "base") {
     const allowedPaths = ["/", "/historial", "/reportes", "/calendario", "/change-password"];
     // if it's not one of those, redirect to /
     if (!allowedPaths.includes(pathname) && !pathname.startsWith("/api")) {
