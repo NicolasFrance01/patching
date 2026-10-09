@@ -42,6 +42,30 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  const role = (token as any).role;
+
+  // "Dashboard" role logic: can only access "/" and some basic utility routes
+  if (role === "Dashboard") {
+    const allowedPaths = ["/", "/change-password"];
+    if (!allowedPaths.includes(pathname) && !pathname.startsWith("/api")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // "Base" role logic: can only access basic modules
+  if (role === "Base") {
+    const allowedPaths = ["/", "/historial", "/reportes", "/calendario", "/change-password"];
+    // if it's not one of those, redirect to /
+    if (!allowedPaths.includes(pathname) && !pathname.startsWith("/api")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // Admin and other generic 'user' role are unrestricted for now (aside from /usuarios which should be admin only ideally)
+  if (role !== "admin" && pathname.startsWith("/usuarios")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   return NextResponse.next();
 }
 
