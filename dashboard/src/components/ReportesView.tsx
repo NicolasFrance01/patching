@@ -98,12 +98,13 @@ function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boo
   return selectedBanks.includes(bank as BankFilter);
 }
 
-function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string): boolean {
+function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string, isSyncRun: boolean = false): boolean {
   if (timeFilter === "all") return true;
   
   if (timeFilter === "mes" && selectedMonth) {
     if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
-    // Fallback if no fechaVentana
+    if (!isSyncRun) return false;
+    // Fallback if no fechaVentana (only for sync runs)
     const d = new Date(isoDate);
     if (!isNaN(d.getTime())) {
       return d.toISOString().startsWith(selectedMonth);
@@ -129,10 +130,18 @@ function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter:
   }
   if (timeFilter === "mes") return true; // no month selected, show all
   if (timeFilter === "custom") {
+    if (!isSyncRun && !fechaVentana) return false;
+    let targetDate = d;
+    if (!isSyncRun && fechaVentana) {
+      try {
+        const parsed = new Date(fechaVentana);
+        if (!isNaN(parsed.getTime())) targetDate = parsed;
+      } catch {}
+    }
     let from = fromStr ? new Date(fromStr) : new Date(0);
     let to = toStr ? new Date(toStr) : new Date();
     to.setHours(23, 59, 59, 999);
-    return d >= from && d <= to;
+    return targetDate >= from && targetDate <= to;
   }
   return true;
 }
@@ -602,7 +611,7 @@ export default function ReportesView({
       return [{ label: "Estado actual", errores, ok, total: filteredEnrichedServers.length }];
     }
 
-    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo));
+    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
 
     const dayMap: Record<string, SyncRunData> = {};
     for (const run of runs) {
@@ -646,7 +655,7 @@ export default function ReportesView({
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo));
+      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true));
       for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
@@ -679,7 +688,7 @@ export default function ReportesView({
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
     const validRuns = hasSyncHistory
-      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo))
+      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo, true))
       : (() => {
           if (filteredEnrichedServers.length === 0) return [];
           const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;

@@ -100,10 +100,11 @@ function toLocalDayKey(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter, selectedMonth: string, from: string, to: string): boolean {
+function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter, selectedMonth: string, from: string, to: string, isSyncRun: boolean = false): boolean {
   if (tf === "mes" && selectedMonth) {
     if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
-    // Fallback: if no fechaVentana, use iso
+    if (!isSyncRun) return false; // For servers, strict match on fechaVentana
+    // Fallback: only for SyncRuns
     const d = new Date(iso);
     if (!isNaN(d.getTime())) {
        return d.toISOString().startsWith(selectedMonth);
@@ -122,9 +123,20 @@ function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter
   }
 
   if (tf === "custom") {
+    if (!isSyncRun && !fechaVentana) return false;
+    
+    // For servers, use fechaVentana if possible
+    let targetDate = d;
+    if (!isSyncRun && fechaVentana) {
+      try {
+        const parsed = new Date(fechaVentana);
+        if (!isNaN(parsed.getTime())) targetDate = parsed;
+      } catch {}
+    }
+
     const f = from ? new Date(from) : new Date(0);
     const t = to ? new Date(to + "T23:59:59") : new Date();
-    return d >= f && d <= t;
+    return targetDate >= f && targetDate <= t;
   }
   return true;
 }
@@ -492,7 +504,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
   const trendData = useMemo(() => {
     const runs = syncRuns
-      .filter((r) => isInTimeFilter(r.syncedAt, null, timeFilter, selectedMonth, customFrom, customTo))
+      .filter((r) => isInTimeFilter(r.syncedAt, null, timeFilter, selectedMonth, customFrom, customTo, true))
       .sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime())
       .slice(-12);
 
