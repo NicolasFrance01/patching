@@ -204,6 +204,8 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
                 className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
               >
                 <option value="user">Usuario</option>
+                <option value="Base">Base</option>
+                <option value="Dashboard">Dashboard</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -261,9 +263,13 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${
                       u.role === "admin"
                         ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                        : u.role === "Dashboard"
+                        ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                        : u.role === "Base"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                         : "bg-zinc-500/10 text-zinc-400 border-zinc-600/30"
                     }`}>
-                      {u.role === "admin" ? "Admin" : "Usuario"}
+                      {u.role === "admin" ? "Admin" : u.role === "Dashboard" ? "Dashboard" : u.role === "Base" ? "Base" : "Usuario"}
                     </span>
                   </td>
                   <td className="px-4 py-3">

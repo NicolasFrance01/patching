@@ -60,7 +60,12 @@ export default function Sidebar({ role, username }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.filter((item) => {
+          if (role === "admin") return true;
+          if (role === "Dashboard") return item.label === "Dashboard";
+          if (role === "Base") return ["Dashboard", "Historial", "Reportes", "Calendario"].includes(item.label);
+          return true; // default for other unspecified roles
+        }).map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
