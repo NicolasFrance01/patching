@@ -100,7 +100,19 @@ function toLocalDayKey(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isInTimeFilter(iso: string, tf: TimeFilter, selectedMonth: string, from: string, to: string): boolean {
+function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter, selectedMonth: string, from: string, to: string): boolean {
+  if (tf === "mes" && selectedMonth) {
+    if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
+    // Fallback: if no fechaVentana, use iso
+    const d = new Date(iso);
+    if (!isNaN(d.getTime())) {
+       return d.toISOString().startsWith(selectedMonth);
+    }
+    return false;
+  }
+  
+  if (tf === "mes") return true; // no month selected yet, show all
+  
   let d: Date;
   try {
     d = new Date(iso);
@@ -109,11 +121,6 @@ function isInTimeFilter(iso: string, tf: TimeFilter, selectedMonth: string, from
     d = new Date();
   }
 
-  if (tf === "mes" && selectedMonth) {
-    const isoString = d.toISOString();
-    return isoString.startsWith(selectedMonth);
-  }
-  if (tf === "mes") return true; // no month selected yet, show all
   if (tf === "custom") {
     const f = from ? new Date(from) : new Date(0);
     const t = to ? new Date(to + "T23:59:59") : new Date();
@@ -282,32 +289,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
   useEffect(() => { setChartsMounted(true); }, []);
 
-  // Fetch server data when the selected month changes
+  // Remove fetch effect so that filtering is purely local based on initialData
+  // which solves the discrepancy with MonthlyServerStatus having mixed or duplicated records.
   useEffect(() => {
-    async function fetchData() {
-      if (timeFilter !== "mes" || !selectedMonth) {
-        // If not using month filter, we might want to default to localData or a specific behavior.
-        // For now, if they choose custom time range, we will just use whatever data is loaded,
-        // or we could fetch the latest. 
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/servers?month=${selectedMonth}`);
-        if (res.ok) {
-          const data = await res.json();
-          setServerData(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch server data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    fetchData();
-  }, [timeFilter, selectedMonth]);
+    setServerData(localData);
+  }, [localData, timeFilter, selectedMonth]);
 
   // ── Enriched servers ────────────────────────────────────────────────────────
   const enriched = useMemo(() =>
@@ -352,7 +338,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     const q = search.toLowerCase();
     return enriched.filter((s) => {
       if (!matchesBankFilter(s.serverName, bankFilters, overrides)) return false;
-      if (!isInTimeFilter(s.updatedAt.toString(), timeFilter, selectedMonth, customFrom, customTo)) return false;
+      if (!isInTimeFilter(s.updatedAt.toString(), s.fechaVentana ?? null, timeFilter, selectedMonth, customFrom, customTo)) return false;
       
       // Advanced Filters
       if (grupoFilters.length > 0 && (!s.grupo || !grupoFilters.includes(s.grupo))) return false;
@@ -506,7 +492,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   // ── Trend: servidores por sync (últimas N syncs) ────────────────────────────
   const trendData = useMemo(() => {
     const runs = syncRuns
-      .filter((r) => isInTimeFilter(r.syncedAt, timeFilter, selectedMonth, customFrom, customTo))
+      .filter((r) => isInTimeFilter(r.syncedAt, null, timeFilter, selectedMonth, customFrom, customTo))
       .sort((a, b) => new Date(a.syncedAt).getTime() - new Date(b.syncedAt).getTime())
       .slice(-12);
 

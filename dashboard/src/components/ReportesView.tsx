@@ -98,8 +98,19 @@ function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boo
   return selectedBanks.includes(bank as BankFilter);
 }
 
-function isDateInRange(isoDate: string, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string): boolean {
+function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string): boolean {
   if (timeFilter === "all") return true;
+  
+  if (timeFilter === "mes" && selectedMonth) {
+    if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
+    // Fallback if no fechaVentana
+    const d = new Date(isoDate);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().startsWith(selectedMonth);
+    }
+    return false;
+  }
+
   let d: Date;
   try {
     d = new Date(isoDate);
@@ -116,10 +127,7 @@ function isDateInRange(isoDate: string, timeFilter: TimeFilter, selectedMonth: s
     const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return d >= cutoff;
   }
-  if (timeFilter === "mes") {
-    if (selectedMonth) return d.toISOString().startsWith(selectedMonth);
-    return true; // no month selected, show all
-  }
+  if (timeFilter === "mes") return true; // no month selected, show all
   if (timeFilter === "custom") {
     let from = fromStr ? new Date(fromStr) : new Date(0);
     let to = toStr ? new Date(toStr) : new Date();
@@ -480,7 +488,7 @@ export default function ReportesView({
 
   const filteredEnrichedServers = useMemo(() =>
     enrichedServers.filter(
-      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, timeFilter, selectedMonth, trendFrom, trendTo)
+      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, (s as any).fechaVentana ?? null, timeFilter, selectedMonth, trendFrom, trendTo)
     ),
     [enrichedServers, selectedBanks, timeFilter, selectedMonth, trendFrom, trendTo]
   );
@@ -594,7 +602,7 @@ export default function ReportesView({
       return [{ label: "Estado actual", errores, ok, total: filteredEnrichedServers.length }];
     }
 
-    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo));
+    let runs = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo));
 
     const dayMap: Record<string, SyncRunData> = {};
     for (const run of runs) {
@@ -638,7 +646,7 @@ export default function ReportesView({
   const errorGroups = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     if (hasSyncHistory) {
-      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo));
+      const validRuns = data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo));
       for (const run of validRuns) {
         for (const r of run.records) {
           if (!matchesBankFilter(r.serverName, selectedBanks)) continue;
@@ -671,7 +679,7 @@ export default function ReportesView({
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
     const validRuns = hasSyncHistory
-      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, timeFilter, selectedMonth, trendFrom, trendTo))
+      ? data.syncRuns.filter((r) => isDateInRange(r.syncedAt, null, timeFilter, selectedMonth, trendFrom, trendTo))
       : (() => {
           if (filteredEnrichedServers.length === 0) return [];
           const ok = filteredEnrichedServers.filter((s) => !s.isError && !s.isNoData).length;
