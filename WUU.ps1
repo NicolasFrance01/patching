@@ -331,9 +331,15 @@ public class FixPackagePickItem : INotifyPropertyChanged
         </Popup>
       </Grid>
       <Rectangle Width="1" Height="20" Fill="#FFE2E8F0" Margin="16,0,12,0" VerticalAlignment="Center"/>
-      <TextBlock Text="Analista asignado:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-      <TextBlock x:Name="lblAnalyst" Text="-" VerticalAlignment="Center" FontWeight="SemiBold"
-                 Foreground="#FF1D4ED8"/>
+      <StackPanel VerticalAlignment="Center" MaxWidth="480">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Analista asignado:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+          <TextBlock x:Name="lblAnalyst" Text="-" VerticalAlignment="Center" FontWeight="SemiBold"
+                     Foreground="#FF1D4ED8"/>
+        </StackPanel>
+        <TextBlock x:Name="lblTaskName" Text="" TextWrapping="Wrap" Margin="0,2,0,0"
+                   FontWeight="SemiBold" Foreground="#FF1D4ED8" Visibility="Collapsed"/>
+      </StackPanel>
     </DockPanel>
 
     <!-- ===== Fila 1: Leyenda de colores ===== -->
@@ -444,6 +450,7 @@ $script:lblSearchHint  = $Window.FindName('lblSearchHint')
 $script:popSearch      = $Window.FindName('popSearch')
 $script:lbSearch       = $Window.FindName('lbSearch')
 $script:lblAnalyst     = $Window.FindName('lblAnalyst')
+$script:lblTaskName    = $Window.FindName('lblTaskName')
 $btnConsultar     = $Window.FindName('btnConsultar')
 $btnClear         = $Window.FindName('btnClear')
 $btnAdd           = $Window.FindName('btnAdd')
@@ -474,9 +481,10 @@ $script:Cfg = [ordered]@{
   ConnectivityTimeoutSec    = 3
   CleanupRemoteOnSuccess    = $true
   Dashboard = [ordered]@{
-    Enabled     = $true
-    Url         = 'https://patching-dashboard-hae3f7fxc6fnhhbt.canadacentral-01.azurewebsites.net/api/upload'
-    CalendarUrl = ''  # vacio = se deriva de Url (/api/calendar). Completar a mano si el modulo usa otra ruta.
+    Enabled         = $true
+    Url             = 'https://patching.algeiba.com/api/upload'
+    CalendarUrl     = ''  # vacio = se deriva de Url (/api/calendar). Completar a mano si el modulo usa otra ruta.
+    NotificationUrl = ''  # vacio = https://<host de CalendarUrl o Url>/api/notifications
   }
   ScheduledReport = [ordered]@{
     Enabled      = $false
@@ -645,6 +653,153 @@ function Format-TeamsErrorList([object[]]$Items, [int]$Max = 12) {
   return $text
 }
 
+function Get-PatchPeriodLabel {
+  param([datetime]$Date = (Get-Date))
+  $names = @('ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC')
+  return ('{0}-{1:D2}' -f $names[$Date.Month - 1], ($Date.Year % 100))
+}
+
+function Get-DashboardNotifyUrl {
+  $explicit = ''
+  try { $explicit = "$($script:Cfg.Dashboard.NotificationUrl)".Trim() } catch {}
+  if ($explicit) { return $explicit }
+  $bases = @()
+  try { $bases += "$($script:Cfg.Dashboard.CalendarUrl)".Trim() } catch {}
+  try { $bases += "$($script:Cfg.Dashboard.Url)".Trim() } catch {}
+  foreach ($base in $bases) {
+    if ($base -match '^(https?://[^/]+)') { return ($Matches[1] + '/api/notifications') }
+  }
+  return ''
+}
+
+function Get-CardInventory {
+  if ($script:Csv -and @($script:Csv).Count -gt 0) { return @($script:Csv) }
+  $folder = Join-Path $script:ScriptDir 'Servidores'
+  if (-not (Test-Path $folder)) { return @() }
+  $all = @()
+  foreach ($f in @(Get-ChildItem -Path $folder -Filter *.csv -File -ErrorAction SilentlyContinue)) {
+    try {
+      $firstLine = Get-Content -Path $f.FullName -TotalCount 1 -ErrorAction Stop
+      $delim = if ($firstLine -match ';' -and $firstLine -notmatch ',') { ';' } else { ',' }
+      $all += @(Import-Csv -Path $f.FullName -Delimiter $delim)
+    } catch {}
+  }
+  return @($all)
+}
+
+function Resolve-WindowCardScope {
+  param(
+    [string[]]$Servers = @(),
+    [string]$GrupoHint = '',
+    [switch]$AllInventory
+  )
+  $inv = @(Get-CardInventory)
+  $names = @($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+  if ($names.Count -eq 0 -and "$GrupoHint".Trim()) {
+    $hint = "$GrupoHint".Trim()
+    $names = @(
+      $inv | Where-Object { "$($_.Grupo)".Trim() -eq $hint } |
+        ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ } | Select-Object -Unique
+    )
+  } elseif ($names.Count -eq 0 -and $AllInventory) {
+    $names = @($inv | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ } | Select-Object -Unique)
+  }
+  $groups = New-Object System.Collections.Generic.List[string]
+  $clients = New-Object System.Collections.Generic.List[string]
+  $outside = 0
+  $inInv = 0
+  foreach ($n in $names) {
+    $key = Get-ServerMatchKey $n
+    $rows = @($inv | Where-Object {
+      $s = "$($_.Servidor)".Trim()
+      $hit = $false
+      if ($s -and ($s -ieq $n)) { $hit = $true }
+      elseif ($s -and $key -and ((Get-ServerMatchKey $s) -eq $key)) { $hit = $true }
+      $hit
+    })
+    if ($rows.Count -eq 0) { $outside++; continue }
+    $inInv++
+    foreach ($r in $rows) {
+      $g = "$($r.Grupo)".Trim()
+      $c = "$($r.Cliente)".Trim()
+      if ($g -and -not $groups.Contains($g)) { [void]$groups.Add($g) }
+      if ($c -and -not $clients.Contains($c)) { [void]$clients.Add($c) }
+    }
+  }
+  $grupo = 'Fuera de inventario'
+  if ($inInv -gt 0 -and $groups.Count -gt 0 -and $outside -eq 0) { $grupo = ($groups -join ', ') }
+  elseif ($inInv -gt 0 -and $outside -gt 0) { $grupo = ((@($groups) + @('Fuera de inventario')) -join ', ') }
+  elseif ($inInv -gt 0) { $grupo = 'Sin grupo' }
+  $cliente = if ($clients.Count -gt 0) { ($clients -join ', ') } else { 'Sin cliente' }
+  return @{ Cliente = $cliente; Grupo = $grupo; Count = $names.Count }
+}
+
+function Send-WindowCard {
+  param(
+    [Parameter(Mandatory)][ValidateSet('Inicio','Fin')][string]$Phase,
+    [string]$TaskName = '',
+    [string[]]$Servers = @(),
+    [string]$GrupoHint = '',
+    [switch]$AllInventory,
+    [datetime]$PeriodDate = ([datetime]::MinValue),
+    [string]$Periodo = ''
+  )
+  if (-not [bool]$script:Cfg.Dashboard.Enabled) {
+    Write-Log 'WARN' "Tarjeta no enviada ($Phase): Dashboard.Enabled = false."
+    return
+  }
+  $url = Get-DashboardNotifyUrl
+  if (-not $url) {
+    Write-Log 'WARN' "Tarjeta no enviada ($Phase): no hay URL de notificaciones."
+    return
+  }
+  $title = "$TaskName".Trim()
+  if (-not $title) { $title = 'Sin tarea' }
+  $scope = Resolve-WindowCardScope -Servers $Servers -GrupoHint $GrupoHint -AllInventory:$AllInventory
+  $when = Get-Date
+  $pDate = if ($PeriodDate -gt [datetime]::MinValue) { $PeriodDate } else { $when }
+  $period = "$Periodo".Trim()
+  if (-not $period) { $period = Get-PatchPeriodLabel $pDate }
+  $body = [ordered]@{
+    Tipo       = 'Tarjeta'
+    Fase       = $Phase
+    Tarea      = $title
+    Cliente    = $scope.Cliente
+    Periodo    = $period
+    FechaHora  = $when.ToString('dd/MM/yyyy HH:mm:ss')
+    Grupo      = $scope.Grupo
+    Servidores = [int]$scope.Count
+    Equipo     = "$env:COMPUTERNAME"
+  }
+  try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $json = $body | ConvertTo-Json -Compress -Depth 4
+    $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+    $resp = Invoke-WebRequest -Uri $url -Method Post -Body $bytes `
+      -ContentType 'application/json; charset=utf-8' -TimeoutSec 30 -UseBasicParsing -MaximumRedirection 0
+    Write-Log 'INFO' "Tarjeta Centro de Control ($Phase): $title | HTTP $([int]$resp.StatusCode)"
+  } catch {
+    Write-Log 'WARN' "Tarjeta Centro de Control no enviada ($Phase '$title'): $($_.Exception.Message)"
+  }
+}
+
+function Send-GridWindowCard {
+  param([Parameter(Mandatory)][ValidateSet('Inicio','Fin')][string]$Phase)
+  if ($Phase -eq 'Inicio' -and $script:GridWindowCardSent) { return }
+  $names = @()
+  if ($script:Servers) {
+    $names = @($script:Servers | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ })
+  }
+  $title = "$($script:RepLocalTitle)".Trim()
+  $pDate = [datetime]::MinValue
+  $raw = "$($script:RepWindowDate)".Trim()
+  if ($raw -match '^\d{4}-\d{2}-\d{2}$') {
+    try { $pDate = [datetime]::ParseExact($raw, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
+  }
+  Send-WindowCard -Phase $Phase -TaskName $title -Servers $names -PeriodDate $pDate
+  if ($Phase -eq 'Inicio') { $script:GridWindowCardSent = $true } else { $script:GridWindowCardSent = $false }
+}
+
 $script:icGroups.ItemsSource = $script:Groups
 $script:dg.ItemsSource       = $script:Servers
 
@@ -661,6 +816,8 @@ $script:PsExecPath = if ($script:Cfg.PsExecPath) { $script:Cfg.PsExecPath }
 # Estructuras de control de los procesos en paralelo
 $script:Jobs        = @{}
 $script:FixJobs     = @{}
+$script:FixQueue    = New-Object System.Collections.Generic.List[object]
+$script:FixMaxParallel = 4
 $script:FixTimer    = $null
 $script:Sync        = [hashtable]::Synchronized(@{})
 $script:Timer       = $null
@@ -1039,6 +1196,11 @@ $script:RepTimer          = $null
 $script:ReportRunning     = $false
 $script:RepComment        = ''
 $script:RepWindowDate     = ''
+$script:GridWindowCardSent = $false
+$script:RepSaveTitle = ''
+$script:RepCardAllInventory = $false
+$script:RepProgress = $null
+$script:RepOnDone = $null
 
 $script:LocalConsultWorker = Join-Path $env:TEMP 'WUU_consult.ps1'
 $script:ConsultBag         = $null
@@ -2335,6 +2497,8 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
     return
   }
 
+  Send-GridWindowCard -Phase Inicio
+
   # Reset y arranque del cronometro
   $row.Status='Conectando...'
   $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -2611,6 +2775,18 @@ function Ensure-AnalystAssigned([string]$CancelContext = 'Seleccion de grupo') {
   return $true
 }
 
+function Set-ReportTaskTitle([string]$Title) {
+  $script:RepLocalTitle = "$Title".Trim()
+  if (-not $script:lblTaskName) { return }
+  if ($script:RepLocalTitle) {
+    $script:lblTaskName.Text = "Tarea: $($script:RepLocalTitle)"
+    $script:lblTaskName.Visibility = 'Visible'
+  } else {
+    $script:lblTaskName.Text = ''
+    $script:lblTaskName.Visibility = 'Collapsed'
+  }
+}
+
 # Reconstruye la grilla segun los grupos marcados
 function Rebuild-Grid {
   Flush-GridProcessFlags
@@ -2700,6 +2876,18 @@ function Load-Csv {
           Rebuild-Grid
           return
         }
+      }
+      if ($s.IsChecked) {
+        $taskTitle = Prompt-ReportTaskName
+        if (-not $taskTitle) {
+          $script:Suspend = $true
+          try { $s.IsChecked = $false } finally { $script:Suspend = $false }
+          Rebuild-Grid
+          return
+        }
+        Set-ReportTaskTitle $taskTitle
+      } elseif (@($script:Groups | Where-Object { $_.IsChecked }).Count -eq 0) {
+        Set-ReportTaskTitle ''
       }
       Rebuild-Grid
     })
@@ -3058,10 +3246,10 @@ function Sync-ScheduleToDashboard {
       ScheduledAt     = $(if ($ScheduledAt -gt [datetime]::MinValue) { ConvertTo-CalendarWallClockString $ScheduledAt } else { $null })
       Recurrence      = $Recurrence
       SourceComputer  = $env:COMPUTERNAME
-      Analyst         = "$script:AnalistaAsignado".Trim()
       Cliente         = $(if ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
       targetClient    = $(if ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
-      targetGroups    = $(if ($Details -and "$($Details.TargetGroups)".Trim()) { "$($Details.TargetGroups)".Trim() } else { $null })
+      targetBanks     = $(if ($Details -and "$($Details.TargetBanks)".Trim()) { "$($Details.TargetBanks)".Trim() } elseif ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
+      targetGroups    = $(if ($Details -and "$($Details.TargetGroups)".Trim()) { "$($Details.TargetGroups)".Trim() } elseif ($Details -and "$($Details.Group)".Trim()) { "$($Details.Group)".Trim() } else { $null })
       targetServers   = $(if ($Details -and "$($Details.TargetServers)".Trim()) { "$($Details.TargetServers)".Trim() } else { $null })
       Details         = $(if ($Details) { $Details } else { @{} })
     }
@@ -3290,13 +3478,13 @@ function Get-CalendarPublishDetails {
   param([string]$Grupo = '', [string[]]$Servers = @(), $Inventory = $null)
   $clients = @(Get-InventoryClientsForScope -Inventory $Inventory -Grupo $Grupo -Servers $Servers)
   $cliente = if ($clients.Count -gt 0) { $clients -join ', ' } else { '' }
-  $serverTxt = if ("$Grupo".Trim()) { "$Grupo".Trim() }
-               elseif (@($Servers).Count -gt 0) { (@($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ', ') }
+  $serverTxt = if (@($Servers).Count -gt 0) { (@($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ', ') }
                else { '' }
   return @{
     Cliente       = $cliente
     Group         = "$Grupo".Trim()
-    TargetGroups  = $cliente
+    TargetBanks   = $cliente
+    TargetGroups  = "$Grupo".Trim()
     TargetServers = $serverTxt
   }
 }
@@ -3310,8 +3498,9 @@ function Add-UniqueServerName($Bag, [string]$Name) {
 
 function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
   $csv = @($Inventory)
+  $hasClienteCol = ($csv.Count -gt 0 -and $csv[0].PSObject.Properties.Name -contains 'Cliente')
   $clientHint = ''
-  foreach ($n in @('targetClient','client','cliente','Cliente')) {
+  foreach ($n in @('targetBanks','targetBank','targetClient','client','cliente','Cliente')) {
     $v = "$(Get-CalendarEventProperty $Event $n)".Trim()
     if ($v) { $clientHint = $v; break }
   }
@@ -3328,6 +3517,15 @@ function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
     elseif ($kind -eq 'Both' -and $groupTokens.Count -gt 1) { Add-UniqueServerName $groupNames $g }
   }
 
+  # Soporte de compatibilidad: si targetGroups no resolvio grupo, revisar si en serverTokens viene un Grupo
+  if ($groupNames.Count -eq 0 -and $serverTokens.Count -gt 0) {
+    foreach ($s in $serverTokens) {
+      if ((@(Get-InventoryRowsByGrupo $s $csv)).Count -gt 0) {
+        Add-UniqueServerName $groupNames $s
+      }
+    }
+  }
+
   if ($groupTokens.Count -gt 0 -and $clientNames.Count -eq 0 -and $groupNames.Count -eq 0) {
     return [pscustomobject]@{
       TargetType = ''; TargetValue = ($groupTokens -join ', ')
@@ -3338,16 +3536,20 @@ function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
   }
 
   $cliente = ''
-  foreach ($c in @($clientNames)) {
-    if ((@(Get-InventoryRowsByCliente $c $csv)).Count -gt 0) { $cliente = $c; break }
-  }
-  if ($clientNames.Count -gt 0 -and -not $cliente) {
-    return [pscustomobject]@{
-      TargetType = ''; TargetValue = ($clientNames -join ', ')
-      Servers = @(); ExtraServers = @(); Group = ''; Cliente = ($clientNames -join ', '); MatchField = 'Cliente'
-      InInventory = $false
-      SkipReason = "Cliente '$($clientNames -join ', ')' no coincide con la columna Cliente de este inventario"
+  if ($hasClienteCol) {
+    foreach ($c in @($clientNames)) {
+      if ((@(Get-InventoryRowsByCliente $c $csv)).Count -gt 0) { $cliente = $c; break }
     }
+    if ($clientNames.Count -gt 0 -and -not $cliente) {
+      return [pscustomobject]@{
+        TargetType = ''; TargetValue = ($clientNames -join ', ')
+        Servers = @(); ExtraServers = @(); Group = ''; Cliente = ($clientNames -join ', '); MatchField = 'Cliente'
+        InInventory = $false
+        SkipReason = "Cliente '$($clientNames -join ', ')' no coincide con la columna Cliente de este inventario"
+      }
+    }
+  } else {
+    if ($clientNames.Count -gt 0) { $cliente = $clientNames[0] }
   }
 
   $validGroups = @()
@@ -3797,11 +3999,19 @@ function Sync-ToDashboard($rows, $lbl) {
 }
 
 # Guarda una copia CSV del reporte en la carpeta .\Reportes (un archivo por corrida)
-function Save-ReportCsv($rows) {
+function Save-ReportCsv($rows, [string]$Title = '') {
   try {
     $dir = Join-Path $script:ScriptDir 'Reportes'
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $file = Join-Path $dir ("Reporte_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'))
+    $fileName = "Reporte_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')
+    if ("$Title".Trim()) {
+      $safe = ConvertTo-ScheduledTaskName $Title.Trim() 'Reporte'
+      $fileName = "$safe.csv"
+      if (Test-Path -LiteralPath (Join-Path $dir $fileName)) {
+        $fileName = "{0}_{1}.csv" -f $safe, (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')
+      }
+    }
+    $file = Join-Path $dir $fileName
     # Proyectamos a objetos ordenados para fijar el orden y los nombres de columna
     $export = $rows | ForEach-Object {
       [pscustomobject][ordered]@{
@@ -3838,7 +4048,7 @@ function Save-ReportCsv($rows) {
 }
 
 # Construye y muestra la ventana del reporte (grilla + sincronizacion)
-function Show-ReportWindow($rows, $savedPath) {
+function Show-ReportWindow($rows, $savedPath, [string]$Title = '') {
   [xml]$rx = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -3902,19 +4112,81 @@ function Show-ReportWindow($rows, $savedPath) {
   $dgR.ItemsSource = $rows
   if ($savedPath) { $lblF.Text = "Copia local guardada en: $savedPath" }
   else            { $lblF.Text = "No se pudo guardar la copia local (revisa permisos en la carpeta Reportes)."; $lblF.Foreground = [System.Windows.Media.Brushes]::Red }
+  $fnSyncDash = ${function:Sync-ToDashboard}
   $bClose.Add_Click({ $win.Close() })
-  $bResy.Add_Click({ Sync-ToDashboard $rows $lbl }.GetNewClosure())
+  $bResy.Add_Click({ & $fnSyncDash $rows $lbl }.GetNewClosure())
 
-  # Al abrir, sincroniza con Centro de Control de Parcheo sin congelar la ventana (se pinta primero)
+  # Al abrir, sincroniza con Centro de Control de Parcheo sin congelar la ventana (se pinta primero).
+  # El cierre de Loaded no ve las funciones del script: hay que invocar la referencia capturada.
   $win.Add_Loaded({
     $lbl.Text = 'Preparando sincronizacion...'
-    $win.Dispatcher.BeginInvoke(
-      [action]{ Sync-ToDashboard $rows $lbl },
-      [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
+    $dashFn = $fnSyncDash
+    $dashRows = $rows
+    $dashLbl = $lbl
+    $dashJob = { & $dashFn $dashRows $dashLbl }.GetNewClosure()
+    $win.Dispatcher.BeginInvoke([action]$dashJob, [System.Windows.Threading.DispatcherPriority]::Background) | Out-Null
   }.GetNewClosure())
 
+  if ("$Title".Trim()) { $win.Title = "WUU - $($Title.Trim())" }
+  elseif ($savedPath) {
+    $win.Title = "WUU - " + [System.IO.Path]::GetFileNameWithoutExtension($savedPath)
+  }
   $win.Owner = $Window
   $win.ShowDialog() | Out-Null
+}
+
+function Prompt-ReportTaskName {
+  [xml]$sx = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WUU - Nombre de la tarea" Height="230" Width="680"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+               Text="Nombre de la tarea. El reporte local se guarda con ese nombre."/>
+    <TextBox x:Name="txtName" Grid.Row="1" Padding="4,3"
+             ToolTip="Ejemplo: GP-11298 [CORPORATIVO] Ciclo de actualizaciones M09 2026 | Servidores Proxy | martes - 29/09/2026"/>
+    <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#FF475569" TextWrapping="Wrap"
+               Text="Los caracteres \ / : * ? &quot; &lt; &gt; | se guardan como -."/>
+    <TextBlock x:Name="lblErr" Grid.Row="3" Foreground="#FFDC2626" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
+    <DockPanel Grid.Row="4" LastChildFill="False" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button x:Name="btnCancel" Content="Cancelar" Padding="14,7" Margin="0,0,8,0" IsCancel="True"/>
+      <Button x:Name="btnOk" Content="Agregar" Padding="14,7" IsDefault="True"/>
+    </DockPanel>
+  </Grid>
+</Window>
+'@
+  $rdr = New-Object System.Xml.XmlNodeReader $sx
+  $win = [Windows.Markup.XamlReader]::Load($rdr)
+  $txt = $win.FindName('txtName')
+  $lblErr = $win.FindName('lblErr')
+  $box = @{ Result = '' }
+  $win.FindName('btnOk').Add_Click({
+    $name = "$($txt.Text)".Trim()
+    if (-not $name) {
+      $lblErr.Text = 'Ingresa el nombre de la tarea.'
+      return
+    }
+    $box.Result = $name
+    $win.DialogResult = $true
+    $win.Close()
+  }.GetNewClosure())
+  $win.FindName('btnCancel').Add_Click({
+    $box.Result = ''
+    $win.DialogResult = $false
+    $win.Close()
+  }.GetNewClosure())
+  try { $win.Owner = $Window } catch {}
+  [void]$win.ShowDialog()
+  return "$($box.Result)".Trim()
 }
 
 # Recolecta el reporte: grilla visible, o grupo + fecha + motivo si la grilla esta vacia
@@ -4020,7 +4292,13 @@ function Show-Report {
   $script:RepWindowDate = (Get-Date).ToString('yyyy-MM-dd')
 
   if ($script:Servers.Count -gt 0) {
+    if (-not "$script:RepLocalTitle".Trim()) {
+      $taskTitle = Prompt-ReportTaskName
+      if (-not $taskTitle) { return }
+      Set-ReportTaskTitle $taskTitle
+    }
     $targets = @($script:Servers | ForEach-Object { $_.Servidor } | Where-Object { $_ } | Sort-Object -Unique)
+    Write-Log 'INFO' "Reporte de grilla | tarea=$($script:RepLocalTitle) | servidores=$($targets.Count)"
   } else {
     $scope = Show-ReportScopeDialog
     if (-not $scope) { return }
@@ -4032,11 +4310,46 @@ function Show-Report {
     Write-Log 'INFO' "Reporte por grupo '$($scope.Group)' | fecha ventana=$specificDate | servidores=$($targets.Count) | motivo=$($script:RepComment)"
   }
   if ($targets.Count -eq 0) { return }
+  [void](Start-ReportCollection -Targets $targets -PeriodMode $periodMode -SpecificDate $specificDate -WindowDate $script:RepWindowDate -Comment $script:RepComment)
+}
 
+function Get-InventoryServerNames {
+  return @($script:Csv | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+}
+
+function Test-ReportCollectionRunning {
+  return [bool]$script:ReportRunning
+}
+
+function Set-ReportRunHooks {
+  param($Progress, $OnDone)
+  $script:RepProgress = $Progress
+  $script:RepOnDone = $OnDone
+}
+
+function Start-ReportCollection {
+  param(
+    [Parameter(Mandatory)][string[]]$Targets,
+    [string]$PeriodMode = 'CurrentMonth',
+    [string]$SpecificDate = '',
+    [string]$WindowDate = '',
+    [string]$Title = '',
+    [string]$Comment = '',
+    [switch]$FullInventoryCard
+  )
+  if ([bool]$script:ReportRunning) { return $false }
+  $targets = @($Targets | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+  if ($targets.Count -eq 0) { return $false }
   if (-not (Test-Path $script:PsExecPath)) {
     [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
+    return $false
   }
+  $script:RepComment = "$Comment"
+  if ("$WindowDate".Trim()) { $script:RepWindowDate = "$WindowDate".Trim() }
+  $script:RepPeriodMode = "$PeriodMode".Trim()
+  $script:RepSpecificDate = "$SpecificDate".Trim()
+  $script:RepSaveTitle = "$Title".Trim()
+  $script:RepCardAllInventory = [bool]$FullInventoryCard
   foreach ($j in $script:RepPool) {
     try { $j.ps.Stop() } catch {}
     try { $j.ps.Dispose() } catch {}
@@ -4089,18 +4402,221 @@ function Show-Report {
     $script:RepPool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
   }
 
+  if ($FullInventoryCard) {
+    $pDate = [datetime]::MinValue
+    $rawWin = "$($script:RepWindowDate)".Trim()
+    if ($rawWin -match '^\d{4}-\d{2}-\d{2}$') {
+      try { $pDate = [datetime]::ParseExact($rawWin, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
+    }
+    $cardTitle = if ($script:RepSaveTitle) { $script:RepSaveTitle } else { 'Reporte automatico' }
+    Send-WindowCard -Phase Inicio -TaskName $cardTitle -AllInventory -PeriodDate $pDate
+  }
+
   if (-not $script:RepTimer) {
     $script:RepTimer = New-Object System.Windows.Threading.DispatcherTimer
     $script:RepTimer.Interval = [TimeSpan]::FromMilliseconds(400)
     $script:RepTimer.add_Tick({ On-ReportTick })
   }
   $script:RepTimer.Start()
+  return $true
+}
+
+function Format-BankPercent([int]$Part, [int]$Total) {
+  if ($Total -le 0) { return '0,0%' }
+  $text = '{0:0.0}' -f (100.0 * $Part / $Total)
+  return ($text.Replace('.', ',') + '%')
+}
+
+function Get-PeriodMonthKey([string]$PeriodMode, [string]$SpecificDate = '', [string]$WindowDate = '') {
+  $mode = "$PeriodMode".Trim()
+  $now = Get-Date
+  if ($mode -eq 'PreviousMonth') { return $now.AddMonths(-1).ToString('yyyy-MM') }
+  $raw = "$SpecificDate".Trim()
+  if (-not $raw) { $raw = "$WindowDate".Trim() }
+  if ($raw -match '^(\d{4})-(\d{2})') { return ($Matches[1] + '-' + $Matches[2]) }
+  if ($raw -match '^(\d{1,2})/(\d{1,2})/(\d{4})$') { return ('{0}-{1:00}' -f $Matches[3], [int]$Matches[2]) }
+  return $now.ToString('yyyy-MM')
+}
+
+function Get-MonthlyBankSummaryPath([string]$MonthKey) {
+  if ("$MonthKey" -notmatch '^\d{4}-\d{2}$') { throw "Mes invalido: $MonthKey" }
+  $dir = Join-Path $script:ScriptDir 'Reportes\Acumulado'
+  if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+  return (Join-Path $dir "$MonthKey.csv")
+}
+
+# Una fila por ventana (Cliente + Grupo). Total = servidores de ese grupo en el CSV.
+# Las filas recibidas son el acumulado del mes. Un grupo sin ventana no aparece.
+function Get-MonthlyBankSummary($ReportRows) {
+  $snapNo = 'No se recibio la confirmacion de la ejecucion del snapshot de este servidor'
+  $confNo = 'El cliente no confirmo la ejecucion de las actualizaciones de este servidor'
+  $invOnce = @{}
+  $groupTotal = @{}
+  foreach ($r in @($script:Csv)) {
+    $k = Get-ServerMatchKey "$($r.Servidor)"
+    if (-not $k -or $invOnce.ContainsKey($k)) { continue }
+    $cli = "$($r.Cliente)".Trim()
+    $grp = "$($r.Grupo)".Trim()
+    if (-not $cli) { $cli = 'Sin cliente' }
+    if (-not $grp) { $grp = 'Sin grupo' }
+    $invOnce[$k] = @{ Cliente = $cli; Grupo = $grp }
+    $gk = $cli + "`n" + $grp
+    if (-not $groupTotal.ContainsKey($gk)) { $groupTotal[$gk] = 0 }
+    $groupTotal[$gk]++
+  }
+  $repBy = @{}
+  foreach ($r in @($ReportRows)) {
+    $k = Get-ServerMatchKey "$($r.Servidor)"
+    if ($k) { $repBy[$k] = $r }
+  }
+  $buckets = @{}
+  foreach ($k in @($repBy.Keys)) {
+    $hit = $repBy[$k]
+    $cli = ''
+    $grp = ''
+    if ($invOnce.ContainsKey($k)) {
+      $cli = $invOnce[$k].Cliente
+      $grp = $invOnce[$k].Grupo
+    } else {
+      $cli = "$($hit.Cliente)".Trim()
+      $grp = "$($hit.Grupo)".Trim()
+      if (-not $cli) { $cli = 'Sin cliente' }
+      if (-not $grp) { $grp = 'Sin grupo' }
+    }
+    $gk = $cli + "`n" + $grp
+    if (-not $buckets.ContainsKey($gk)) {
+      $total = 0
+      if ($groupTotal.ContainsKey($gk)) { $total = $groupTotal[$gk] }
+      $buckets[$gk] = @{
+        Banco = $cli; Grupo = $grp
+        Total = $total; Actualizados = 0; Error = 0; SinConfirmar = 0; SinSnap = 0; SinActualizar = 0
+        Seen = @{}
+      }
+    }
+    $b = $buckets[$gk]
+    if (-not $invOnce.ContainsKey($k)) { $b.Total++ }
+    $b.Seen[$k] = $true
+    if ("$($hit.Estado)".Trim() -eq 'Actualizado') { $b.Actualizados++ } else { $b.SinActualizar++ }
+    if ("$($hit.Descripcion_Error)".Trim()) { $b.Error++ }
+    if ("$($hit.Confirmado)".Trim() -eq $confNo) { $b.SinConfirmar++ }
+    if ("$($hit.Snap)".Trim() -eq $snapNo) { $b.SinSnap++ }
+  }
+  foreach ($k in @($invOnce.Keys)) {
+    $gk = $invOnce[$k].Cliente + "`n" + $invOnce[$k].Grupo
+    if (-not $buckets.ContainsKey($gk)) { continue }
+    if ($buckets[$gk].Seen.ContainsKey($k)) { continue }
+    $buckets[$gk].SinActualizar++
+  }
+  $names = @($buckets.Keys | Sort-Object {
+    $b = $buckets[$_]
+    $tail = if ($b.Banco -eq 'Sin cliente') { '1' } else { '0' }
+    '{0}|{1}|{2}' -f $tail, $b.Banco, $b.Grupo
+  })
+  $out = New-Object System.Collections.Generic.List[object]
+  foreach ($gk in $names) {
+    $b = $buckets[$gk]
+    [void]$out.Add([pscustomobject][ordered]@{
+      Banco              = $b.Banco
+      Grupo              = $b.Grupo
+      'Total Servidores' = $b.Total
+      Actualizados       = $b.Actualizados
+      '% Actualizado'    = (Format-BankPercent $b.Actualizados $b.Total)
+      Error              = $b.Error
+      '% Error'          = (Format-BankPercent $b.Error $b.Total)
+      'Sin Confirmar'    = $b.SinConfirmar
+      '% Sin Confirmar'  = (Format-BankPercent $b.SinConfirmar $b.Total)
+      'Sin Snap'         = $b.SinSnap
+      '% Sin Snap'       = (Format-BankPercent $b.SinSnap $b.Total)
+      'Sin actualizar'   = $b.SinActualizar
+      '% Sin actualizar' = (Format-BankPercent $b.SinActualizar $b.Total)
+    })
+  }
+  return @($out)
+}
+
+function Get-MonthlyBankLedgerPath([string]$MonthKey) {
+  $summary = Get-MonthlyBankSummaryPath $MonthKey
+  $dir = Split-Path -Parent $summary
+  $name = [System.IO.Path]::GetFileNameWithoutExtension($summary)
+  return (Join-Path $dir "$name.detalle.csv")
+}
+
+function Publish-MonthlyBankSummary($ReportRows, [string]$MonthKey) {
+  $incoming = @($ReportRows)
+  if ($incoming.Count -eq 0) { return '' }
+  $ledgerPath = Get-MonthlyBankLedgerPath $MonthKey
+  $byKey = @{}
+  if (Test-Path -LiteralPath $ledgerPath) {
+    foreach ($r in @(Import-Csv -LiteralPath $ledgerPath -Delimiter ';')) {
+      $k = Get-ServerMatchKey "$($r.Servidor)"
+      if ($k) { $byKey[$k] = $r }
+    }
+  }
+  $updated = 0
+  foreach ($r in $incoming) {
+    $k = Get-ServerMatchKey "$($r.Servidor)"
+    if (-not $k) { continue }
+    $cli = ''
+    $grp = ''
+    if ($script:Csv) {
+      $cli = "$(Get-InventoryFieldForServer "$($r.Servidor)" 'Cliente')".Trim()
+      $grp = "$(Get-InventoryFieldForServer "$($r.Servidor)" 'Grupo')".Trim()
+    }
+    if (-not $cli) { $cli = 'Sin cliente' }
+    if (-not $grp) { $grp = "$($r.Grupo)".Trim() }
+    if (-not $grp) { $grp = 'Sin grupo' }
+    $byKey[$k] = [pscustomobject][ordered]@{
+      Servidor          = "$($r.Servidor)".Trim()
+      Cliente           = $cli
+      Grupo             = $grp
+      Estado            = "$($r.Estado)".Trim()
+      Descripcion_Error = "$($r.Descripcion_Error)"
+      Snap              = "$($r.Snap)".Trim()
+      Confirmado        = "$($r.Confirmado)".Trim()
+    }
+    $updated++
+  }
+  $ledger = @($byKey.GetEnumerator() | Sort-Object Name | ForEach-Object { $_.Value })
+  $ledger | Export-Csv -LiteralPath $ledgerPath -NoTypeInformation -Delimiter ';' -Encoding UTF8
+  $rows = @(Get-MonthlyBankSummary $ledger)
+  $path = Get-MonthlyBankSummaryPath $MonthKey
+  $rows | Export-Csv -LiteralPath $path -NoTypeInformation -Delimiter ';' -Encoding UTF8
+  Write-Host ''
+  Write-Host ("Resumen mensual {0} actualizado con {1} servidor(es). Una fila por ventana. Banco = Cliente del inventario." -f $MonthKey, $updated)
+  if ($rows.Count -eq 0) {
+    Write-Host 'Sin filas para el resumen.'
+  } else {
+    $rows | Format-Table -AutoSize | Out-String -Width 240 | Write-Host
+  }
+  Write-Host ("Guardado en {0}" -f $path)
+  Write-Host ''
+  Write-Log 'INFO' ("Resumen mensual {0}: ventana con {1} servidor(es), {2} banco(s). {3}" -f $MonthKey, $updated, $rows.Count, $path)
+  foreach ($r in $rows) {
+    Write-Log 'INFO' ("Resumen {0} {1} / {2}: total={3} actualizados={4} error={5} sinConfirmar={6} sinSnap={7} sinActualizar={8}" -f $MonthKey, $r.Banco, $r.Grupo, $r.'Total Servidores', $r.Actualizados, $r.Error, $r.'Sin Confirmar', $r.'Sin Snap', $r.'Sin actualizar')
+  }
+  return $path
+}
+
+function Show-SavedMonthlyBankSummary([string]$MonthKey) {
+  $path = Get-MonthlyBankSummaryPath $MonthKey
+  if (-not (Test-Path -LiteralPath $path)) { return '' }
+  $rows = @(Import-Csv -LiteralPath $path -Delimiter ';')
+  Write-Host ''
+  Write-Host ("Resumen mensual guardado {0}." -f $MonthKey)
+  if ($rows.Count -eq 0) { Write-Host 'El archivo no tiene filas.' }
+  else { $rows | Format-Table -AutoSize | Out-String -Width 240 | Write-Host }
+  Write-Host ("Archivo: {0}" -f $path)
+  Write-Host ''
+  return $path
 }
 
 # Tick del reporte: espera a que terminen todos y abre la ventana
 function On-ReportTick {
   $done = $script:RepBag.Count
   $btnReport.Content = "Generando $done/$($script:RepTotal)..."
+  if ($script:RepProgress) {
+    try { & $script:RepProgress $done $script:RepTotal } catch {}
+  }
 
   if ($done -ge $script:RepTotal -or (Get-Date) -gt $script:RepDeadline) {
     $script:RepTimer.Stop()
@@ -4175,15 +4691,53 @@ function On-ReportTick {
       $rows.Add($rr)
     }
     # Guarda la copia local (CSV) y abre la ventana; el Centro de Control de Parcheo se sincroniza al abrir
-    $savedPath = Save-ReportCsv $rows
+    $saveTitle = if ("$($script:RepSaveTitle)".Trim()) { "$($script:RepSaveTitle)".Trim() } else { "$($script:RepLocalTitle)" }
+    $fullCard = [bool]$script:RepCardAllInventory
+    $savedPath = Save-ReportCsv $rows $saveTitle
     Write-Log 'INFO' "Reporte generado para $($rows.Count) servidor(es). CSV: $savedPath"
+    if (-not $fullCard) {
+      try {
+        $sumMonth = Get-PeriodMonthKey $script:RepPeriodMode $script:RepSpecificDate $script:RepWindowDate
+        Publish-MonthlyBankSummary -ReportRows $rows -MonthKey $sumMonth | Out-Null
+      } catch {
+        Write-Log 'WARN' "Resumen mensual: $($_.Exception.Message)"
+      }
+    }
+    if ($fullCard) {
+      $repNames = @($rows | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ })
+      $pDate = [datetime]::MinValue
+      $rawWin = "$($script:RepWindowDate)".Trim()
+      if ($rawWin -match '^\d{4}-\d{2}-\d{2}$') {
+        try { $pDate = [datetime]::ParseExact($rawWin, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
+      }
+      Send-WindowCard -Phase Fin -TaskName $saveTitle -Servers $repNames -PeriodDate $pDate
+    } elseif ($script:Servers -and @($script:Servers).Count -gt 0) {
+      Send-GridWindowCard -Phase Fin
+    } else {
+      $repNames = @($rows | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ })
+      $pDate = [datetime]::MinValue
+      $rawWin = "$($script:RepWindowDate)".Trim()
+      if ($rawWin -match '^\d{4}-\d{2}-\d{2}$') {
+        try { $pDate = [datetime]::ParseExact($rawWin, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
+      }
+      Send-WindowCard -Phase Fin -TaskName "$($script:RepLocalTitle)" -Servers $repNames -PeriodDate $pDate
+      $script:GridWindowCardSent = $false
+    }
+    $script:RepSaveTitle = ''
+    $script:RepCardAllInventory = $false
 
+    $histType = if ($fullCard) { 'ReporteProgramado' } else { 'ReporteManual' }
     Save-History -Rows @($rows | ForEach-Object {
       [pscustomobject]@{ Servidor=$_.Servidor; IP=$_.IP; State='Report'
-        Status='Reporte manual'; Error=$_.Descripcion_Error; RunningTime=$_.Running_Time }
-    }) -Type 'ReporteManual'
+        Status=$(if ($fullCard) { 'Reporte automatico' } else { 'Reporte manual' }); Error=$_.Descripcion_Error; RunningTime=$_.Running_Time }
+    }) -Type $histType
 
-    Show-ReportWindow $rows $savedPath
+    $doneCb = $script:RepOnDone
+    $script:RepProgress = $null
+    $script:RepOnDone = $null
+    if ($doneCb) { try { & $doneCb $savedPath $rows.Count } catch {} }
+
+    Show-ReportWindow $rows $savedPath $saveTitle
   }
 }
 
@@ -4786,7 +5340,17 @@ function Stop-FixJob($server) {
 
 function Stop-AllFixJobs {
   foreach ($server in @($script:FixJobs.Keys)) { Stop-FixJob $server }
+  if ($script:FixQueue) { $script:FixQueue.Clear() }
   if ($script:FixTimer) { $script:FixTimer.Stop() }
+}
+
+function Start-QueuedFixJobs {
+  if (-not $script:FixQueue) { return }
+  while ($script:FixJobs.Count -lt $script:FixMaxParallel -and $script:FixQueue.Count -gt 0) {
+    $item = $script:FixQueue[0]
+    $script:FixQueue.RemoveAt(0)
+    Start-FixJob $item.Row $item.Packages $item.Mode
+  }
 }
 
 function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][string]$mode = 'install') {
@@ -4818,11 +5382,22 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
     $results = @()
     try {
       $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+      $dirOk = $false
+      $dirErr = ''
+      for ($tryDir = 1; $tryDir -le 3; $tryDir++) {
+        try {
+          if ($tryDir -gt 1) { Start-Sleep -Seconds (5 * $tryDir) }
+          New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+          $dirOk = $true
+          break
+        } catch { $dirErr = $_.Exception.Message }
+      }
+      if (-not $dirOk) { throw $dirErr }
       if ($mode -eq 'install') {
         Copy-Item -Path $fixWorker -Destination "$remoteDir\fix.ps1" -Force -ErrorAction Stop
       }
 
+      $robocopy = Join-Path $env:SystemRoot 'System32\robocopy.exe'
       for ($i = 0; $i -lt $packageData.Count; $i++) {
         $pkg = $packageData[$i]
         $pkgName = "$($pkg.Name)"
@@ -4839,19 +5414,53 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
           mode=$mode
         }
         try {
-          $entry.alreadyExists = Test-Path -LiteralPath $pkgRemote -PathType Leaf
-          if (-not $entry.alreadyExists) {
-            if (-not (Test-Path -LiteralPath "$($pkg.FullName)" -PathType Leaf)) {
-              throw "Paquete local no encontrado: $($pkg.FullName)"
+          $srcPath = "$($pkg.FullName)"
+          if (-not (Test-Path -LiteralPath $srcPath -PathType Leaf)) {
+            throw "Paquete local no encontrado: $srcPath"
+          }
+          $srcLen = (Get-Item -LiteralPath $srcPath).Length
+          $destOk = $false
+          if (Test-Path -LiteralPath $pkgRemote -PathType Leaf) {
+            $dstLen = (Get-Item -LiteralPath $pkgRemote).Length
+            if ($dstLen -eq $srcLen) {
+              $destOk = $true
+              $entry.alreadyExists = $true
+            } else {
+              Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
             }
-            Copy-Item -LiteralPath "$($pkg.FullName)" -Destination $pkgRemote -ErrorAction Stop
-            $entry.copied = $true
+          }
+          if (-not $destOk) {
+            $copied = $false
+            $lastCopyErr = ''
+            $srcDir = Split-Path -Parent $srcPath
+            for ($tryCopy = 1; $tryCopy -le 3; $tryCopy++) {
+              try {
+                if ($tryCopy -gt 1) {
+                  $sync.current = "$pkgName (reintento $tryCopy)"
+                  Start-Sleep -Seconds (5 * $tryCopy)
+                }
+                & $robocopy $srcDir $remoteDir $pkgName /Z /R:1 /W:3 /NFL /NDL /NJH /NJS /NP | Out-Null
+                if ($LASTEXITCODE -ge 8) { throw "robocopy codigo $LASTEXITCODE" }
+                if (-not (Test-Path -LiteralPath $pkgRemote -PathType Leaf)) {
+                  throw 'La copia no dejo el archivo en el servidor'
+                }
+                $dstLen = (Get-Item -LiteralPath $pkgRemote).Length
+                if ($dstLen -ne $srcLen) { throw "Copia incompleta ($dstLen de $srcLen bytes)" }
+                $copied = $true
+                $entry.copied = $true
+                break
+              } catch {
+                $lastCopyErr = $_.Exception.Message
+                Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
+              }
+            }
+            if (-not $copied) { throw $lastCopyErr }
           }
 
           if ($mode -eq 'copy') {
             $entry.exitCode = 0
             $entry.message = if ($entry.alreadyExists) {
-              'El archivo ya existe en el servidor; no se volvio a copiar'
+              'El archivo ya existe en el servidor, con el mismo tamano; no se volvio a copiar'
             } else {
               'Archivo copiado al servidor'
             }
@@ -4867,7 +5476,7 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
               $entry.exitCode = [long]$fx.exitCode
               $entry.message = "$($fx.message)"
               if ($entry.alreadyExists) {
-                $entry.message += ' (archivo existente; no se volvio a copiar)'
+                $entry.message += ' (archivo existente, mismo tamano; no se volvio a copiar)'
               }
               $entry.rebootRequired = [bool]$fx.rebootRequired
             } else {
@@ -5014,6 +5623,7 @@ function On-FixTick {
     try { $job.rs.Close(); $job.rs.Dispose() } catch {}
     $script:FixJobs.Remove($server)
     Write-Log 'INFO' "Fix finalizado: $server - $($row.Status)"
+    Start-QueuedFixJobs
   }
   Update-ButtonStates
 }
@@ -5059,18 +5669,24 @@ function Start-FixFlow {
   if ($resp -ne 'Yes') { return }
 
   Write-Log 'INFO' "Fix ($mode): $($packageNames -join ', ') en $($targets.Count) servidor(es)"
-  $started = 0
+  if (-not $script:FixQueue) { $script:FixQueue = New-Object System.Collections.Generic.List[object] }
+  $queued = 0
   foreach ($name in $targets) {
     $row = Get-Row $name
-    if ($row) {
-      Start-FixJob $row $selectedPackages $mode
-      if ($script:FixJobs.ContainsKey($name)) { $started++ }
-    }
+    if (-not $row) { continue }
+    if ($script:FixJobs.ContainsKey($name) -or $script:Jobs.ContainsKey($name)) { continue }
+    $row.Status = 'Fix: en espera para copiar...'
+    $row.Error = ''
+    [void]$script:FixQueue.Add(@{ Row = $row; Packages = $selectedPackages; Mode = $mode })
+    $queued++
   }
-  if ($started -eq 0) {
+  Start-QueuedFixJobs
+  $started = $script:FixJobs.Count
+  if ($started -eq 0 -and $queued -eq 0) {
     [System.Windows.MessageBox]::Show('No se pudo iniciar Fix en ningun servidor (puede haber jobs activos).','WUU','OK','Warning') | Out-Null
     return
   }
+  Send-GridWindowCard -Phase Inicio
   Start-FixTimer
   Update-ButtonStates
 }
@@ -6772,60 +7388,27 @@ function Invoke-ScheduledConnectivityJob {
   $hasInventory = ($script:Csv -and @($script:Csv).Count -gt 0)
   if (-not $hasInventory -and $extras.Count -eq 0) {
     Write-Log 'ERROR' 'Sin servidores en CSV ni listado extra. Saliendo.'
-    Send-TeamsNotification -Title 'WUU - Validacion de estado (error)' -Level Error `
-      -Text 'No hay servidores en el inventario CSV ni listado extra. La validacion no se ejecuto.' `
-      -Facts @(@{Name='Equipo'; Value=$env:COMPUTERNAME})
+    Send-WindowCard -Phase Fin -TaskName $taskLabel
     Complete-ScheduledJobFile $JobFile 'Error' 'Sin servidores en CSV ni listado extra.'
     return 1
   }
-  $scopeText = if ($extras.Count -gt 0) { "del listado extra ($($extras.Count) servidor(es); no se incluyen grupos)" }
-               elseif ($Group) { "del grupo '$Group'" }
-               else { 'de todos los servidores del inventario' }
-  $groupFact = if ($extras.Count -gt 0) { 'N/A (lote extra)' } elseif ($Group) { $Group } else { 'Todos' }
-  Send-TeamsNotification -Title 'WUU - Validacion de estado iniciada' -Level Info `
-    -Text "Se inicio la validacion de estado $scopeText." `
-    -Facts @(
-      @{Name='Tarea'; Value=$taskLabel}
-      @{Name='Grupo'; Value=$groupFact}
-      @{Name='Extra'; Value="$($extras.Count)"}
-      @{Name='Equipo'; Value=$env:COMPUTERNAME}
-      @{Name='Inicio'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  $cardServers = if ($extras.Count -gt 0) { @($extras) } else { @() }
+  $cardHint = if ($extras.Count -gt 0) { '' } else { "$Group".Trim() }
+  $cardAll = ($extras.Count -eq 0 -and -not "$Group".Trim())
+  Send-WindowCard -Phase Inicio -TaskName $taskLabel -Servers $cardServers -GrupoHint $cardHint -AllInventory:$cardAll
   try {
     $result = Invoke-ConnectivityAudit -Group $Group -ExtraServers $extras
     $script:LastConnJob = $result
   } catch {
     $script:LastConnJob = $null
     Write-Log 'ERROR' $_.Exception.Message
-    Send-TeamsNotification -Title 'WUU - Validacion de estado (error)' -Level Error `
-      -Text $_.Exception.Message `
-      -Facts @(
-        @{Name='Tarea'; Value=$taskLabel}
-        @{Name='Grupo'; Value=$groupFact}
-      )
+    Send-WindowCard -Phase Fin -TaskName $taskLabel -Servers $cardServers -GrupoHint $cardHint -AllInventory:$cardAll
     Complete-ScheduledJobFile $JobFile 'Error' $_.Exception.Message
     return 1
   }
-  $errorLines = @($result.Rows | Where-Object { $_.Estado -ne 'OK' } | ForEach-Object {
-    $d = if ("$($_.Detalle)") { "$($_.Detalle)" } else { 'Error' }
-    $mark = if ("$($_.En_Inventario)" -eq 'NO') { ' [fuera de inventario]' } else { '' }
-    "$($_.Servidor)$mark`: $d"
-  })
-  $level = if ($result.Fail -eq 0 -and [int]$result.SqlCheckErrors -eq 0) { 'Success' } else { 'Warning' }
-  Send-TeamsNotification -Title 'WUU - Validacion de estado finalizada' -Level $level `
-    -Text "CSV guardado en $($result.Path)" `
-    -Facts @(
-      @{Name='Tarea'; Value=$taskLabel}
-      @{Name='Grupo'; Value=$(if ($result.ExtraOnly) { 'N/A (lote extra)' } elseif ($result.Group) { $result.Group } else { 'Todos' })}
-      @{Name='Fuera de inventario'; Value="$($result.ExtraCount)"}
-      @{Name='Inventario completado'; Value="$($result.InventoryUpdated) fila(s)"}
-      @{Name='OK'; Value="$($result.Ok)"}
-      @{Name='Con error'; Value="$($result.Fail)"}
-      @{Name='SQL'; Value="$($result.SqlServers) motor(es), $($result.SqlCheckErrors) con chequeos en error"}
-      @{Name='Errores'; Value=(Format-TeamsErrorList $errorLines)}
-      @{Name='CSV'; Value="$($result.Path)"}
-      @{Name='Fin'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  $finishServers = @($result.Rows | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ })
+  if ($finishServers.Count -eq 0) { $finishServers = @($cardServers) }
+  Send-WindowCard -Phase Fin -TaskName $taskLabel -Servers $finishServers -GrupoHint $cardHint -AllInventory:$(-not $finishServers.Count -and $cardAll)
   Complete-ScheduledJobFile $JobFile $(if ($result.Fail -eq 0) { 'Completada' } else { 'Completada con errores' }) `
     "$($result.Ok) OK, $($result.Fail) con error"
   return $(if ($result.Fail -eq 0) { 0 } else { 1 })
@@ -7135,8 +7718,11 @@ function Show-SchedulerWindow {
           </Grid>
           <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
             <Button x:Name="btnCreate" Content="Crear / Actualizar tarea" Padding="12,6" Margin="0,0,8,0"/>
-            <Button x:Name="btnDelete" Content="Eliminar tarea" Padding="12,6"/>
+            <Button x:Name="btnDelete" Content="Eliminar tarea" Padding="12,6" Margin="0,0,8,0"/>
+            <Button x:Name="btnReportRun" Content="Ejecutar ahora" Padding="12,6" Margin="0,0,8,0"/>
+            <Button x:Name="btnReportSummary" Content="Ver resumen" Padding="12,6"/>
           </StackPanel>
+          <ProgressBar x:Name="pbReportRun" Height="10" Margin="0,8,0,0" Minimum="0" Maximum="1" Value="0" Visibility="Collapsed"/>
           <TextBlock Text="Tareas unicas (calendario)" FontWeight="SemiBold" Margin="0,12,0,6"/>
           <DataGrid x:Name="dgScheduledReportJobs" Height="110" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
             <DataGrid.Columns>
@@ -7418,6 +8004,14 @@ function Show-SchedulerWindow {
   $fnSyncFromCal   = ${function:Sync-DashboardCalendarToWuu}
   $fnCalPub        = ${function:Get-CalendarPublishDetails}
   $fnConnAudit     = ${function:Invoke-ConnectivityAudit}
+  $fnWindowCard    = ${function:Send-WindowCard}
+  $fnStartReport   = ${function:Start-ReportCollection}
+  $fnInvServers    = ${function:Get-InventoryServerNames}
+  $fnReportBusy    = ${function:Test-ReportCollectionRunning}
+  $fnReportHooks   = ${function:Set-ReportRunHooks}
+  $fnResolvePeriod = ${function:Resolve-ScheduledReportPeriod}
+  $fnShowBank      = ${function:Show-SavedMonthlyBankSummary}
+  $fnPeriodMonth   = ${function:Get-PeriodMonthKey}
   $fnShowGrid      = ${function:Show-GridWindow}
   $fnParseNames    = ${function:Parse-ServerNameList}
   $fnSaveHistory   = ${function:Save-History}
@@ -7660,6 +8254,102 @@ function Show-SchedulerWindow {
         & $refreshStateAction
       }
     } catch { $lblMsg.Foreground=[System.Windows.Media.Brushes]::Red; $lblMsg.Text="Error: $($_.Exception.Message)" }
+  }.GetNewClosure())
+
+  $btnReportRun = $win.FindName('btnReportRun')
+  $pbReportRun = $win.FindName('pbReportRun')
+  $btnReportRun.Add_Click({
+    if (& $fnReportBusy) {
+      $lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkOrange
+      $lblMsg.Text = 'Ya hay un reporte en curso.'
+      return
+    }
+    $servers = @(& $fnInvServers)
+    if ($servers.Count -eq 0) {
+      $lblMsg.Foreground = [System.Windows.Media.Brushes]::Red
+      $lblMsg.Text = 'No hay servidores en el inventario CSV.'
+      return
+    }
+    try {
+      $periodMode = if ($cmbReportPeriod.SelectedItem) { "$($cmbReportPeriod.SelectedItem.Tag)" } else { 'CurrentMonth' }
+      $specificDate = ''
+      if ($periodMode -eq 'SpecificDate') {
+        $specificDateText = $txtReportSpecificDate.Text.Trim()
+        if (-not $specificDateText) { throw 'Ingresa la fecha especifica del reporte.' }
+        $specificDate = & $fnFormatDate (& $fnParseDate $specificDateText 0 0)
+      } elseif ($periodMode -eq 'SpecificMonth') {
+        $specificDate = & $fnFormatDate (& $fnParseMonth $txtReportMonth.Text.Trim())
+      }
+      $resolved = & $fnResolvePeriod ([pscustomobject]@{ PeriodMode = $periodMode; SpecificDate = $specificDate }) $cfgRef
+      $taskName = $txtName.Text.Trim()
+      if (-not $taskName) { $taskName = 'WUU_ReporteAutomatico' }
+      $busy = @($win.FindName('btnCreate'), $win.FindName('btnDelete'), $btnReportRun, $win.FindName('btnDeleteReportJob'))
+      foreach ($c in $busy) { try { $c.IsEnabled = $false } catch {} }
+      $pbReportRun.Minimum = 0
+      $pbReportRun.Maximum = [Math]::Max(1, $servers.Count)
+      $pbReportRun.Value = 0
+      $pbReportRun.Visibility = 'Visible'
+      $lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
+      $lblMsg.Text = "Generando reporte 0/$($servers.Count) ($($resolved.Label))..."
+      $onProgress = {
+        param($done, $total)
+        $n = [Math]::Max(1, [int]$total)
+        $pbReportRun.Maximum = $n
+        $pbReportRun.Value = [Math]::Min([int]$done, $n)
+        $lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
+        $lblMsg.Text = "Generando reporte $done/$total ($($resolved.Label))..."
+      }.GetNewClosure()
+      $onDone = {
+        param($path, $count)
+        $pbReportRun.Visibility = 'Collapsed'
+        foreach ($c in $busy) { try { $c.IsEnabled = $true } catch {} }
+        $lblMsg.Foreground = [System.Windows.Media.Brushes]::Green
+        $lblMsg.Text = "Listo: $count servidor(es). CSV: $path"
+      }.GetNewClosure()
+      & $fnReportHooks $onProgress $onDone
+      $started = & $fnStartReport -Targets $servers -PeriodMode "$($resolved.PeriodMode)" -SpecificDate "$($resolved.SpecificDate)" -WindowDate "$($resolved.WindowDate)" -Title $taskName -FullInventoryCard
+      if (-not $started) {
+        & $fnReportHooks $null $null
+        $pbReportRun.Visibility = 'Collapsed'
+        foreach ($c in $busy) { try { $c.IsEnabled = $true } catch {} }
+        $lblMsg.Foreground = [System.Windows.Media.Brushes]::Red
+        $lblMsg.Text = 'No se pudo iniciar el reporte.'
+      }
+    } catch {
+      & $fnReportHooks $null $null
+      try { $pbReportRun.Visibility = 'Collapsed' } catch {}
+      if ($busy) { foreach ($c in $busy) { try { $c.IsEnabled = $true } catch {} } }
+      $lblMsg.Foreground = [System.Windows.Media.Brushes]::Red
+      $lblMsg.Text = "Error: $($_.Exception.Message)"
+    }
+  }.GetNewClosure())
+
+  $win.FindName('btnReportSummary').Add_Click({
+    try {
+      $periodMode = if ($cmbReportPeriod.SelectedItem) { "$($cmbReportPeriod.SelectedItem.Tag)" } else { 'CurrentMonth' }
+      $specificDate = ''
+      if ($periodMode -eq 'SpecificDate') {
+        $specificDateText = $txtReportSpecificDate.Text.Trim()
+        if (-not $specificDateText) { throw 'Ingresa la fecha especifica del reporte.' }
+        $specificDate = & $fnFormatDate (& $fnParseDate $specificDateText 0 0)
+      } elseif ($periodMode -eq 'SpecificMonth') {
+        $specificDate = & $fnFormatDate (& $fnParseMonth $txtReportMonth.Text.Trim())
+      }
+      $resolved = & $fnResolvePeriod ([pscustomobject]@{ PeriodMode = $periodMode; SpecificDate = $specificDate }) $cfgRef
+      $monthKey = & $fnPeriodMonth $periodMode "$($resolved.SpecificDate)" "$($resolved.WindowDate)"
+      if (-not $monthKey) { throw 'No se pudo resolver el mes del periodo.' }
+      $shown = & $fnShowBank $monthKey
+      if ($shown) {
+        $lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
+        $lblMsg.Text = "Resumen $monthKey en la consola. $shown"
+      } else {
+        $lblMsg.Foreground = [System.Windows.Media.Brushes]::DarkOrange
+        $lblMsg.Text = "No hay resumen guardado para $monthKey. Se crea al generar el reporte de todo el inventario."
+      }
+    } catch {
+      $lblMsg.Foreground = [System.Windows.Media.Brushes]::Red
+      $lblMsg.Text = "Error: $($_.Exception.Message)"
+    }
   }.GetNewClosure())
 
   $win.FindName('btnDelete').Add_Click({
@@ -7923,6 +8613,10 @@ function Show-SchedulerWindow {
                else { 'de todos los grupos' }
       $lblConnMsg.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
       $lblConnMsg.Text = "Validando 0/... $scope"
+      $connTask = "$($txtConnName.Text)".Trim()
+      if ($extras.Count -gt 0) { & $fnWindowCard -Phase Inicio -TaskName $connTask -Servers $extras }
+      elseif ($group) { & $fnWindowCard -Phase Inicio -TaskName $connTask -GrupoHint $group }
+      else { & $fnWindowCard -Phase Inicio -TaskName $connTask -AllInventory }
       $onProgress = {
         param($done, $total)
         $n = [Math]::Max(1, [int]$total)
@@ -7939,12 +8633,18 @@ function Show-SchedulerWindow {
       if ("$($result.Path)".Trim()) { $summary += "`n$($result.Path)" }
       $lblConnMsg.Foreground = if ([int]$result.Fail -eq 0 -and [int]$result.SqlCheckErrors -eq 0) { [System.Windows.Media.Brushes]::Green } else { [System.Windows.Media.Brushes]::DarkOrange }
       $lblConnMsg.Text = $summary
+      if ($extras.Count -gt 0) { & $fnWindowCard -Phase Fin -TaskName $connTask -Servers $extras }
+      elseif ($group) { & $fnWindowCard -Phase Fin -TaskName $connTask -GrupoHint $group }
+      else { & $fnWindowCard -Phase Fin -TaskName $connTask -AllInventory }
       if (@($result.Rows).Count -gt 0) {
         & $fnShowGrid 'WUU - Validacion de estado' $result.Rows
       }
     } catch {
       $lblConnMsg.Foreground = [System.Windows.Media.Brushes]::Red
       $lblConnMsg.Text = "Error: $($_.Exception.Message)"
+      if ($extras.Count -gt 0) { & $fnWindowCard -Phase Fin -TaskName $connTask -Servers $extras }
+      elseif ($group) { & $fnWindowCard -Phase Fin -TaskName $connTask -GrupoHint $group }
+      else { & $fnWindowCard -Phase Fin -TaskName $connTask -AllInventory }
     } finally {
       $pbConn.Visibility = 'Collapsed'
       foreach ($c in $connBusy) { try { $c.IsEnabled = $true } catch {} }
@@ -8076,6 +8776,7 @@ function Show-SchedulerWindow {
     try {
       $lblRebootMsg.Foreground = [System.Windows.Media.Brushes]::DarkSlateGray
       $lblRebootMsg.Text = "Reiniciando 0/$($servers.Count)..."
+      & $fnWindowCard -Phase Inicio -TaskName 'Reinicio ahora' -Servers $servers
       $onProgress = {
         param($done, $total)
         $n = [Math]::Max(1, [int]$total)
@@ -8090,6 +8791,7 @@ function Show-SchedulerWindow {
       $lblRebootMsg.Foreground = if ($batch.Fail -eq 0) { [System.Windows.Media.Brushes]::Green } else { [System.Windows.Media.Brushes]::DarkOrange }
       $lblRebootMsg.Text = "Listo: $($batch.Ok) reinicio(s) enviado(s), $($batch.Fail) con error."
       & $fnWriteLog 'INFO' "Reinicio ahora: $($batch.Ok) OK, $($batch.Fail) error, total=$($batch.Total)"
+      & $fnWindowCard -Phase Fin -TaskName 'Reinicio ahora' -Servers $servers
       $gridRows = @($batch.Rows | ForEach-Object {
         [pscustomobject][ordered]@{ Servidor=$_.Servidor; IP=$_.IP; Estado=$_.State; Detalle=$_.Detalle }
       })
@@ -8097,6 +8799,7 @@ function Show-SchedulerWindow {
     } catch {
       $lblRebootMsg.Foreground = [System.Windows.Media.Brushes]::Red
       $lblRebootMsg.Text = "Error: $($_.Exception.Message)"
+      & $fnWindowCard -Phase Fin -TaskName 'Reinicio ahora' -Servers $servers
     } finally {
       $pbReboot.Visibility = 'Collapsed'
       foreach ($c in $busy) { try { $c.IsEnabled = $true } catch {} }
@@ -8359,7 +9062,7 @@ $miCheck.Add_Click({
     [System.Windows.MessageBox]::Show("'$($sel.Servidor)' ya esta en proceso.","WUU",'OK','Information') | Out-Null
     return
   }
-  if (Deny-ServerPatchWithoutFlags $sel) { return }
+  if (Deny-ServerPatchWithoutFlags $sel) { return }                                                                                                                                     
   $resp = [System.Windows.MessageBox]::Show(
     "Check for Updates ejecutara el ciclo completo en '$($sel.Servidor)':`n`nBuscar parches -> Descargar -> Instalar -> Reiniciar (si aplica).`n`nContinuar?",
     "WUU - Check for Updates", 'YesNo', 'Warning')
@@ -8520,6 +9223,7 @@ $btnReload.Add_Click({
   foreach ($g in $script:Groups) { $g.IsChecked = $false }
   $script:Suspend = $false
   $script:Servers.Clear()
+  Set-ReportTaskTitle ''
   Update-GroupButtonText
   Update-ButtonStates
 })
@@ -8567,25 +9271,19 @@ $Window.Add_Closing({
 function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   if (-not $DefinitionPath -or -not (Test-Path $DefinitionPath)) {
     Write-Log 'ERROR' "Ventana programada: archivo de definicion inexistente: $DefinitionPath"
-    Send-TeamsNotification -Title 'WUU - Actualizacion programada (error)' -Level Error `
-      -Text 'No se encontro el archivo de definicion de la ventana de actualizacion.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"}; @{Name='Equipo'; Value=$env:COMPUTERNAME})
+    Send-WindowCard -Phase Fin -TaskName 'Ventana de actualizacion'
     return 2
   }
   try {
     $definition = Get-Content -Path $DefinitionPath -Raw | ConvertFrom-Json
   } catch {
     Write-Log 'ERROR' "Ventana programada: JSON invalido: $($_.Exception.Message)"
-    Send-TeamsNotification -Title 'WUU - Actualizacion programada (error)' -Level Error `
-      -Text 'La definicion JSON de la ventana de actualizacion es invalida.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"}; @{Name='Detalle'; Value="$($_.Exception.Message)"})
+    Send-WindowCard -Phase Fin -TaskName 'Ventana de actualizacion'
     return 2
   }
   if ("$($definition.Kind)" -ne 'ScheduledPatch') {
     Write-Log 'ERROR' 'Ventana programada: tipo de definicion no soportado.'
-    Send-TeamsNotification -Title 'WUU - Actualizacion programada (error)' -Level Error `
-      -Text 'El archivo JSON no corresponde a una ventana de actualizacion.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"})
+    Send-WindowCard -Phase Fin -TaskName 'Ventana de actualizacion'
     return 2
   }
 
@@ -8595,9 +9293,7 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
     $definition.LastMessage = 'La programacion no contiene servidores.'
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' 'Ventana programada sin servidores.'
-    Send-TeamsNotification -Title 'WUU - Actualizacion programada (error)' -Level Error `
-      -Text 'La programacion no contiene servidores.' `
-      -Facts @(@{Name='Tarea'; Value="$($definition.TaskName)"}; @{Name='Destino'; Value="$($definition.TargetValue)"})
+    Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -GrupoHint "$($definition.TargetValue)"
     return 2
   }
   if (-not (Test-Path $script:PsExecPath)) {
@@ -8605,9 +9301,7 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
     $definition.LastMessage = "No se encuentra PsExec.exe: $($script:PsExecPath)"
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' $definition.LastMessage
-    Send-TeamsNotification -Title 'WUU - Actualizacion programada (error)' -Level Error `
-      -Text $definition.LastMessage `
-      -Facts @(@{Name='Tarea'; Value="$($definition.TaskName)"})
+    Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
     return 2
   }
 
@@ -8616,16 +9310,7 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   $definition.LastMessage = "Iniciando parcheo de $($servers.Count) servidor(es)."
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Ventana programada iniciada: $($definition.TaskName) | destino=$($definition.TargetValue) | servidores=$($servers.Count)"
-  $targetLabel = if ("$($definition.TargetType)" -eq 'Group') { "Grupo $($definition.TargetValue)" } else { "Servidor $($definition.TargetValue)" }
-  Send-TeamsNotification -Title 'WUU - Actualizacion programada iniciada' -Level Info `
-    -Text 'Se inicio una ventana unica de parcheo.' `
-    -Facts @(
-      @{Name='Tarea'; Value="$($definition.TaskName)"}
-      @{Name='Destino'; Value=$targetLabel}
-      @{Name='Servidores'; Value="$($servers.Count)"}
-      @{Name='Equipo'; Value=$env:COMPUTERNAME}
-      @{Name='Inicio'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  Send-WindowCard -Phase Inicio -TaskName "$($definition.TaskName)" -Servers $servers
 
   $scheduledRemoteRel = "$($script:RemoteRel.TrimEnd('\'))\Scheduled\$($definition.JobId)"
   $scheduledResults = [hashtable]::Synchronized(@{})
@@ -8782,46 +9467,26 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   $definition.Results = @($results)
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Ventana programada finalizada: $($definition.TaskName) | $($definition.LastMessage)"
-  $errorLines = @($errors | ForEach-Object {
-    $detail = if ("$($_.Error)") { "$($_.Error)" } else { "$($_.Status)" }
-    "$($_.Servidor): $detail"
-  })
-  $finishLevel = if ($errors.Count -eq 0) { 'Success' } else { 'Warning' }
-  Send-TeamsNotification -Title "WUU - Actualizacion programada $($definition.Status.ToLower())" -Level $finishLevel `
-    -Text $definition.LastMessage `
-    -Facts @(
-      @{Name='Tarea'; Value="$($definition.TaskName)"}
-      @{Name='Destino'; Value=$targetLabel}
-      @{Name='Procesados'; Value="$($results.Count)"}
-      @{Name='Con error'; Value="$($errors.Count)"}
-      @{Name='Errores'; Value=(Format-TeamsErrorList $errorLines)}
-      @{Name='Fin'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
   return $(if ($errors.Count -eq 0) { 0 } else { 1 })
 }
 
 function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
   if (-not $DefinitionPath -or -not (Test-Path $DefinitionPath)) {
     Write-Log 'ERROR' "Reinicio programado: archivo de definicion inexistente: $DefinitionPath"
-    Send-TeamsNotification -Title 'WUU - Reinicio programado (error)' -Level Error `
-      -Text 'No se encontro el archivo de definicion del reinicio programado.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"}; @{Name='Equipo'; Value=$env:COMPUTERNAME})
+    Send-WindowCard -Phase Fin -TaskName 'Reinicio programado'
     return 2
   }
   try {
     $definition = Get-Content -Path $DefinitionPath -Raw | ConvertFrom-Json
   } catch {
     Write-Log 'ERROR' "Reinicio programado: JSON invalido: $($_.Exception.Message)"
-    Send-TeamsNotification -Title 'WUU - Reinicio programado (error)' -Level Error `
-      -Text 'La definicion JSON del reinicio programado es invalida.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"}; @{Name='Detalle'; Value="$($_.Exception.Message)"})
+    Send-WindowCard -Phase Fin -TaskName 'Reinicio programado'
     return 2
   }
   if ("$($definition.Kind)" -ne 'ScheduledReboot') {
     Write-Log 'ERROR' 'Reinicio programado: tipo de definicion no soportado.'
-    Send-TeamsNotification -Title 'WUU - Reinicio programado (error)' -Level Error `
-      -Text 'El archivo JSON no corresponde a un reinicio programado.' `
-      -Facts @(@{Name='Archivo'; Value="$DefinitionPath"})
+    Send-WindowCard -Phase Fin -TaskName 'Reinicio programado'
     return 2
   }
 
@@ -8831,9 +9496,7 @@ function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
     $definition.LastMessage = 'La programacion no contiene servidores.'
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' 'Reinicio programado sin servidores.'
-    Send-TeamsNotification -Title 'WUU - Reinicio programado (error)' -Level Error `
-      -Text 'La programacion no contiene servidores.' `
-      -Facts @(@{Name='Tarea'; Value="$($definition.TaskName)"})
+    Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)"
     return 2
   }
 
@@ -8842,14 +9505,7 @@ function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
   $definition.LastMessage = "Reiniciando $($servers.Count) servidor(es)."
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Reinicio programado iniciado: $($definition.TaskName) | servidores=$($servers.Count)"
-  Send-TeamsNotification -Title 'WUU - Reinicio programado iniciado' -Level Info `
-    -Text 'Se inicio un reinicio programado (sin parcheo).' `
-    -Facts @(
-      @{Name='Tarea'; Value="$($definition.TaskName)"}
-      @{Name='Servidores'; Value="$($servers.Count)"}
-      @{Name='Equipo'; Value=$env:COMPUTERNAME}
-      @{Name='Inicio'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  Send-WindowCard -Phase Inicio -TaskName "$($definition.TaskName)" -Servers $servers
 
   try {
     $batch = Invoke-RemoteRebootBatch -Servers $servers -Comment 'Reinicio programado por WUU'
@@ -8858,9 +9514,7 @@ function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
     $definition.LastMessage = $_.Exception.Message
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' "Reinicio programado: $($_.Exception.Message)"
-    Send-TeamsNotification -Title 'WUU - Reinicio programado (error)' -Level Error `
-      -Text $definition.LastMessage `
-      -Facts @(@{Name='Tarea'; Value="$($definition.TaskName)"})
+    Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
     return 2
   }
 
@@ -8873,20 +9527,7 @@ function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
   $definition.Results = @($results)
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Reinicio programado finalizado: $($definition.TaskName) | $($definition.LastMessage)"
-  $errorLines = @($errors | ForEach-Object {
-    $detail = if ("$($_.Error)") { "$($_.Error)" } else { "$($_.Status)" }
-    "$($_.Servidor): $detail"
-  })
-  $finishLevel = if ($errors.Count -eq 0) { 'Success' } else { 'Warning' }
-  Send-TeamsNotification -Title "WUU - Reinicio programado $($definition.Status.ToLower())" -Level $finishLevel `
-    -Text $definition.LastMessage `
-    -Facts @(
-      @{Name='Tarea'; Value="$($definition.TaskName)"}
-      @{Name='Enviados'; Value="$($batch.Ok)"}
-      @{Name='Con error'; Value="$($batch.Fail)"}
-      @{Name='Errores'; Value=(Format-TeamsErrorList $errorLines)}
-      @{Name='Fin'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
   return $(if ($errors.Count -eq 0) { 0 } else { 1 })
 }
 
@@ -8926,9 +9567,8 @@ if ($ScheduledConnectivity) {
   Load-Csv
   if ($script:Csv.Count -eq 0) {
     Write-Log 'ERROR' 'Sin servidores en CSV. Saliendo.'
-    Send-TeamsNotification -Title 'WUU - Reporte programado (error)' -Level Error `
-      -Text 'No hay servidores en el inventario CSV. El reporte no se ejecuto.' `
-      -Facts @(@{Name='Equipo'; Value=$env:COMPUTERNAME})
+    $earlyReportTask = if ($reportJobDef -and "$($reportJobDef.TaskName)".Trim()) { "$($reportJobDef.TaskName)" } else { "$($script:Cfg.ScheduledReport.TaskName)" }
+    Send-WindowCard -Phase Fin -TaskName $earlyReportTask
     Complete-ScheduledJobFile $JobFile 'Error' 'Sin servidores en CSV.'
     exit 1
   }
@@ -8937,9 +9577,8 @@ if ($ScheduledConnectivity) {
     $reportPeriod = Resolve-ScheduledReportPeriod $reportJobDef $script:Cfg
   } catch {
     Write-Log 'ERROR' "Periodo del reporte invalido: $($_.Exception.Message)"
-    Send-TeamsNotification -Title 'WUU - Reporte programado (error)' -Level Error `
-      -Text "Periodo del reporte invalido: $($_.Exception.Message)" `
-      -Facts @(@{Name='Equipo'; Value=$env:COMPUTERNAME})
+    $earlyReportTask = if ($reportJobDef -and "$($reportJobDef.TaskName)".Trim()) { "$($reportJobDef.TaskName)" } else { "$($script:Cfg.ScheduledReport.TaskName)" }
+    Send-WindowCard -Phase Fin -TaskName $earlyReportTask
     Complete-ScheduledJobFile $JobFile 'Error' $_.Exception.Message
     exit 1
   }
@@ -8956,16 +9595,12 @@ if ($ScheduledConnectivity) {
   $allServers = if ($jobServers.Count -gt 0) { $jobServers } else { @($script:Csv | Select-Object -ExpandProperty Servidor -Unique) }
   $reportTaskLabel = if ($reportJobDef -and "$($reportJobDef.TaskName)".Trim()) { "$($reportJobDef.TaskName)" } else { "$($script:Cfg.ScheduledReport.TaskName)" }
   Write-Log 'INFO' "Headless: consultando $($allServers.Count) servidor(es)."
-  $periodLabel = "$($reportPeriod.Label)"
-  Send-TeamsNotification -Title 'WUU - Reporte programado iniciado' -Level Info `
-    -Text 'Se inicio el reporte automatico de todos los servidores del inventario.' `
-    -Facts @(
-      @{Name='Tarea'; Value=$reportTaskLabel}
-      @{Name='Periodo'; Value=$periodLabel}
-      @{Name='Servidores'; Value="$($allServers.Count)"}
-      @{Name='Equipo'; Value=$env:COMPUTERNAME}
-      @{Name='Inicio'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  $cardPeriod = Get-Date
+  if ($reportWindowDate -match '^\d{4}-\d{2}-\d{2}$') {
+    try { $cardPeriod = [datetime]::ParseExact($reportWindowDate, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
+  }
+  $cardAll = ($jobServers.Count -eq 0)
+  Send-WindowCard -Phase Inicio -TaskName $reportTaskLabel -Servers $jobServers -AllInventory:$cardAll -PeriodDate $cardPeriod
 
   # Correr el worker de reporte en paralelo (mismo mecanismo que el boton Reporte)
   $bag  = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
@@ -9045,6 +9680,14 @@ if ($ScheduledConnectivity) {
   $rfile = Join-Path $reportDir ("Reporte_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'))
   $rows | Export-Csv -Path $rfile -NoTypeInformation -Delimiter ';' -Encoding UTF8
   Write-Log 'INFO' "Headless: reporte CSV guardado en $rfile"
+  if (-not $cardAll) {
+    try {
+      $sumMonth = Get-PeriodMonthKey $reportPeriodMode $reportSpecificDate $reportWindowDate
+      Publish-MonthlyBankSummary -ReportRows $rows -MonthKey $sumMonth | Out-Null
+    } catch {
+      Write-Log 'WARN' "Resumen mensual: $($_.Exception.Message)"
+    }
+  }
 
   # Sincronizar con Centro de Control de Parcheo (mismo formato que el modo interactivo)
   if ($script:WUUDashboardUploadEnabled -and $script:WUUDashboardUploadUrl) {
@@ -9090,19 +9733,7 @@ if ($ScheduledConnectivity) {
   }) -Type 'ReporteProgramado'
 
   $failed = @($rows | Where-Object { "$($_.Descripcion_Error)".Trim() })
-  $errorLines = @($failed | ForEach-Object { "$($_.Servidor): $($_.Descripcion_Error)" })
-  $finishLevel = if ($failed.Count -eq 0) { 'Success' } else { 'Warning' }
-  Send-TeamsNotification -Title 'WUU - Reporte programado finalizado' -Level $finishLevel `
-    -Text "Consulta completada: $($rows.Count) servidor(es), $($failed.Count) con error o sin datos." `
-    -Facts @(
-      @{Name='Tarea'; Value=$reportTaskLabel}
-      @{Name='Periodo'; Value=$periodLabel}
-      @{Name='Respondieron'; Value="$($bag.Count)/$($allServers.Count)"}
-      @{Name='Con error'; Value="$($failed.Count)"}
-      @{Name='CSV'; Value=$rfile}
-      @{Name='Errores'; Value=(Format-TeamsErrorList $errorLines)}
-      @{Name='Fin'; Value=(Get-Date).ToString('dd/MM/yyyy HH:mm:ss')}
-    )
+  Send-WindowCard -Phase Fin -TaskName $reportTaskLabel -Servers $allServers -PeriodDate $cardPeriod
 
   Complete-ScheduledJobFile $JobFile $(if ($failed.Count -eq 0) { 'Completada' } else { 'Completada con errores' }) `
     "$($rows.Count) servidor(es), $($failed.Count) con error"

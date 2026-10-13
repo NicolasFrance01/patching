@@ -146,7 +146,8 @@ model PatchOrder {
   title         String
   description   String?
   actionType    String   // 'CHECK' or 'INSTALL'
-  targetGroups  String?  // e.g., 'ASJ, BSC'
+  targetBanks   String?  // e.g., 'Corporativo, BSC'
+  targetGroups  String?  // e.g., 'Proxy1, DCGrupo1'
   targetServers String?  // e.g., 'SRV1, SRV2'
   scheduledAt   DateTime // When it should be executed
   status        String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED

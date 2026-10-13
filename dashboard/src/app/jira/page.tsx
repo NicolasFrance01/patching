@@ -1,8 +1,15 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import JiraView from "@/components/JiraView";
 
 export const dynamic = "force-dynamic";
 
-export default function JiraPage() {
+export default async function JiraPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const role = ((session.user as any)?.role || "").toLowerCase();
+  if (role !== "admin") redirect("/");
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>

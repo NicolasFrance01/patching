@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       data: {
         username: finalUsername,
         password: hashed,
-        role: role ?? "user",
+        role: role ?? "Base",
         email: email || null,
         isConfirmed,
         mustChangePassword,

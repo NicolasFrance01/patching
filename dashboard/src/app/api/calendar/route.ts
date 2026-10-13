@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getBanksForGroups } from "@/lib/serverTypeMap";
 
 export async function GET(req: NextRequest) {
   try {
     const orders = await prisma.patchOrder.findMany({
       orderBy: { scheduledAt: "asc" },
     });
-    return NextResponse.json(orders);
+
+    const formatted = orders.map((o) => {
+      let banks = o.targetBanks;
+      if (!banks && o.targetGroups) {
+        const deduced = getBanksForGroups(o.targetGroups.split(", "));
+        if (deduced.length > 0) banks = deduced.join(", ");
+      }
+      return {
+        ...o,
+        targetBanks: banks || null,
+        targetClient: banks || null,
+        Cliente: banks || null,
+      };
+    });
+
+    return NextResponse.json(formatted);
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
   }
@@ -20,7 +36,12 @@ export async function POST(req: NextRequest) {
     if (body.Action) {
       if (body.Action === "delete") {
         await prisma.patchOrder.deleteMany({
-          where: { title: body.TaskName },
+          where: {
+            OR: [
+              { title: body.TaskName },
+              { id: body.Id || body.EventId || body.CalendarEventId || "" },
+            ],
+          },
         });
         return NextResponse.json({ success: true }, { status: 200 });
       }
@@ -29,23 +50,43 @@ export async function POST(req: NextRequest) {
         let actionType = "CHECK";
         if (body.Kind === "PatchWindow") actionType = "INSTALL";
         if (body.Kind === "Reboot") actionType = "REBOOT";
-        
-        let targetGroups = null;
-        let targetServers = null;
+
+        let targetGroups: string | null = null;
+        let targetServers: string | null = null;
+        let targetBanks: string | null = null;
 
         if (body.Details) {
           if (body.Details.TargetType === "Group") {
-            targetGroups = body.Details.TargetValue;
+            targetGroups = body.Details.TargetValue || body.Details.Group || null;
           } else if (body.Details.TargetType === "Server") {
-            targetServers = body.Details.TargetValue;
+            targetServers = body.Details.TargetValue || null;
+          }
+          if (body.Details.Cliente) {
+            targetBanks = body.Details.Cliente;
+          }
+        }
+
+        if (!targetGroups && body.targetGroups) {
+          targetGroups = body.targetGroups;
+        }
+        if (!targetBanks && (body.Cliente || body.targetClient)) {
+          targetBanks = body.Cliente || body.targetClient;
+        }
+
+        // Si tenemos grupo pero no banco, deducir el banco correspondiente
+        if (targetGroups && !targetBanks) {
+          const deduced = getBanksForGroups(targetGroups.split(", "));
+          if (deduced.length > 0) {
+            targetBanks = deduced.join(", ");
           }
         }
 
         const upsertedOrder = await prisma.patchOrder.create({
           data: {
             title: body.TaskName || `${body.Kind} Task`,
-            description: `Programado desde WUU local por ${body.Analyst || 'Analista'}\nTipo: ${body.Kind}`,
+            description: `Programado desde WUU local por ${body.Analyst || "Analista"}\nTipo: ${body.Kind}`,
             actionType,
+            targetBanks,
             targetGroups,
             targetServers,
             scheduledAt: body.ScheduledAt ? new Date(body.ScheduledAt) : new Date(),
@@ -57,16 +98,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Formato normal del Dashboard
-    const { title, description, actionType, targetGroups, targetServers, scheduledAt, status, createdBy } = body;
+    // Formato del Dashboard
+    const { title, description, actionType, targetBanks, targetGroups, targetServers, scheduledAt, status, createdBy } = body;
+
+    let finalBanks = targetBanks || null;
+    if (!finalBanks && targetGroups) {
+      const deduced = getBanksForGroups(targetGroups.split(", "));
+      if (deduced.length > 0) {
+        finalBanks = deduced.join(", ");
+      }
+    }
 
     const newOrder = await prisma.patchOrder.create({
       data: {
         title,
         description,
         actionType,
-        targetGroups,
-        targetServers,
+        targetBanks: finalBanks,
+        targetGroups: targetGroups || null,
+        targetServers: targetServers || null,
         scheduledAt: new Date(scheduledAt),
         status: status || "PENDING",
         createdBy,

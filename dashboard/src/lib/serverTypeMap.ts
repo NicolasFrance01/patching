@@ -14753,3 +14753,17 @@ export function getServerInfo(serverName: string): ServerInfo | undefined {
   
   return undefined;
 }
+
+export function getBanksForGroups(groups: string[]): string[] {
+  const banks = new Set<string>();
+  const normalized = groups.map((g) => g.trim().toLowerCase());
+  for (const s of Object.values(serverTypeMap)) {
+    if (s.grupo && normalized.includes(s.grupo.toLowerCase())) {
+      if (s.type && s.type !== "Sin clasificar") {
+        banks.add(s.type);
+      }
+    }
+  }
+  return Array.from(banks).sort();
+}
+

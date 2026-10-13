@@ -61,14 +61,13 @@ export default function Sidebar({ role, username }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
         {navItems.filter((item) => {
-          const r = role?.toLowerCase();
+          const r = (role || "").toLowerCase();
           if (r === "admin") return true;
           if (r === "dashboard") return item.label === "Dashboard";
-          if (r === "base") return ["Dashboard", "Historial", "Reportes", "Calendario"].includes(item.label);
-          // If it's standard 'user' or anything else, decide what they should see. 
-          // Assuming default user can see everything for now, or just limit them too?
-          // I will leave return true for now, but case insensitivity will fix dashboard/base issues.
-          return true;
+          if (r === "base" || r === "user") {
+            return ["Dashboard", "Historial", "Reportes", "Calendario"].includes(item.label);
+          }
+          return item.label === "Dashboard";
         }).map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

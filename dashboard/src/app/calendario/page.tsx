@@ -1,3 +1,6 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CalendarioView from "@/components/CalendarioView";
 import { Suspense } from "react";
@@ -5,6 +8,10 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 
 export default async function CalendarioPage() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const role = ((session.user as any)?.role || "").toLowerCase();
+  if (role === "dashboard") redirect("/");
   const orders = await prisma.patchOrder.findMany({
     orderBy: { scheduledAt: "asc" },
   });

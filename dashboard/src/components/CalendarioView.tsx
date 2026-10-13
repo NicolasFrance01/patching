@@ -3,13 +3,14 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, Server, CheckCircle2, XCircle, AlertCircle, Trash2, Check, Search } from "lucide-react";
-import { GROUPS, SERVER_TYPES, serverTypeMap } from "@/lib/serverTypeMap";
+import { GROUPS, SERVER_TYPES, serverTypeMap, getBanksForGroups } from "@/lib/serverTypeMap";
 
 interface PatchOrder {
   id: string;
   title: string;
   description: string | null;
   actionType: string;
+  targetBanks?: string | null;
   targetGroups: string | null;
   targetServers: string | null;
   scheduledAt: string;
@@ -198,14 +199,21 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
     setIsSubmitting(true);
     try {
       const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
-      const dbTargetGroups = targetBanks.join(", ");
-      const dbTargetServers = targetGroups.join(", ");
+      const dbTargetBanks = targetBanks.join(", ");
+      const dbTargetGroups = targetGroups.join(", ");
       
       const res = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, actionType, targetGroups: dbTargetGroups, targetServers: dbTargetServers, scheduledAt, status: "PENDING"
+          title,
+          description,
+          actionType,
+          targetBanks: dbTargetBanks || null,
+          targetGroups: dbTargetGroups || null,
+          targetServers: null,
+          scheduledAt,
+          status: "PENDING"
         })
       });
 
@@ -275,19 +283,44 @@ export default function CalendarioView({ initialOrders, initialServers = [] }: {
     return days;
   };
 
-  const selectedOrderGroups = selectedOrder?.targetServers ? selectedOrder.targetServers.split(", ").map(g => g.trim()) : [];
-  const selectedOrderBanks = selectedOrder?.targetGroups ? selectedOrder.targetGroups.split(", ").map(b => b.trim()) : [];
+  const selectedOrderGroups = useMemo(() => {
+    if (!selectedOrder) return [];
+    if (selectedOrder.targetGroups) {
+      return selectedOrder.targetGroups.split(", ").map(g => g.trim()).filter(Boolean);
+    }
+    // Fallback for legacy records where groups were stored in targetServers
+    if (selectedOrder.targetServers) {
+      return selectedOrder.targetServers.split(", ").map(g => g.trim()).filter(Boolean);
+    }
+    return [];
+  }, [selectedOrder]);
+
+  const selectedOrderBanks = useMemo(() => {
+    if (!selectedOrder) return [];
+    if (selectedOrder.targetBanks) {
+      return selectedOrder.targetBanks.split(", ").map(b => b.trim()).filter(Boolean);
+    }
+    // Automatically deduce banks from groups!
+    if (selectedOrderGroups.length > 0) {
+      const deduced = getBanksForGroups(selectedOrderGroups);
+      if (deduced.length > 0) return deduced;
+    }
+    // Fallback for legacy records where banks were placed in targetGroups
+    if (selectedOrder.targetGroups) {
+      const parts = selectedOrder.targetGroups.split(", ").map(b => b.trim()).filter(Boolean);
+      const matched = parts.filter(p => PREDEFINED_BANKS.some(pb => pb.toLowerCase() === p.toLowerCase()));
+      if (matched.length > 0) return matched;
+    }
+    return [];
+  }, [selectedOrder, selectedOrderGroups]);
   
   const selectedOrderServers = useMemo(() => {
     if (!initialServers || !selectedOrder) return [];
     if (selectedOrderGroups.length === 0 && selectedOrderBanks.length === 0) return [];
     
     return initialServers.filter(s => {
-      // Very basic filtering based on group name
-      if (s.grupo && selectedOrderGroups.includes(s.grupo)) return true;
-      // If we implemented serverTypeMap here we could filter by bank, but we don't have it easily. 
-      // We'll just rely on the groups for now, or add a basic check:
-      if (s.serverName && selectedOrderBanks.some(b => s.serverName.toUpperCase().includes(b))) return true;
+      if (s.grupo && selectedOrderGroups.some(g => g.toLowerCase() === s.grupo?.toLowerCase())) return true;
+      if (s.serverName && selectedOrderBanks.some(b => s.serverName.toUpperCase().includes(b.toUpperCase()))) return true;
       return false;
     });
   }, [selectedOrder, initialServers, selectedOrderGroups, selectedOrderBanks]);

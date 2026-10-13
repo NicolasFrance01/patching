@@ -40,6 +40,20 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.mustChangePassword = (user as any).mustChangePassword;
       }
+      if (token.name) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { username: token.name as string },
+            select: { role: true, mustChangePassword: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.mustChangePassword = dbUser.mustChangePassword;
+          }
+        } catch {
+          // Fallback to token values if DB query is unreachable
+        }
+      }
       return token;
     },
     async session({ session, token }) {

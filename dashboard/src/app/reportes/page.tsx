@@ -1,19 +1,24 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ReportesView from "@/components/ReportesView";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportesPage() {
-  const [syncRuns, currentServers, session] = await Promise.all([
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  const role = ((session.user as any)?.role || "").toLowerCase();
+  if (role === "dashboard") redirect("/");
+
+  const [syncRuns, currentServers] = await Promise.all([
     prisma.syncRun.findMany({
       orderBy: { syncedAt: "desc" },
       take: 150, // Limit to recent runs to avoid massive payload/timeout, but enough for a full month
       include: { records: { select: { serverName: true, ip: true, status: true, errorDescription: true } } },
     }),
     prisma.serverStatus.findMany({ orderBy: { updatedAt: "desc" } }),
-    getServerSession(authOptions),
   ]);
 
   const username = session?.user?.name ?? undefined;

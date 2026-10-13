@@ -25,7 +25,7 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState("Base");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +34,7 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
     setEmail("");
     setUsername("");
     setPassword("");
-    setRole("user");
+    setRole("Base");
     setEditingUserId(null);
     setShowForm(false);
     setError("");
@@ -203,7 +203,6 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
               >
-                <option value="user">Usuario</option>
                 <option value="Base">Base</option>
                 <option value="Dashboard">Dashboard</option>
                 <option value="admin">Admin</option>
@@ -261,15 +260,13 @@ export default function UsuariosView({ users: initial }: { users: UserRow[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${
-                      u.role === "admin"
+                      u.role?.toLowerCase() === "admin"
                         ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                        : u.role === "Dashboard"
+                        : u.role?.toLowerCase() === "dashboard"
                         ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                        : u.role === "Base"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-zinc-500/10 text-zinc-400 border-zinc-600/30"
+                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                     }`}>
-                      {u.role === "admin" ? "Admin" : u.role === "Dashboard" ? "Dashboard" : u.role === "Base" ? "Base" : "Usuario"}
+                      {u.role?.toLowerCase() === "admin" ? "Admin" : u.role?.toLowerCase() === "dashboard" ? "Dashboard" : "Base"}
                     </span>
                   </td>
                   <td className="px-4 py-3">

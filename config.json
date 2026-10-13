@@ -6,7 +6,7 @@
   "CleanupRemoteOnSuccess": true,
   "Dashboard": {
     "Enabled": true,
-    "Url": "https://algeibapatching.vercel.app/api/upload"
+    "Url": "https://patching.algeiba.com/api/upload"
   },
   "ScheduledReport": {
     "Enabled": false,
