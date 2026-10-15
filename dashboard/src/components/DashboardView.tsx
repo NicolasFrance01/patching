@@ -430,8 +430,11 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       pendientesCount = filtered.filter((s) => s.extendedStatus === "Pendiente").length;
     }
 
+    const snapOk        = Math.max(0, total - sinSnap);
+    const ejecutados    = filtered.filter((s) => s.status === "ok" || s.status === "error").length;
+
     const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
-    return { total, ok, noActualizados, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct };
+    return { total, ok, noActualizados, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct, snapOk, ejecutados };
   }, [filtered, scheduledOrders]);
 
   // ── Donut chart data ────────────────────────────────────────────────────────
@@ -887,10 +890,10 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
             <div className="space-y-8 py-4">
               {[
                 { label: "1. Servidores evaluados", value: stats.total, max: stats.total },
-                { label: "2. No actualizados", value: stats.total - stats.ok, max: stats.total },
-                { label: "3. Confirmación OK", value: stats.total - stats.sinConf - stats.revision, max: stats.total },
-                { label: "4. SNAP OK", value: stats.total - stats.sinConf - stats.revision - stats.sinSnap, max: stats.total },
-                { label: "5. Actualización ejecutada", value: stats.ok + stats.errors, max: stats.total }
+                { label: "2. No actualizados", value: stats.noActualizados, max: stats.total },
+                { label: "3. Error", value: stats.errors, max: stats.total },
+                { label: "4. SNAP OK", value: stats.snapOk, max: stats.total },
+                { label: "5. Actualización ejecutada", value: stats.ejecutados, max: stats.total }
               ].map((step, i) => (
                 <div key={i} className="flex flex-col gap-2">
                   <div className="flex items-center justify-between text-sm">
@@ -900,7 +903,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
                   <div className="h-3 w-full bg-zinc-800/50 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${step.max > 0 ? (step.value / step.max) * 100 : 0}%` }}
+                      style={{ width: `${step.max > 0 ? (Math.max(0, step.value) / step.max) * 100 : 0}%` }}
                     />
                   </div>
                 </div>
