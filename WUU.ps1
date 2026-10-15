@@ -719,9 +719,26 @@ function Resolve-WindowCardScope {
     })
     if ($rows.Count -eq 0) { $outside++; continue }
     $inInv++
-    foreach ($r in $rows) {
       $g = "$($r.Grupo)".Trim()
       $c = "$($r.Cliente)".Trim()
+      if (-not $c -and "$($r.Dominio)".Trim()) {
+        $d = "$($r.Dominio)".Trim().ToLower()
+        if ($d -like '*bancobsf*' -or $d -like '*nbsf*') { $c = 'NBSF' }
+        elseif ($d -like '*bancosantacruz*' -or $d -like '*bsc*') { $c = 'BSC' }
+        elseif ($d -like '*bancosanjuan*' -or $d -like '*bsj*') { $c = 'BSJ' }
+        elseif ($d -like '*entrerios*' -or $d -like '*bersa*') { $c = 'NBERSA' }
+        elseif ($d -like '*qualia*') { $c = 'QUALIA' }
+        else { $c = 'CORP' }
+      }
+      if (-not $c -and "$($r.Servidor)".Trim()) {
+        $sn = "$($r.Servidor)".Trim().ToUpper()
+        if ($sn -like '*NBSF*' -or $sn -like 'BSF*') { $c = 'NBSF' }
+        elseif ($sn -like '*BSC*' -or $sn -like 'SCA*') { $c = 'BSC' }
+        elseif ($sn -like '*BSJ*' -or $sn -like 'SJA*') { $c = 'BSJ' }
+        elseif ($sn -like '*BER*' -or $sn -like '*NBERSA*') { $c = 'NBERSA' }
+        elseif ($sn -like '*QUALIA*') { $c = 'QUALIA' }
+        else { $c = 'CORP' }
+      }
       if ($g -and -not $groups.Contains($g)) { [void]$groups.Add($g) }
       if ($c -and -not $clients.Contains($c)) { [void]$clients.Add($c) }
     }

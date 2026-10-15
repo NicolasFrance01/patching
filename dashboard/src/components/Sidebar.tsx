@@ -17,6 +17,7 @@ import {
 import ProfileModal from "./ProfileModal";
 import { useState, useEffect } from "react";
 import LoadingOverlay from "./LoadingOverlay";
+import NotificationBell from "./NotificationBell";
 
 interface SidebarProps {
   role?: string;
@@ -46,17 +47,18 @@ export default function Sidebar({ role, username }: SidebarProps) {
       {isNavigating && <LoadingOverlay />}
       <aside className="fixed inset-y-0 left-0 w-56 flex flex-col bg-zinc-950 border-r border-zinc-800/60 z-40">
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-zinc-800/60">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-indigo-400" />
+        <div className="px-3.5 py-4 border-b border-zinc-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-white leading-tight">Centro de</p>
+              <p className="text-xs font-semibold text-indigo-400 leading-tight">Parcheo</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-white leading-tight">Centro de</p>
-            <p className="text-xs font-semibold text-indigo-400 leading-tight">Parcheo</p>
-          </div>
+          <NotificationBell />
         </div>
-      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">

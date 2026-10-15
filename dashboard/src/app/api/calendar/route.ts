@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getBanksForGroups } from "@/lib/serverTypeMap";
+import { createAndDispatchNotification } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,6 +95,22 @@ export async function POST(req: NextRequest) {
             createdBy: body.Analyst || body.SourceComputer,
           },
         });
+
+        const dtWuu = body.ScheduledAt ? new Date(body.ScheduledAt) : new Date();
+        const periodStrWuu = `${dtWuu.toLocaleDateString("es-AR", { month: "short" }).toUpperCase()}-${String(dtWuu.getFullYear()).slice(2)}`;
+        createAndDispatchNotification({
+          type: "CALENDAR_SCHEDULED",
+          title: `Nueva Ejecución Programada: ${upsertedOrder.title}`,
+          message: `Se programó una nueva ejecución desde WUU para el ${dtWuu.toLocaleString("es-AR")}.`,
+          taskName: upsertedOrder.title,
+          cliente: targetBanks || "Todos los bancos",
+          periodo: periodStrWuu,
+          fechaHora: dtWuu.toLocaleString("es-AR"),
+          grupo: targetGroups || "Fuera de inventario",
+          servidores: targetServers ? targetServers.split(",").length : "Según grupo",
+          orderId: upsertedOrder.id,
+        }).catch((e) => console.warn("[Calendar API] Error notificando programación:", e));
+
         return NextResponse.json(upsertedOrder, { status: 201 });
       }
     }
@@ -122,6 +139,21 @@ export async function POST(req: NextRequest) {
         createdBy,
       },
     });
+
+    const dtDash = new Date(scheduledAt);
+    const periodStrDash = `${dtDash.toLocaleDateString("es-AR", { month: "short" }).toUpperCase()}-${String(dtDash.getFullYear()).slice(2)}`;
+    createAndDispatchNotification({
+      type: "CALENDAR_SCHEDULED",
+      title: `Nueva Ejecución Programada: ${newOrder.title}`,
+      message: `Se programó una nueva ejecución pendiente en el Calendario para el ${dtDash.toLocaleString("es-AR")}.`,
+      taskName: newOrder.title,
+      cliente: finalBanks || "Todos los bancos",
+      periodo: periodStrDash,
+      fechaHora: dtDash.toLocaleString("es-AR"),
+      grupo: targetGroups || "Fuera de inventario",
+      servidores: targetServers ? targetServers.split(",").length : "Según grupo",
+      orderId: newOrder.id,
+    }).catch((e) => console.warn("[Calendar API] Error notificando programación:", e));
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error: any) {

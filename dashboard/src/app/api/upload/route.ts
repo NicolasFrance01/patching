@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAndDispatchNotification } from "@/lib/notifications";
 
 export async function POST(req: Request) {
   try {
@@ -178,6 +179,27 @@ export async function POST(req: Request) {
         })),
       });
     }
+
+    // Despachar notificación y correo de nueva sincronización
+    const analistaStr = items.find((i: any) => i.analista)?.analista || "WUU";
+    createAndDispatchNotification({
+      type: "SYNC_NEW",
+      title: "Nueva sincronización en Historial",
+      message: `Se sincronizaron exitosamente ${items.length} servidores en el Centro de Control de Parcheo.`,
+      taskName: `Sincronización por ${analistaStr}`,
+      cliente: "Todos los bancos",
+      periodo: currentMonthStr,
+      fechaHora: now.toLocaleString("es-AR"),
+      grupo: "Inventario General",
+      servidores: items.length,
+      metadata: {
+        syncRunId: syncRun.id,
+        total: items.length,
+        success,
+        errors,
+        noData,
+      },
+    }).catch((e) => console.warn("[Upload] Error al enviar notificación:", e));
 
     return NextResponse.json({ success: true, count: items.length, syncRunId: syncRun.id });
   } catch (error: any) {

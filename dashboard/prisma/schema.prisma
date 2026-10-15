@@ -169,3 +169,16 @@ model ServerMappingOverride {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // 'SYNC_NEW', 'CALENDAR_SCHEDULED', 'EXECUTION_STARTED', 'EXECUTION_COMPLETED'
+  title     String
+  message   String   @db.Text
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
