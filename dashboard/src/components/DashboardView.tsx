@@ -100,8 +100,9 @@ function toLocalDayKey(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter, selectedMonth: string, from: string, to: string, isSyncRun: boolean = false): boolean {
+function isInTimeFilter(iso: string, fechaVentana: string | null, tf: TimeFilter, selectedMonth: string, from: string, to: string, isSyncRun: boolean = false, recordMonth: string | null = null): boolean {
   if (tf === "mes" && selectedMonth) {
+    if (recordMonth) return recordMonth === selectedMonth;
     if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
     if (!isSyncRun) return false; // For servers, strict match on fechaVentana
     // Fallback: only for SyncRuns
@@ -294,6 +295,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [chartsMounted, setChartsMounted] = useState(false);
   const [serverData, setServerData] = useState<ServerStatus[]>(localData);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMonthLocked, setIsMonthLocked] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<{ title: string; content: string; isError?: boolean } | null>(null);
 
   const [selectedKbModal, setSelectedKbModal] = useState<string | null>(null);
@@ -301,10 +303,47 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
   useEffect(() => { setChartsMounted(true); }, []);
 
-  // Remove fetch effect so that filtering is purely local based on initialData
-  // which solves the discrepancy with MonthlyServerStatus having mixed or duplicated records.
+  // Fetch frozen/monthly snapshot from MonthlyServerStatus when filtering by month;
+  // use live ServerStatus (localData) when viewing all months or a custom date range.
   useEffect(() => {
-    setServerData(localData);
+    if (timeFilter !== "mes" || !selectedMonth) {
+      setServerData(localData);
+      setIsMonthLocked(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    async function fetchMonthlyData() {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/servers?month=${encodeURIComponent(selectedMonth)}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (res.ok && active) {
+          const lockedHeader = res.headers.get("X-Month-Locked") === "true";
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setServerData(data);
+            setIsMonthLocked(lockedHeader);
+          }
+        }
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          console.error("Failed to fetch monthly server data:", error);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    fetchMonthlyData();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [localData, timeFilter, selectedMonth]);
 
   // ── Enriched servers ────────────────────────────────────────────────────────
@@ -350,7 +389,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     const q = search.toLowerCase();
     return enriched.filter((s) => {
       if (!matchesBankFilter(s.serverName, bankFilters, overrides)) return false;
-      if (!isInTimeFilter(s.updatedAt.toString(), s.fechaVentana ?? null, timeFilter, selectedMonth, customFrom, customTo)) return false;
+      if (!isInTimeFilter(s.updatedAt.toString(), s.fechaVentana ?? null, timeFilter, selectedMonth, customFrom, customTo, false, (s as any).month ?? null)) return false;
       
       // Advanced Filters
       if (grupoFilters.length > 0 && (!s.grupo || !grupoFilters.includes(s.grupo))) return false;
@@ -410,9 +449,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
     const revision      = filtered.filter((s) => s.extendedStatus === "En Revisión").length;
     const noData        = filtered.filter((s) => s.extendedStatus === "Sin Datos").length;
     
-    // Calculate pending from scheduledOrders that match filtered servers
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const applyPendingOrders = timeFilter !== "mes" || selectedMonth === currentMonthKey;
+
+    // Calculate pending from scheduledOrders only for the active/current period
     let pendientesCount = 0;
-    if (scheduledOrders.length > 0) {
+    if (applyPendingOrders && scheduledOrders.length > 0) {
       const scheduledServers = new Set<string>();
       scheduledOrders.forEach(order => {
         const banks = order.targetGroups ? order.targetGroups.split(",").map(b => b.trim()) : [];
@@ -435,7 +478,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
 
     const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
     return { total, ok, noActualizados, errors, sinConf, sinSnap, revision, pendientes: pendientesCount, noData, pct, snapOk, ejecutados };
-  }, [filtered, scheduledOrders]);
+  }, [filtered, scheduledOrders, timeFilter, selectedMonth]);
 
   // ── Donut chart data ────────────────────────────────────────────────────────
   const donutData = useMemo(() => [
@@ -583,8 +626,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       .map((b) => ({ name: b.name, errors: b.errors, pct: b.pct })),
   [byBankData]);
 
-  const lastUpdated = localData.length > 0
-    ? new Date(localData[0].updatedAt).toLocaleString("es-AR")
+  const activeSource = timeFilter === "mes" ? serverData : localData;
+  const lastUpdated = activeSource.length > 0
+    ? new Date(activeSource[0].updatedAt).toLocaleString("es-AR")
     : "—";
 
   const getPeriodoString = () => {
@@ -709,12 +753,22 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
               </button>
             ))}
             {timeFilter === "mes" && (
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-200 focus:outline-none focus:border-indigo-500"
+                />
+                {isLoading && (
+                  <span className="text-[10px] text-zinc-400">Cargando...</span>
+                )}
+                {!isLoading && isMonthLocked && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Mes congelado
+                  </span>
+                )}
+              </div>
             )}
             {timeFilter === "custom" && (
               <div className="flex items-center gap-2">
@@ -1053,7 +1107,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
           <h2 className="text-base font-semibold text-zinc-200">
             Detalle de Servidores
             <span className="ml-2 text-xs font-normal text-zinc-500">
-              ({filtered.length} de {localData.length})
+              ({filtered.length} de {activeSource.length})
             </span>
           </h2>
           <div className="relative">
@@ -1195,6 +1249,9 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
         onOverrideChange={(srv, newBank) => setOverrides(prev => ({ ...prev, [srv]: newBank }))}
         onServerDelete={(srv) => {
           setLocalData(prev => prev.filter(s => s.serverName !== srv));
+          if (!isMonthLocked) {
+            setServerData(prev => prev.filter(s => s.serverName !== srv));
+          }
         }}
       />
     </div>

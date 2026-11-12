@@ -9,14 +9,19 @@ export async function DELETE(req: Request, { params }: { params: any }) {
       return NextResponse.json({ error: "Missing serverName" }, { status: 400 });
     }
 
-    // Delete from MonthlyServerStatus first if there are foreign keys or anything, but here it's just normal tables
-    // Also from ServerStatus
+    // Preserve frozen/closed historical months; only delete from open months and live status
+    const closedMonths = await prisma.closedMonth.findMany({ select: { month: true } });
+    const lockedList = closedMonths.map((c) => c.month);
+
     await prisma.serverStatus.deleteMany({
       where: { serverName }
     });
     
     await prisma.monthlyServerStatus.deleteMany({
-      where: { serverName }
+      where: {
+        serverName,
+        ...(lockedList.length > 0 ? { month: { notIn: lockedList } } : {}),
+      }
     });
 
     // Option: clean overrides too

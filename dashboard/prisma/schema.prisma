@@ -182,3 +182,9 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
 }
+
+model ClosedMonth {
+  month    String   @id // Format: YYYY-MM
+  lockedAt DateTime @default(now())
+  lockedBy String?  // e.g., "auto" or username
+}

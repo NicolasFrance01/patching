@@ -98,10 +98,11 @@ function matchesBankFilter(serverName: string, selectedBanks: BankFilter[]): boo
   return selectedBanks.includes(bank as BankFilter);
 }
 
-function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string, isSyncRun: boolean = false): boolean {
+function isDateInRange(isoDate: string, fechaVentana: string | null, timeFilter: TimeFilter, selectedMonth: string, fromStr: string, toStr: string, isSyncRun: boolean = false, recordMonth: string | null = null): boolean {
   if (timeFilter === "all") return true;
   
   if (timeFilter === "mes" && selectedMonth) {
+    if (recordMonth) return recordMonth === selectedMonth;
     if (fechaVentana && fechaVentana.startsWith(selectedMonth)) return true;
     if (!isSyncRun) return false;
     // Fallback if no fechaVentana (only for sync runs)
@@ -427,6 +428,38 @@ export default function ReportesView({
   });
   const [trendFrom, setTrendFrom] = useState("");
   const [trendTo, setTrendTo] = useState("");
+  const [monthlyServers, setMonthlyServers] = useState<ServerData[] | null>(null);
+
+  useEffect(() => {
+    if (timeFilter !== "mes" || !selectedMonth) {
+      setMonthlyServers(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    fetch(`/api/servers?month=${encodeURIComponent(selectedMonth)}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((rows) => {
+        if (active && Array.isArray(rows)) {
+          setMonthlyServers(rows);
+        }
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("Failed to fetch monthly servers for reports:", err);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [timeFilter, selectedMonth]);
 
   // Inactivity Submodule Threshold State
   const [inactivityThreshold, setInactivityThreshold] = useState<InactivityThreshold>("15d");
@@ -478,8 +511,10 @@ export default function ReportesView({
     setTabKey((k) => k + 1);
   };
 
+  const activeServersSource = timeFilter === "mes" && monthlyServers ? monthlyServers : data.currentServers;
+
   const enrichedServers = useMemo(() =>
-    data.currentServers.map((s) => {
+    activeServersSource.map((s) => {
       const isError = !!(s.errorDescription && s.errorDescription !== "N/A");
       const isNoData = (!s.os || s.os === "N/A") && !isError;
       const status = isError ? "error" : isNoData ? "nodata" : "ok";
@@ -510,12 +545,12 @@ export default function ReportesView({
         hasSSnapFlag: cl.flags.includes("S. Snap"),
       };
     }),
-    [data.currentServers]
+    [activeServersSource]
   );
 
   const filteredEnrichedServers = useMemo(() =>
     enrichedServers.filter(
-      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, (s as any).fechaVentana ?? null, timeFilter, selectedMonth, trendFrom, trendTo)
+      (s) => matchesBankFilter(s.serverName, selectedBanks) && isDateInRange(s.updatedAt, (s as any).fechaVentana ?? null, timeFilter, selectedMonth, trendFrom, trendTo, false, (s as any).month ?? null)
     ),
     [enrichedServers, selectedBanks, timeFilter, selectedMonth, trendFrom, trendTo]
   );

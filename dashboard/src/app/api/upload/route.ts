@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAndDispatchNotification } from "@/lib/notifications";
+import {
+  extractMonthFromFechaVentana,
+  getArgentinaDateParts,
+  resolveFrozenMonths,
+} from "@/lib/monthlyPeriod";
 
 export async function POST(req: Request) {
   try {
@@ -32,8 +37,7 @@ export async function POST(req: Request) {
     });
 
     const now = new Date();
-    const currentYear = String(now.getFullYear());
-    const currentMonthNum = String(now.getMonth() + 1).padStart(2, "0");
+    const { year: currentYear, month: currentMonthNum, yearMonth: defaultTargetMonth } = getArgentinaDateParts(now);
     const currentMonthStr = `M${currentMonthNum} ${currentYear}`;
 
     let success = 0, errors = 0, noData = 0;
@@ -94,12 +98,19 @@ export async function POST(req: Request) {
         snap: item.Snap ? String(item.Snap) : null,
         confirmado: item.Confirmado ? String(item.Confirmado) : null,
         status,
+        targetMonth: extractMonthFromFechaVentana(fechaVentana) ?? defaultTargetMonth,
       };
     });
 
     const syncRun = await prisma.syncRun.create({
       data: { total: items.length, success, errors, noData },
     });
+
+    const frozenMonths = await resolveFrozenMonths(
+      prisma,
+      items.map((item: any) => item.targetMonth),
+      now
+    );
 
     for (const item of items) {
       const payload = {
@@ -132,22 +143,24 @@ export async function POST(req: Request) {
         create: { serverName: item.serverName, ...payload },
       });
 
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-      await prisma.monthlyServerStatus.upsert({
-        where: {
-          month_serverName: {
-            month: currentMonth,
-            serverName: item.serverName,
+      // Only update MonthlyServerStatus if the target month is not frozen/closed
+      if (!frozenMonths.has(item.targetMonth)) {
+        await prisma.monthlyServerStatus.upsert({
+          where: {
+            month_serverName: {
+              month: item.targetMonth,
+              serverName: item.serverName,
+            },
           },
-        },
-        update: { ...payload, status: item.status },
-        create: {
-          month: currentMonth,
-          serverName: item.serverName,
-          ...payload,
-          status: item.status,
-        },
-      });
+          update: { ...payload, status: item.status },
+          create: {
+            month: item.targetMonth,
+            serverName: item.serverName,
+            ...payload,
+            status: item.status,
+          },
+        });
+      }
     }
 
     if (items.length > 0) {
