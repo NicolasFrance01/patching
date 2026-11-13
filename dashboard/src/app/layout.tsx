@@ -26,14 +26,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full bg-zinc-950 text-zinc-100" style={{ zoom: "0.75" }}>
         <SessionProvider>
           {isAuth ? (
-            <div className="flex min-h-screen">
+            <div className="flex min-h-screen bg-zinc-950">
               <Sidebar role={role} username={username} />
-              <main className="flex-1 ml-56 min-h-screen overflow-y-auto">
+              <main className="flex-1 ml-56 min-h-screen bg-zinc-950 overflow-x-hidden">
                 <PageTransition>{children}</PageTransition>
               </main>
             </div>
           ) : (
-            <PageTransition>{children}</PageTransition>
+            <div className="min-h-screen bg-zinc-950">
+              <PageTransition>{children}</PageTransition>
+            </div>
           )}
         </SessionProvider>
       </body>

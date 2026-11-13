@@ -8,7 +8,7 @@ import {
 import { getServerInfo, SERVER_TYPES, ServerType } from "@/lib/serverTypeMap";
 import { getExtendedStatus, classifyServer, EXTENDED_STATUS_COLORS, EXTENDED_STATUS_LABELS, SECONDARY_FLAG_COLORS, ExtendedStatus } from "@/lib/statusUtils";
 import {
-  ChevronDown, ChevronRight, Info, Search, Download, Filter, Mail,
+  ChevronDown, ChevronLeft, ChevronRight, Info, Search, Download, Filter, Mail,
   Calendar, CheckCircle, AlertCircle, PlusCircle, MinusCircle,
   TrendingUp, X, CheckCircle2, XCircle, AlertTriangle, FileText, Send, Clock, Server, Ticket
 } from "lucide-react";
@@ -430,6 +430,13 @@ export default function ReportesView({
   const [trendTo, setTrendTo] = useState("");
   const [monthlyServers, setMonthlyServers] = useState<ServerData[] | null>(null);
 
+  const [errorPage, setErrorPage] = useState(1);
+  const ERROR_PAGE_SIZE = 10;
+
+  useEffect(() => {
+    setErrorPage(1);
+  }, [errorSearch, selectedBanks, timeFilter, selectedMonth, trendFrom, trendTo]);
+
   useEffect(() => {
     if (timeFilter !== "mes" || !selectedMonth) {
       setMonthlyServers(null);
@@ -737,6 +744,13 @@ export default function ReportesView({
     if (!errorSearch) return errorGroups;
     return errorGroups.filter((g) => g.message.toLowerCase().includes(errorSearch.toLowerCase()));
   }, [errorGroups, errorSearch]);
+
+  const totalErrorPages = Math.max(1, Math.ceil(filteredErrorGroups.length / ERROR_PAGE_SIZE));
+  const safeErrorPage = Math.min(Math.max(1, errorPage), totalErrorPages);
+  const paginatedErrorGroups = useMemo(() => {
+    const start = (safeErrorPage - 1) * ERROR_PAGE_SIZE;
+    return filteredErrorGroups.slice(start, start + ERROR_PAGE_SIZE);
+  }, [filteredErrorGroups, safeErrorPage]);
 
   // ── Listado Syncs ─────────────────────────────────────────────────────────
   const syncListDayGroups = useMemo(() => {
@@ -1425,10 +1439,12 @@ export default function ReportesView({
             />
           </div>
           <div className="divide-y divide-zinc-800/40">
-            {filteredErrorGroups.map((g, i) => (
+            {paginatedErrorGroups.map((g, i) => {
+              const globalIdx = (safeErrorPage - 1) * ERROR_PAGE_SIZE + i + 1;
+              return (
               <div key={g.message} className="py-3 flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs text-zinc-300 font-medium">#{i + 1} {g.message}</span>
+                  <span className="text-xs text-zinc-300 font-medium">#{globalIdx} {g.message}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {g.servers.slice(0, 12).map((srv) => {
                       const inf = getServerInfo(srv);
@@ -1488,9 +1504,69 @@ export default function ReportesView({
                   })()}
                 </div>
               </div>
-            ))}
+            );
+            })}
             {filteredErrorGroups.length === 0 && (
               <p className="text-zinc-500 text-sm text-center py-10">Sin errores para el período y banco seleccionados.</p>
+            )}
+          </div>
+
+          {/* Paginación */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800/60 mt-4 text-xs">
+            <div className="text-zinc-500">
+              {filteredErrorGroups.length === 0 ? (
+                "0 errores"
+              ) : (
+                <>
+                  Mostrando <span className="font-semibold text-zinc-300">{(safeErrorPage - 1) * ERROR_PAGE_SIZE + 1}</span> a{" "}
+                  <span className="font-semibold text-zinc-300">
+                    {Math.min(safeErrorPage * ERROR_PAGE_SIZE, filteredErrorGroups.length)}
+                  </span>{" "}
+                  de <span className="font-semibold text-zinc-300">{filteredErrorGroups.length}</span> errores
+                </>
+              )}
+            </div>
+
+            {totalErrorPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setErrorPage(1)}
+                  disabled={safeErrorPage === 1}
+                  className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  title="Primera página"
+                >
+                  &laquo;
+                </button>
+                <button
+                  onClick={() => setErrorPage((prev) => Math.max(1, prev - 1))}
+                  disabled={safeErrorPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  Anterior
+                </button>
+
+                <span className="px-3 py-1.5 rounded-lg bg-zinc-800/60 text-zinc-300 font-medium border border-zinc-700/50">
+                  Pág. {safeErrorPage} de {totalErrorPages}
+                </span>
+
+                <button
+                  onClick={() => setErrorPage((prev) => Math.min(totalErrorPages, prev + 1))}
+                  disabled={safeErrorPage === totalErrorPages}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                >
+                  Siguiente
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setErrorPage(totalErrorPages)}
+                  disabled={safeErrorPage === totalErrorPages}
+                  className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  title="Última página"
+                >
+                  &raquo;
+                </button>
+              </div>
             )}
           </div>
         </div>

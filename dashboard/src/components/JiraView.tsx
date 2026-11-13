@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Ticket, ExternalLink, Search, User, Calendar, Database, Building2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Ticket, ExternalLink, Search, User, Calendar, Database, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface JiraTicket {
   id: string;
@@ -35,6 +35,13 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
   const [customTo, setCustomTo] = useState("");
   const [editingTicket, setEditingTicket] = useState<JiraTicket | null>(null);
   const [detailTicket, setDetailTicket] = useState<JiraTicket | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, selectedBanks, selectedUserFilter, timeFilter, selectedMonth, customFrom, customTo]);
 
   const fetchTickets = () => {
     setLoading(true);
@@ -83,6 +90,13 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
 
     return matchSearch && matchBank && matchUser && matchTime && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedTickets = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredTickets.slice(start, start + PAGE_SIZE);
+  }, [filteredTickets, safeCurrentPage]);
 
   const handleTicketClick = (t: JiraTicket) => {
     if (creatorOnly && t.isUnread) {
@@ -284,80 +298,141 @@ export default function JiraView({ creatorOnly = false, creatorUsername }: { cre
         {loading ? (
           <div className="flex justify-center items-center py-20 text-zinc-500">Cargando tickets...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTickets.map(t => {
-              const isUnreadAlert = creatorOnly && t.isUnread;
-              return (
-              <div 
-                key={t.id} 
-                onClick={() => handleTicketClick(t)}
-                className={`bg-zinc-900/50 border rounded-xl p-4 flex flex-col justify-between transition-all group ${
-                  isUnreadAlert ? "border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)] animate-pulse hover:animate-none cursor-pointer" : "border-zinc-800 hover:border-zinc-700"
-                }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between mb-2">
-                    <a href={t.ticketUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => isUnreadAlert ? null : e.stopPropagation()} className="text-indigo-400 font-bold hover:underline flex items-center gap-1.5">
-                      {t.ticketKey} <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-bold uppercase">{t.bank}</span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedTickets.map(t => {
+                const isUnreadAlert = creatorOnly && t.isUnread;
+                return (
+                <div 
+                  key={t.id} 
+                  onClick={() => handleTicketClick(t)}
+                  className={`bg-zinc-900/50 border rounded-xl p-4 flex flex-col justify-between transition-all group ${
+                    isUnreadAlert ? "border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)] animate-pulse hover:animate-none cursor-pointer" : "border-zinc-800 hover:border-zinc-700"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between mb-2">
+                      <a href={t.ticketUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => isUnreadAlert ? null : e.stopPropagation()} className="text-indigo-400 font-bold hover:underline flex items-center gap-1.5">
+                        {t.ticketKey} <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-bold uppercase">{t.bank}</span>
+                    </div>
+                    {t.liveStatus && (
+                      <span className="inline-block mt-2 mb-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-zinc-800/50 text-indigo-300 border-indigo-500/30">
+                        Estado: {t.liveStatus}
+                      </span>
+                    )}
+                    <p className="text-xs text-zinc-300 line-clamp-3 mb-4" title={t.errorDescription}>
+                      {t.errorDescription}
+                    </p>
                   </div>
-                  {t.liveStatus && (
-                    <span className="inline-block mt-2 mb-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-zinc-800/50 text-indigo-300 border-indigo-500/30">
-                      Estado: {t.liveStatus}
-                    </span>
-                  )}
-                  <p className="text-xs text-zinc-300 line-clamp-3 mb-4" title={t.errorDescription}>
-                    {t.errorDescription}
-                  </p>
-                </div>
-                
-                <div className="space-y-1.5 mt-auto pt-4 border-t border-zinc-800/60">
-                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                    <User className="w-3.5 h-3.5" /> Creado por: <span className="text-zinc-400">{t.creatorUsername}</span>
-                  </div>
-                  {t.reporterName && (
+                  
+                  <div className="space-y-1.5 mt-auto pt-4 border-t border-zinc-800/60">
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                      <User className="w-3.5 h-3.5" /> Informador: <span className="text-zinc-300">{t.reporterName}</span>
+                      <User className="w-3.5 h-3.5" /> Creado por: <span className="text-zinc-400">{t.creatorUsername}</span>
                     </div>
-                  )}
-                  {isUnreadAlert && t.reassignedBy && (
-                    <div className="flex items-center gap-2 text-[11px] text-indigo-400 font-semibold">
-                      <User className="w-3.5 h-3.5" /> Derivado por: <span>{t.reassignedBy}</span>
+                    {t.reporterName && (
+                      <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                        <User className="w-3.5 h-3.5" /> Informador: <span className="text-zinc-300">{t.reporterName}</span>
+                      </div>
+                    )}
+                    {isUnreadAlert && t.reassignedBy && (
+                      <div className="flex items-center gap-2 text-[11px] text-indigo-400 font-semibold">
+                        <User className="w-3.5 h-3.5" /> Derivado por: <span>{t.reassignedBy}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                      <Calendar className="w-3.5 h-3.5" /> {new Date(t.createdAt).toLocaleString("es-AR")}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                    <Calendar className="w-3.5 h-3.5" /> {new Date(t.createdAt).toLocaleString("es-AR")}
-                  </div>
-                  <div className="pt-2 flex justify-end gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailTicket(t);
-                      }}
-                      className="px-3 py-1 text-[11px] font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/20"
-                    >
-                      Detalle
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingTicket(t);
-                      }}
-                      className="px-3 py-1 text-[11px] font-medium text-zinc-400 bg-zinc-800 hover:bg-zinc-700 hover:text-zinc-200 rounded-lg transition-colors"
-                    >
-                      Modificar
-                    </button>
+                    <div className="pt-2 flex justify-end gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailTicket(t);
+                        }}
+                        className="px-3 py-1 text-[11px] font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/20"
+                      >
+                        Detalle
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTicket(t);
+                        }}
+                        className="px-3 py-1 text-[11px] font-medium text-zinc-400 bg-zinc-800 hover:bg-zinc-700 hover:text-zinc-200 rounded-lg transition-colors"
+                      >
+                        Modificar
+                      </button>
+                    </div>
                   </div>
                 </div>
+              )})}
+              {filteredTickets.length === 0 && (
+                <div className="col-span-full py-12 text-center text-zinc-500 border-2 border-dashed border-zinc-800 rounded-xl">
+                  No se encontraron tickets con esos filtros.
+                </div>
+              )}
+            </div>
+
+            {/* Paginación */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800/60 mt-6 text-xs">
+              <div className="text-zinc-500">
+                {filteredTickets.length === 0 ? (
+                  "0 tickets"
+                ) : (
+                  <>
+                    Mostrando <span className="font-semibold text-zinc-300">{(safeCurrentPage - 1) * PAGE_SIZE + 1}</span> a{" "}
+                    <span className="font-semibold text-zinc-300">
+                      {Math.min(safeCurrentPage * PAGE_SIZE, filteredTickets.length)}
+                    </span>{" "}
+                    de <span className="font-semibold text-zinc-300">{filteredTickets.length}</span> tickets
+                  </>
+                )}
               </div>
-            )})}
-            {filteredTickets.length === 0 && (
-              <div className="col-span-full py-12 text-center text-zinc-500 border-2 border-dashed border-zinc-800 rounded-xl">
-                No se encontraron tickets con esos filtros.
-              </div>
-            )}
-          </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    title="Primera página"
+                  >
+                    &laquo;
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Anterior
+                  </button>
+
+                  <span className="px-3 py-1.5 rounded-lg bg-zinc-800/60 text-zinc-300 font-medium border border-zinc-700/50">
+                    Pág. {safeCurrentPage} de {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={safeCurrentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+                  >
+                    Siguiente
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    title="Última página"
+                  >
+                    &raquo;
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 

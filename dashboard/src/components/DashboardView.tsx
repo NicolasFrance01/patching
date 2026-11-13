@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, memo } from "react";
 import { ServerStatus } from "@/types";
 import {
   Server, CheckCircle2, XCircle, Clock, Search, AlertTriangle,
-  Mail, Filter, X, AlertCircle, ChevronDown, Check
+  Mail, Filter, X, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Check
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -301,7 +301,30 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
   const [selectedKbModal, setSelectedKbModal] = useState<string | null>(null);
   const [isKbExplorerOpen, setIsKbExplorerOpen] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 35;
+
   useEffect(() => { setChartsMounted(true); }, []);
+
+  // Reset pagination on filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    bankFilters,
+    timeFilter,
+    selectedMonth,
+    customFrom,
+    customTo,
+    grupoFilters,
+    ambienteFilters,
+    analistaFilters,
+    comentariosFilters,
+    snapFilters,
+    confirmadoFilters,
+    estadoFilters,
+    showNoActDetails,
+  ]);
 
   // Fetch frozen/monthly snapshot from MonthlyServerStatus when filtering by month;
   // use live ServerStatus (localData) when viewing all months or a custom date range.
@@ -411,6 +434,13 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
       );
     });
   }, [enriched, bankFilters, timeFilter, selectedMonth, customFrom, customTo, search, grupoFilters, ambienteFilters, analistaFilters, comentariosFilters, snapFilters, confirmadoFilters, estadoFilters]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedServers = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safeCurrentPage]);
 
   // ── Advanced filter options ─────────────────────────────────────────────────
   const filterOptions = useMemo(() => {
@@ -1150,7 +1180,7 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
-              {filtered.map((server) => {
+              {paginatedServers.map((server) => {
                 const bankColor = TYPE_COLORS[server.info?.type ?? "Sin clasificar"] ?? "#71717a";
                 return (
                   <tr key={server.id} className="hover:bg-white/[0.025] transition-colors">
@@ -1190,13 +1220,72 @@ export default function DashboardView({ initialData, syncRuns = [], creatorUsern
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={16} className="px-4 py-10 text-center text-zinc-600">
+                  <td colSpan={21} className="px-4 py-10 text-center text-zinc-600">
                     No se encontraron servidores con ese criterio de búsqueda.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Paginación */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800/60 mt-4 text-xs">
+          <div className="text-zinc-500">
+            {filtered.length === 0 ? (
+              "0 servidores"
+            ) : (
+              <>
+                Mostrando <span className="font-semibold text-zinc-300">{(safeCurrentPage - 1) * PAGE_SIZE + 1}</span> a{" "}
+                <span className="font-semibold text-zinc-300">
+                  {Math.min(safeCurrentPage * PAGE_SIZE, filtered.length)}
+                </span>{" "}
+                de <span className="font-semibold text-zinc-300">{filtered.length}</span> servidores
+              </>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={safeCurrentPage === 1}
+                className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                title="Primera página"
+              >
+                &laquo;
+              </button>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={safeCurrentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Anterior
+              </button>
+
+              <span className="px-3 py-1.5 rounded-lg bg-zinc-800/60 text-zinc-300 font-medium border border-zinc-700/50">
+                Pág. {safeCurrentPage} de {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1"
+              >
+                Siguiente
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safeCurrentPage === totalPages}
+                className="px-2.5 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                title="Última página"
+              >
+                &raquo;
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
