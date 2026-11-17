@@ -1,6 +1,6 @@
 <#
 ================================================================================
-  WUU.ps1  -  Windows Update Utility
+  WUU.ps1  -  Windows Update Utility  v2.6.1  (noviembre 2026)
   --------------------------------------------------------------------------
   Consola de parcheo para servidores Windows (PowerShell + WPF).
   --------------------------------------------------------------------------
@@ -11,6 +11,7 @@
                WUU.ps1 -ScheduledConnectivity [-ConnectivityGroup <grupo>] [-JobFile <json>]
                WUU.ps1 -ScheduledPatch -JobFile <json>
                WUU.ps1 -ScheduledReboot -JobFile <json>
+               WUU.ps1 -ScheduledCalendar
 
   Configuracion externa: config.json junto a WUU.ps1
 ================================================================================
@@ -20,9 +21,13 @@ param(
   [switch]$ScheduledPatch,         # modo headless: ejecuta una ventana unica de actualizacion
   [switch]$ScheduledConnectivity,  # modo headless: valida estado y guarda CSV
   [switch]$ScheduledReboot,        # modo headless: reinicia servidores de un JSON
+  [switch]$ScheduledCalendar,      # modo headless: importa el calendario y crea tareas
   [string]$ConnectivityGroup = '', # grupo a validar; vacio = todos
   [string]$JobFile = ''            # definicion JSON de ventana de actualizacion o reinicio
 )
+
+# Version de producto: noviembre 2026
+$script:WuuVersion = '2.6.1'
 
 #--- Auto-elevacion a administrador -------------------------------------------
 # Si WUU no se abrio como administrador, se relanza solo (mostrando el UAC) y
@@ -37,6 +42,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     $modeArgs = if ($Scheduled) { " -Scheduled$jobArg" }
                 elseif ($ScheduledPatch) { " -ScheduledPatch$jobArg" }
                 elseif ($ScheduledReboot) { " -ScheduledReboot$jobArg" }
+                elseif ($ScheduledCalendar) { ' -ScheduledCalendar' }
                 elseif ($ScheduledConnectivity) {
                   $gArg = if ($ConnectivityGroup) { " -ConnectivityGroup `"$ConnectivityGroup`"" } else { '' }
                   " -ScheduledConnectivity$gArg$jobArg"
@@ -116,6 +122,7 @@ public class ReportRow
     public string Fecha_Ventana {get;set;}
     public string Fecha_Instalacion {get;set;}
     public string KBs_Instaladas {get;set;}
+    public string KBs_Ventana {get;set;}
     public string Fecha_Reinicio {get;set;}
     public string Running_Time {get;set;}
     public string Estado {get;set;}
@@ -124,6 +131,7 @@ public class ReportRow
     public string Disk_Space {get;set;}
     public string Snap {get;set;}
     public string Confirmado {get;set;}
+    public string Tipo_Reporte {get;set;}
 }
 
 // Fila del historial de updates (menu contextual)
@@ -188,7 +196,7 @@ public class FixPackagePickItem : INotifyPropertyChanged
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WUU  -  Windows Update Utility"
+        Title="WUU  -  Windows Update Utility  v2.6.1"
         Height="660" Width="1200" WindowStartupLocation="CenterScreen"
         Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
 
@@ -439,6 +447,7 @@ public class FixPackagePickItem : INotifyPropertyChanged
 #--- Cargar la ventana --------------------------------------------------------
 $reader  = New-Object System.Xml.XmlNodeReader $xaml
 $Window  = [Windows.Markup.XamlReader]::Load($reader)
+$Window.Title = "WUU  -  Windows Update Utility  v$($script:WuuVersion)"
 
 # Referencias a controles
 $script:dg        = $Window.FindName('dgServers')
@@ -482,7 +491,7 @@ $script:Cfg = [ordered]@{
   CleanupRemoteOnSuccess    = $true
   Dashboard = [ordered]@{
     Enabled         = $true
-    Url             = 'https://patching.algeiba.com/api/upload'
+    Url             = 'https://patching-dashboard-hae3f7fxc6fnhhbt.canadacentral-01.azurewebsites.net/api/upload'
     CalendarUrl     = ''  # vacio = se deriva de Url (/api/calendar). Completar a mano si el modulo usa otra ruta.
     NotificationUrl = ''  # vacio = https://<host de CalendarUrl o Url>/api/notifications
   }
@@ -504,6 +513,13 @@ $script:Cfg = [ordered]@{
     Group         = ''   # vacio = todos los grupos
     ExtraServers  = @()  # si hay nombres, validar solo ese lote (no sumar grupos)
   }
+  ScheduledCalendar = [ordered]@{
+    Enabled   = $false
+    Hour      = 6
+    Minute    = 0
+    StartDate = ''
+    TaskName  = 'WUU_SincronizarCalendario'
+  }
   History = [ordered]@{
     Enabled       = $true
     RetentionDays = 90
@@ -511,6 +527,13 @@ $script:Cfg = [ordered]@{
   AutoReboot = [ordered]@{
     Enabled      = $true    # reinicia automaticamente si el parcheo lo requiere
     DelaySeconds = 60       # margen antes de ejecutar el reinicio
+  }
+  WinRM = [ordered]@{
+    Enabled    = $true     # plan B si no hay SMB (445 / C$ / PsExec)
+    UseSSL     = $false    # $true = HTTPS 5986
+    Port       = 5985      # HTTP. Si UseSSL, se usa PortSsl
+    PortSsl    = 5986
+    TimeoutSec = 15
   }
   Teams = [ordered]@{
     Enabled    = $false
@@ -529,7 +552,7 @@ function Load-Config {
     foreach ($key in @('PsExecPath','RemoteRel','PatchTimeoutMinutes','ConnectivityTimeoutSec','CleanupRemoteOnSuccess')) {
       if ($null -ne $raw.$key) { $script:Cfg[$key] = $raw.$key }
     }
-    foreach ($sec in @('Dashboard','ScheduledReport','ScheduledConnectivity','History','AutoReboot','Teams')) {
+    foreach ($sec in @('Dashboard','ScheduledReport','ScheduledConnectivity','ScheduledCalendar','History','AutoReboot','WinRM','Teams')) {
       if ($raw.$sec) {
         foreach ($k in @($script:Cfg[$sec].Keys)) {
           if ($null -ne $raw.$sec.$k) { $script:Cfg[$sec][$k] = $raw.$sec.$k }
@@ -583,6 +606,7 @@ function Write-Log($level, $message) {
 }
 
 Load-Config    # carga config.json sobreescribiendo los defaults
+Write-Log 'INFO' "WUU v$($script:WuuVersion) (noviembre 2026)"
 
 function Send-TeamsNotification {
   param(
@@ -659,16 +683,26 @@ function Get-PatchPeriodLabel {
   return ('{0}-{1:D2}' -f $names[$Date.Month - 1], ($Date.Year % 100))
 }
 
-function Get-DashboardNotifyUrl {
+function Get-DashboardNotifyUrls {
+  $list = New-Object System.Collections.Generic.List[string]
   $explicit = ''
   try { $explicit = "$($script:Cfg.Dashboard.NotificationUrl)".Trim() } catch {}
-  if ($explicit) { return $explicit }
+  if ($explicit) { [void]$list.Add($explicit) }
   $bases = @()
   try { $bases += "$($script:Cfg.Dashboard.CalendarUrl)".Trim() } catch {}
   try { $bases += "$($script:Cfg.Dashboard.Url)".Trim() } catch {}
   foreach ($base in $bases) {
-    if ($base -match '^(https?://[^/]+)') { return ($Matches[1] + '/api/notifications') }
+    if ($base -match '^(https?://[^/]+)') {
+      $u = $Matches[1] + '/api/notifications'
+      if (-not $list.Contains($u)) { [void]$list.Add($u) }
+    }
   }
+  return @($list)
+}
+
+function Get-DashboardNotifyUrl {
+  $urls = @(Get-DashboardNotifyUrls)
+  if ($urls.Count -gt 0) { return $urls[0] }
   return ''
 }
 
@@ -719,26 +753,9 @@ function Resolve-WindowCardScope {
     })
     if ($rows.Count -eq 0) { $outside++; continue }
     $inInv++
+    foreach ($r in $rows) {
       $g = "$($r.Grupo)".Trim()
       $c = "$($r.Cliente)".Trim()
-      if (-not $c -and "$($r.Dominio)".Trim()) {
-        $d = "$($r.Dominio)".Trim().ToLower()
-        if ($d -like '*bancobsf*' -or $d -like '*nbsf*') { $c = 'NBSF' }
-        elseif ($d -like '*bancosantacruz*' -or $d -like '*bsc*') { $c = 'BSC' }
-        elseif ($d -like '*bancosanjuan*' -or $d -like '*bsj*') { $c = 'BSJ' }
-        elseif ($d -like '*entrerios*' -or $d -like '*bersa*') { $c = 'NBERSA' }
-        elseif ($d -like '*qualia*') { $c = 'QUALIA' }
-        else { $c = 'CORP' }
-      }
-      if (-not $c -and "$($r.Servidor)".Trim()) {
-        $sn = "$($r.Servidor)".Trim().ToUpper()
-        if ($sn -like '*NBSF*' -or $sn -like 'BSF*') { $c = 'NBSF' }
-        elseif ($sn -like '*BSC*' -or $sn -like 'SCA*') { $c = 'BSC' }
-        elseif ($sn -like '*BSJ*' -or $sn -like 'SJA*') { $c = 'BSJ' }
-        elseif ($sn -like '*BER*' -or $sn -like '*NBERSA*') { $c = 'NBERSA' }
-        elseif ($sn -like '*QUALIA*') { $c = 'QUALIA' }
-        else { $c = 'CORP' }
-      }
       if ($g -and -not $groups.Contains($g)) { [void]$groups.Add($g) }
       if ($c -and -not $clients.Contains($c)) { [void]$clients.Add($c) }
     }
@@ -765,36 +782,46 @@ function Send-WindowCard {
     Write-Log 'WARN' "Tarjeta no enviada ($Phase): Dashboard.Enabled = false."
     return
   }
-  $url = Get-DashboardNotifyUrl
-  if (-not $url) {
+  $urls = @(Get-DashboardNotifyUrls)
+  if ($urls.Count -eq 0) {
     Write-Log 'WARN' "Tarjeta no enviada ($Phase): no hay URL de notificaciones."
     return
   }
   $title = "$TaskName".Trim()
   if (-not $title) { $title = 'Sin tarea' }
-  $scope = Resolve-WindowCardScope -Servers $Servers -GrupoHint $GrupoHint -AllInventory:$AllInventory
-  $when = Get-Date
-  $pDate = if ($PeriodDate -gt [datetime]::MinValue) { $PeriodDate } else { $when }
-  $period = "$Periodo".Trim()
-  if (-not $period) { $period = Get-PatchPeriodLabel $pDate }
-  $body = [ordered]@{
-    Tipo       = 'Tarjeta'
-    Fase       = $Phase
-    Tarea      = $title
-    Cliente    = $scope.Cliente
-    Periodo    = $period
-    FechaHora  = $when.ToString('dd/MM/yyyy HH:mm:ss')
-    Grupo      = $scope.Grupo
-    Servidores = [int]$scope.Count
-    Equipo     = "$env:COMPUTERNAME"
-  }
   try {
+    $scope = Resolve-WindowCardScope -Servers $Servers -GrupoHint $GrupoHint -AllInventory:$AllInventory
+    $when = Get-Date
+    $pDate = if ($PeriodDate -gt [datetime]::MinValue) { $PeriodDate } else { $when }
+    $period = "$Periodo".Trim()
+    if (-not $period) { $period = Get-PatchPeriodLabel $pDate }
+    $body = [ordered]@{
+      Tipo       = 'Tarjeta'
+      Fase       = $Phase
+      Tarea      = $title
+      Cliente    = $scope.Cliente
+      Periodo    = $period
+      FechaHora  = $when.ToString('dd/MM/yyyy HH:mm:ss')
+      Grupo      = $scope.Grupo
+      Servidores = [int]$scope.Count
+      Equipo     = "$env:COMPUTERNAME"
+    }
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $json = $body | ConvertTo-Json -Compress -Depth 4
     $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-    $resp = Invoke-WebRequest -Uri $url -Method Post -Body $bytes `
-      -ContentType 'application/json; charset=utf-8' -TimeoutSec 30 -UseBasicParsing -MaximumRedirection 0
-    Write-Log 'INFO' "Tarjeta Centro de Control ($Phase): $title | HTTP $([int]$resp.StatusCode)"
+    $lastErr = ''
+    foreach ($url in $urls) {
+      try {
+        $resp = Invoke-WebRequest -Uri $url -Method Post -Body $bytes `
+          -ContentType 'application/json; charset=utf-8' -TimeoutSec 30 -UseBasicParsing -MaximumRedirection 0
+        Write-Log 'INFO' "Tarjeta Centro de Control ($Phase): $title | HTTP $([int]$resp.StatusCode) | $url"
+        return
+      } catch {
+        $lastErr = $_.Exception.Message
+        Write-Log 'WARN' "Tarjeta Centro de Control ($Phase) fallo en $url : $lastErr"
+      }
+    }
+    Write-Log 'WARN' "Tarjeta Centro de Control no enviada ($Phase '$title'): $lastErr"
   } catch {
     Write-Log 'WARN' "Tarjeta Centro de Control no enviada ($Phase '$title'): $($_.Exception.Message)"
   }
@@ -802,7 +829,10 @@ function Send-WindowCard {
 
 function Send-GridWindowCard {
   param([Parameter(Mandatory)][ValidateSet('Inicio','Fin')][string]$Phase)
-  if ($Phase -eq 'Inicio' -and $script:GridWindowCardSent) { return }
+  if ($Phase -eq 'Inicio') {
+    $script:GridWindowNeedsReport = $true
+    if ($script:GridWindowCardSent) { return }
+  }
   $names = @()
   if ($script:Servers) {
     $names = @($script:Servers | ForEach-Object { "$($_.Servidor)".Trim() } | Where-Object { $_ })
@@ -814,7 +844,15 @@ function Send-GridWindowCard {
     try { $pDate = [datetime]::ParseExact($raw, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) } catch {}
   }
   Send-WindowCard -Phase $Phase -TaskName $title -Servers $names -PeriodDate $pDate
-  if ($Phase -eq 'Inicio') { $script:GridWindowCardSent = $true } else { $script:GridWindowCardSent = $false }
+  if ($Phase -eq 'Inicio') {
+    $script:GridWindowCardSent = $true
+  } else {
+    $script:GridWindowCardSent = $false
+    Stop-AutoGridReportTimer
+    $stillBusy = $false
+    try { $stillBusy = Test-GridWindowBusy } catch {}
+    $script:GridWindowNeedsReport = [bool]$stillBusy
+  }
 }
 
 $script:icGroups.ItemsSource = $script:Groups
@@ -824,14 +862,276 @@ Write-Log 'INFO' 'WUU iniciado.'
 
 #==============================================================================
 #  MOTOR (FASE 2) - Transporte PsExec + agente nativo de Windows Update
+#  Plan B: WinRM (5985/5986) si no hay SMB (445 / C$)
 #==============================================================================
 
 # Ruta de PsExec: usa config.json; si esta vacio, busca junto a WUU.ps1
 $script:PsExecPath = if ($script:Cfg.PsExecPath) { $script:Cfg.PsExecPath }
                      else { Join-Path $script:ScriptDir 'PsExec.exe' }
 
+# Libreria inyectada en runspaces (AddScript no hereda funciones del script)
+$script:WuuRmLib = @'
+function Test-WuuTcpPort([string]$HostName, [int]$Port, [int]$TimeoutSec) {
+  $ok = $false
+  $tc = $null
+  try {
+    $tc = New-Object System.Net.Sockets.TcpClient
+    $iar = $tc.BeginConnect($HostName, [int]$Port, $null, $null)
+    $ok = $iar.AsyncWaitHandle.WaitOne([Math]::Max(1, [int]$TimeoutSec) * 1000) -and $tc.Connected
+  } catch { $ok = $false }
+  finally { if ($tc) { try { $tc.Close() } catch {} } }
+  return [bool]$ok
+}
+function New-WuuRmSession([string]$Server, [bool]$UseSsl, [int]$Port, [int]$TimeoutSec) {
+  $ms = [Math]::Max(5, [int]$TimeoutSec) * 1000
+  $opt = New-PSSessionOption -OpenTimeout $ms -CancelTimeout $ms -OperationTimeout $ms
+  if ($UseSsl) {
+    return New-PSSession -ComputerName $Server -UseSSL -Port $Port -SessionOption $opt -ErrorAction Stop
+  }
+  return New-PSSession -ComputerName $Server -Port $Port -SessionOption $opt -ErrorAction Stop
+}
+function Copy-WuuRmFile($Session, [string]$LocalPath, [string]$Rel, [string]$RemoteName) {
+  $destDir = Join-Path 'C:\' ($Rel.TrimStart('\'))
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($d) New-Item -ItemType Directory -Path $d -Force | Out-Null
+  } -ArgumentList $destDir | Out-Null
+  Copy-Item -LiteralPath $LocalPath -Destination (Join-Path $destDir $RemoteName) -ToSession $Session -Force -ErrorAction Stop
+}
+function Get-WuuRmText($Session, [string]$Rel, [string]$Name) {
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($rel, $name)
+    $p = Join-Path (Join-Path 'C:\' $rel) $name
+    if (Test-Path -LiteralPath $p) { Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue } else { '' }
+  } -ArgumentList $Rel, $Name
+}
+function Set-WuuRmText($Session, [string]$Rel, [string]$Name, [string]$Text) {
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($rel, $name, $text)
+    $dir = Join-Path 'C:\' $rel
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $dir $name) -Value $text -Encoding ASCII -ErrorAction SilentlyContinue
+  } -ArgumentList $Rel, $Name, $Text
+}
+function Remove-WuuRmPath($Session, [string]$Rel) {
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($rel)
+    $p = Join-Path 'C:\' $rel
+    if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue }
+  } -ArgumentList $Rel
+}
+function Start-WuuRmTask($Session, [string]$Rel, [string]$File, [string]$ArgLine) {
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($rel, $file, $argLine)
+    $dir = Join-Path 'C:\' $rel
+    $tn = 'WUU_' + ([guid]::NewGuid().ToString('N').Substring(0, 12))
+    $arg = "-NoProfile -ExecutionPolicy Bypass -NonInteractive -File `"$(Join-Path $dir $file)`""
+    if ("$argLine".Trim()) { $arg = "$arg $argLine" }
+    $exe = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $action = New-ScheduledTaskAction -Execute $exe -Argument $arg -WorkingDirectory $dir
+    $prin = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 8)
+    Register-ScheduledTask -TaskName $tn -Action $action -Principal $prin -Settings $set -Force | Out-Null
+    Start-ScheduledTask -TaskName $tn | Out-Null
+    return $tn
+  } -ArgumentList $Rel, $File, $ArgLine
+}
+function Test-WuuRmTaskRunning($Session, [string]$TaskName) {
+  [bool](Invoke-Command -Session $Session -ScriptBlock {
+    param($tn)
+    try {
+      $st = Get-ScheduledTask -TaskName $tn -ErrorAction Stop
+      return ("$($st.State)" -eq 'Running')
+    } catch { return $false }
+  } -ArgumentList $TaskName)
+}
+function Stop-WuuRmTask($Session, [string]$TaskName) {
+  Invoke-Command -Session $Session -ScriptBlock {
+    param($tn)
+    try { Stop-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue } catch {}
+    try { Unregister-ScheduledTask -TaskName $tn -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+  } -ArgumentList $TaskName
+}
+function Invoke-WuuRmSystem($Session, [string]$Rel, [string]$File, [string]$ArgLine, [int]$WaitSec) {
+  if ($WaitSec -le 0) { $WaitSec = 600 }
+  $tn = Start-WuuRmTask $Session $Rel $File $ArgLine
+  $deadline = (Get-Date).AddSeconds($WaitSec)
+  while ((Get-Date) -lt $deadline) {
+    if (-not (Test-WuuRmTaskRunning $Session $tn)) { break }
+    Start-Sleep -Seconds 2
+  }
+  Stop-WuuRmTask $Session $tn
+}
+function Invoke-WuuRmShutdown($Server, $Psexec, [string]$Comment, [int]$SmbTo, [bool]$WinOn, [bool]$Ssl, [int]$RmPort, [int]$RmTo) {
+  if ((Test-WuuTcpPort $Server 445 $SmbTo) -and $Psexec -and (Test-Path -LiteralPath $Psexec)) {
+    try {
+      $null = & $Psexec "\\$Server" -accepteula -nobanner -d -s shutdown /r /t 10 /c $Comment 2>&1
+      if ($LASTEXITCODE -eq 0) { return $true }
+    } catch {}
+  }
+  if (-not $WinOn) { throw 'Sin SMB/PsExec ni WinRM para reinicio' }
+  $sess = $null
+  try {
+    $sess = New-WuuRmSession $Server $Ssl $RmPort $RmTo
+    Invoke-Command -Session $sess -ScriptBlock { param($c) shutdown /r /t 10 /c $c } -ArgumentList $Comment | Out-Null
+    return $true
+  } finally {
+    if ($sess) { try { Remove-PSSession $sess } catch {} }
+  }
+}
+function Invoke-WuuRemoteScript {
+  param(
+    [string]$Server, [string]$LocalFile, [string]$Rel, [string]$RemoteName,
+    [string[]]$ExtraArgs, [string]$JsonName, [string]$Psexec,
+    [int]$SmbTo, [bool]$WinOn, [bool]$Ssl, [int]$RmPort, [int]$RmTo,
+    [int]$WaitSec = 600
+  )
+  $extra = @($ExtraArgs)
+  $smbTried = $false
+  if (Test-WuuTcpPort $Server 445 $SmbTo) {
+    $smbTried = $true
+    try {
+      $remoteDir = "\\$Server\C`$\$Rel"
+      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+      if ($JsonName) { Remove-Item "$remoteDir\$JsonName" -Force -ErrorAction SilentlyContinue }
+      Copy-Item -Path $LocalFile -Destination "$remoteDir\$RemoteName" -Force -ErrorAction Stop
+      if (-not $Psexec -or -not (Test-Path -LiteralPath $Psexec)) { throw 'PsExec no encontrado' }
+      $psCmd = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$Rel\$RemoteName") + $extra
+      $null = & $Psexec "\\$Server" -accepteula -nobanner -s powershell.exe @psCmd 2>&1
+      if ($JsonName -and (Test-Path "$remoteDir\$JsonName")) {
+        return (Get-Content "$remoteDir\$JsonName" -Raw)
+      }
+      return ''
+    } catch {}
+  }
+  if (-not $WinOn) { return $null }
+  $sess = $null
+  try {
+    $sess = New-WuuRmSession $Server $Ssl $RmPort $RmTo
+    Copy-WuuRmFile $sess $LocalFile $Rel $RemoteName
+    if ($JsonName) { Invoke-Command -Session $sess -ScriptBlock {
+      param($rel, $name)
+      $p = Join-Path (Join-Path 'C:\' $rel) $name
+      Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+    } -ArgumentList $Rel, $JsonName }
+    $argLine = ($extra | ForEach-Object {
+      $a = "$_"
+      if ($a -match '\s') { '"' + $a.Replace('"','\"') + '"' } else { $a }
+    }) -join ' '
+    if ($WaitSec -le 0) { $WaitSec = 600 }
+    Invoke-WuuRmSystem $sess $Rel $RemoteName $argLine $WaitSec
+    if ($JsonName) { return (Get-WuuRmText $sess $Rel $JsonName) }
+    return ''
+  } catch {
+    if (-not $smbTried) { throw }
+    return $null
+  } finally {
+    if ($sess) { try { Remove-PSSession $sess } catch {} }
+  }
+}
+'@
+
+function Test-WuuTcpPort([string]$HostName, [int]$Port, [int]$TimeoutSec = 3) {
+  $ok = $false
+  $tc = $null
+  try {
+    $tc = New-Object System.Net.Sockets.TcpClient
+    $iar = $tc.BeginConnect($HostName, [int]$Port, $null, $null)
+    $ok = $iar.AsyncWaitHandle.WaitOne([Math]::Max(1, [int]$TimeoutSec) * 1000) -and $tc.Connected
+  } catch { $ok = $false }
+  finally { if ($tc) { try { $tc.Close() } catch {} } }
+  return [bool]$ok
+}
+
+function Get-WuuRmPack {
+  $ssl = $false
+  try { $ssl = [bool]$script:Cfg.WinRM.UseSSL } catch {}
+  $port = 5985
+  try {
+    if ($ssl) { $port = [int]$script:Cfg.WinRM.PortSsl } else { $port = [int]$script:Cfg.WinRM.Port }
+  } catch {}
+  if ($port -le 0) { $port = $(if ($ssl) { 5986 } else { 5985 }) }
+  $to = 15
+  try { $to = [int]$script:Cfg.WinRM.TimeoutSec } catch {}
+  if ($to -lt 1) { $to = 15 }
+  $on = $true
+  try { $on = [bool]$script:Cfg.WinRM.Enabled } catch {}
+  return @{ On = $on; Ssl = $ssl; Port = $port; To = $to; Lib = $script:WuuRmLib }
+}
+
+function Test-WuuWinRm([string]$Server) {
+  $p = Get-WuuRmPack
+  if (-not $p.On) { return $false }
+  if (-not (Test-WuuTcpPort $Server $p.Port $p.To)) { return $false }
+  $s = $null
+  try {
+    $ms = [int]$p.To * 1000
+    $opt = New-PSSessionOption -OpenTimeout $ms -CancelTimeout $ms -OperationTimeout $ms
+    if ($p.Ssl) {
+      $s = New-PSSession -ComputerName $Server -UseSSL -Port $p.Port -SessionOption $opt -ErrorAction Stop
+    } else {
+      $s = New-PSSession -ComputerName $Server -Port $p.Port -SessionOption $opt -ErrorAction Stop
+    }
+    return $true
+  } catch { return $false }
+  finally { if ($s) { try { Remove-PSSession $s } catch {} } }
+}
+
+function Resolve-WuuTransport([string]$Server) {
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
+  $smbTcp = Test-WuuTcpPort $Server 445 $smbTo
+  $share = $false
+  if ($smbTcp) {
+    try { $share = [bool](Test-Path -LiteralPath "\\$Server\C$") } catch { $share = $false }
+  }
+  if ($smbTcp -and $share) { return 'Smb' }
+  if (Test-WuuWinRm $Server) { return 'WinRM' }
+  return ''
+}
+
+function Test-WuuRemoteReady {
+  if (Test-Path -LiteralPath $script:PsExecPath) { return $true }
+  $p = Get-WuuRmPack
+  return [bool]$p.On
+}
+
+function Show-WuuNeedTransport {
+  [System.Windows.MessageBox]::Show(
+    "No hay transporte remoto.`nColoca PsExec.exe junto a WUU.ps1 o habilita WinRM en config.json (Enabled=true).",
+    'WUU', 'OK', 'Error') | Out-Null
+}
+
+function Invoke-WuuRemoteShutdown {
+  param([string]$Server, [string]$Comment = 'Reinicio iniciado desde WUU')
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
+  $hasPs = Test-Path -LiteralPath $script:PsExecPath
+  if ((Test-WuuTcpPort $Server 445 $smbTo) -and $hasPs) {
+    $null = & $script:PsExecPath "\\$Server" -accepteula -nobanner -d -s shutdown /r /t 10 /c $Comment 2>&1
+    if ($LASTEXITCODE -eq 0) { return }
+  }
+  if (-not $rm.On) { throw 'Sin SMB/PsExec ni WinRM para reinicio' }
+  $sess = $null
+  try {
+    $ms = [int]$rm.To * 1000
+    $opt = New-PSSessionOption -OpenTimeout $ms -CancelTimeout $ms -OperationTimeout $ms
+    if ($rm.Ssl) {
+      $sess = New-PSSession -ComputerName $Server -UseSSL -Port $rm.Port -SessionOption $opt -ErrorAction Stop
+    } else {
+      $sess = New-PSSession -ComputerName $Server -Port $rm.Port -SessionOption $opt -ErrorAction Stop
+    }
+    Invoke-Command -Session $sess -ScriptBlock { param($c) shutdown /r /t 10 /c $c } -ArgumentList $Comment | Out-Null
+  } finally {
+    if ($sess) { try { Remove-PSSession $sess } catch {} }
+  }
+}
+
 # Estructuras de control de los procesos en paralelo
 $script:Jobs        = @{}
+$script:GridJobsStarting = 0
 $script:FixJobs     = @{}
 $script:FixQueue    = New-Object System.Collections.Generic.List[object]
 $script:FixMaxParallel = 4
@@ -869,34 +1169,50 @@ $state = [ordered]@{
 }
 function Save-State {
   $tmp = "$statusPath.tmp"
-  ($state | ConvertTo-Json -Compress) | Set-Content -Path $tmp -Encoding UTF8
-  Move-Item -Path $tmp -Destination $statusPath -Force
+  ($state | ConvertTo-Json -Compress) | Set-Content -LiteralPath $tmp -Encoding UTF8
+  Copy-Item -LiteralPath $tmp -Destination $statusPath -Force
+  Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 }
 function Is-Stopped { Test-Path $stopPath }
+
+function Reset-WuCacheFolder([string]$Path, [string]$OldName) {
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  $parent = Split-Path -Parent $Path
+  $dest = Join-Path $parent $OldName
+  if (Test-Path -LiteralPath $dest) {
+    Remove-Item -LiteralPath $dest -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  if (Test-Path -LiteralPath $dest) {
+    $dest = Join-Path $parent ($OldName + '.' + (Get-Date -Format 'yyyyMMddHHmmss'))
+  }
+  $newName = Split-Path -Leaf $dest
+  $state.status = "Renombrando $newName..."
+  Save-State
+  try {
+    Rename-Item -LiteralPath $Path -NewName $newName -ErrorAction Stop
+  } catch {
+    $null = cmd.exe /c "ren `"$Path`" `"$newName`""
+    if (Test-Path -LiteralPath $Path) {
+      throw "No se pudo renombrar $Path a $newName : $($_.Exception.Message)"
+    }
+  }
+}
 
 function Clear-WuCache([string]$label, [switch]$RebootWhenDone) {
   $state.stage = "remediate"
   $state.status = $label
   Save-State
 
-  if (Test-Path "C:\Windows\SoftwareDistribution.old") {
-    Remove-Item "C:\Windows\SoftwareDistribution.old" -Recurse -Force -ErrorAction SilentlyContinue
-  }
-  if (Test-Path "C:\Windows\System32\Catroot2.old") {
-    Remove-Item "C:\Windows\System32\Catroot2.old" -Recurse -Force -ErrorAction SilentlyContinue
+  foreach ($name in @('wuauserv','cryptSvc','bits','msiserver')) {
+    net.exe stop $name 2>$null | Out-Null
+    try {
+      $svc = Get-Service -Name $name -ErrorAction Stop
+      $svc.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
+    } catch {}
   }
 
-  net.exe stop wuauserv 2>$null | Out-Null
-  net.exe stop cryptSvc 2>$null | Out-Null
-  net.exe stop bits 2>$null | Out-Null
-  net.exe stop msiserver 2>$null | Out-Null
-
-  if (Test-Path "C:\Windows\SoftwareDistribution") {
-    cmd.exe /c "ren C:\Windows\SoftwareDistribution SoftwareDistribution.old" 2>$null | Out-Null
-  }
-  if (Test-Path "C:\Windows\System32\catroot2") {
-    cmd.exe /c "ren C:\Windows\System32\catroot2 Catroot2.old" 2>$null | Out-Null
-  }
+  Reset-WuCacheFolder 'C:\Windows\SoftwareDistribution' 'SoftwareDistribution.old'
+  Reset-WuCacheFolder 'C:\Windows\System32\catroot2' 'Catroot2.old'
 
   net.exe start wuauserv 2>$null | Out-Null
   net.exe start cryptSvc 2>$null | Out-Null
@@ -1053,6 +1369,73 @@ function Merge-WuError([string]$Msg) {
   } else { $state.error = $Msg }
 }
 
+function Get-StoppedWuServiceNames {
+  $bad = @()
+  foreach ($n in @('wuauserv','cryptSvc','bits','msiserver')) {
+    try {
+      $st = Get-Service -Name $n -ErrorAction Stop
+      if ([string]$st.Status -ne 'Running') { $bad += $n }
+    } catch { $bad += $n }
+  }
+  return $bad
+}
+
+function Test-ServiceStoppedError([string]$Msg) {
+  if (-not $Msg) { return $false }
+  if ($Msg -match '(?i)Servicio\s+\S+\s*:?\s*(Stopped|StopPending|Paused)') { return $true }
+  if ($Msg -match '(?i)Servicios no Running') { return $true }
+  return $false
+}
+
+function Test-KbOrWuError([string]$Msg) {
+  if (-not $Msg) { return $false }
+  if ($Msg -match '(?i)espacio insuficiente|PsExec|handle is invalid|Error de conexion') { return $false }
+  if ($Msg -match '0x[0-9A-Fa-f]{8}') { return $true }
+  if ($Msg -match '(?i)80072|8024[0-9A-Fa-f]{2}') { return $true }
+  if ($Msg -match '(?i)Fallo chequeo WU|Descarga:|Codigos de error|Instalacion finalizada con errores') { return $true }
+  if ($Msg -match '(?i)no informo una instalacion|failed to check|could not search|HRESULT') { return $true }
+  return $false
+}
+
+function Repair-StoppedWuServices {
+  $max = 3
+  for ($i = 1; $i -le $max; $i++) {
+    if (Is-Stopped) { return $false }
+    $bad = @(Get-StoppedWuServiceNames)
+    if ($bad.Count -eq 0) {
+      if ($state.error -and (Test-ServiceStoppedError $state.error) -and -not (Test-KbOrWuError $state.error)) {
+        $state.error = ''
+      }
+      return $true
+    }
+    $state.stage = 'remediate'
+    $state.status = "Servicio(s) Stopped ($($bad -join ', ')): reintento $i/$max..."
+    $state.error = (($bad | ForEach-Object { "Servicio $_ : Stopped" }) -join ' | ')
+    Save-State
+    Ensure-WuServicesRunning
+    Start-Sleep -Seconds 5
+  }
+  $bad = @(Get-StoppedWuServiceNames)
+  if ($bad.Count -eq 0) { $state.error = ''; return $true }
+  $state.stage = 'error'
+  $state.status = 'Error: servicios no Running tras 3 intentos'
+  $state.error = "Servicios no Running tras 3 intentos: $($bad -join ', ')"
+  Save-State
+  return $false
+}
+
+function Recover-AfterKbError([int]$Cycle, [int]$Max) {
+  $state.stage = 'remediate'
+  $state.status = "Fallo KB/WU: limpieza de cache (intento $Cycle/$Max)..."
+  Save-State
+  Clear-WuCache "Limpieza cache por fallo KB/WU (intento $Cycle/$Max)..."
+  if (-not (Repair-StoppedWuServices)) { return $false }
+  $state.stage = 'check'
+  $state.status = "Check for Updates (intento $($Cycle + 1)/$Max)..."
+  Save-State
+  return $true
+}
+
 try {
   # --- Datos basicos: IP y WSUS configurado --------------------------------
   $state.ip = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
@@ -1063,7 +1446,7 @@ try {
   $state.wsus = if (Test-IsWsusManaged) { $wsus } elseif ($wsus) { "$wsus (no usado; WU directo)" } else { "No configurado (WU directo)" }
   $state.status = "Chequeando WSUS/WU..."
   Save-State
-  Ensure-WuServicesRunning
+  if (-not (Repair-StoppedWuServices)) { return }
   if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
 
   if ($ClearCacheFirst) {
@@ -1071,121 +1454,154 @@ try {
     return
   }
 
-  # --- CHEQUEO WSUS/WU ------------------------------------------------------
-  $needRemediate = $false
-  $searchErr = ""
-  $session = $null
-  $searcher = $null
-  $result = $null
-  try {
-    $wu = Invoke-WuOnlineSearch
-    $session = $wu.Session
-    $searcher = $wu.Searcher
-    $result = $wu.Result
-  } catch {
-    $needRemediate = $true
-    $searchErr = $_.Exception.Message
-    $state.error = "Fallo chequeo WU: $searchErr"
-    Save-State
-  }
-
-  # --- REMEDIACION (solo si fallo el chequeo) ------------------------------
-  if ($needRemediate) {
-    Clear-WuCache "Remediando agente WU..."
-    Ensure-WuServicesRunning
-    $state.stage="check"; $state.status="Re-chequeando tras remediacion..."; $state.error=""; Save-State
-    $searchErr = ""
-    $wu = Invoke-WuOnlineSearch
-    $session = $wu.Session
-    $searcher = $wu.Searcher
-    $result = $wu.Result
-  }
-
-  $available = $result.Updates.Count
-  $state.available = $available
-  Merge-WuError (Get-WuWsusErrors $searchErr)
-  $state.status = "$available update(s) disponibles"
-  Save-State
-
-  # --- Sin updates: verificar reinicio y cerrar ----------------------------
-  if ($available -eq 0) {
-    $reboot = $false
-    try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {}
-    if ($reboot) { $state.stage="reboot"; $state.rebootRequired=$true; $state.status="Requiere reinicio" }
-    else         { $state.stage="done";   $state.status="Actualizado (sin updates pendientes)" }
-    Save-State
-    Invoke-RebootIfRequested $reboot
-    return
-  }
-
-  # --- Chequeo de espacio en disco C: --------------------------------------
-  $freeGB = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
-  if ($freeGB -lt 2) {
-    $state.stage="error"; $state.status="Error"
-    $state.error = "Espacio insuficiente en C: ($freeGB GB libres)"
-    Save-State; return
-  }
-  if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
-
-  # --- DESCARGA (una a una para mostrar % en vivo) -------------------------
-  $state.stage="download"; Save-State
-  $toInstall = New-Object -ComObject Microsoft.Update.UpdateColl
-  $hadDownloadError = $false
-  $i = 0
-  foreach ($u in $result.Updates) {
+  $cycleMax = 3
+  for ($cycle = 1; $cycle -le $cycleMax; $cycle++) {
     if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+    if (-not (Repair-StoppedWuServices)) { return }
+
+    $state.stage = "check"
+    $state.status = if ($cycle -eq 1) { "Chequeando WSUS/WU..." } else { "Check for Updates (intento $cycle/$cycleMax)..." }
+    if ($cycle -gt 1) { $state.error = '' }
+    Save-State
+
+    $searchErr = ""
+    $session = $null
+    $searcher = $null
+    $result = $null
     try {
-      if (-not $u.EulaAccepted) { $u.AcceptEula() }
-      if (-not $u.IsDownloaded) {
-        $coll = New-Object -ComObject Microsoft.Update.UpdateColl
-        $coll.Add($u) | Out-Null
-        $dl = $session.CreateUpdateDownloader()
-        $dl.Updates = $coll
-        $dl.Download() | Out-Null
-      }
-      $toInstall.Add($u) | Out-Null
+      $wu = Invoke-WuOnlineSearch
+      $session = $wu.Session
+      $searcher = $wu.Searcher
+      $result = $wu.Result
     } catch {
-      $hadDownloadError = $true
-      $state.error = "Descarga: " + $_.Exception.Message
+      $searchErr = $_.Exception.Message
+      $state.error = "Fallo chequeo WU: $searchErr"
+      try { Merge-WuError (Get-WuWsusErrors $searchErr) } catch {}
+      Save-State
+      if (Test-ServiceStoppedError $state.error) {
+        if (-not (Repair-StoppedWuServices)) { return }
+        if ($cycle -lt $cycleMax) { continue }
+      }
+      if ((Test-KbOrWuError $state.error) -and $cycle -lt $cycleMax) {
+        if (Recover-AfterKbError $cycle $cycleMax) { continue }
+        return
+      }
+      $state.stage = "error"
+      $state.status = "Error: fallo WU persistente tras $cycleMax intentos"
+      Save-State
+      return
     }
-    $i++
-    $state.downloaded  = $i
-    $state.downloadPct = [int][math]::Round(($i / $available) * 100)
-    $state.status      = "Descargando $i de $available..."
+
+    $available = $result.Updates.Count
+    $state.available = $available
+    $state.status = "$available update(s) disponibles"
     Save-State
-  }
-  if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
 
-  # --- INSTALACION ---------------------------------------------------------
-  $state.stage="install"; $state.status="Instalando..."; Save-State
-  $installer = $session.CreateUpdateInstaller()
-  $installer.Updates = $toInstall
-  $instResult = $installer.Install()
+    if ($available -eq 0) {
+      $reboot = $false
+      try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {}
+      if ($reboot) { $state.stage="reboot"; $state.rebootRequired=$true; $state.status="Requiere reinicio" }
+      else         { $state.stage="done";   $state.status="Actualizado (sin updates pendientes)" }
+      $state.error = ''
+      Save-State
+      Invoke-RebootIfRequested $reboot
+      return
+    }
 
-  $errs = @()
-  for ($k = 0; $k -lt $toInstall.Count; $k++) {
-    $r = $instResult.GetUpdateResult($k)
-    if ($r.ResultCode -ne 2) { $errs += ("0x{0:X8}" -f $r.HResult) }
-  }
-  if ($errs.Count -gt 0) { $state.error = "Codigos de error: " + ($errs -join ", ") }
-  $state.status = "Instalacion finalizada (codigo $($instResult.ResultCode))"
-  Save-State
+    $freeGB = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+    if ($freeGB -lt 2) {
+      $state.stage="error"; $state.status="Error"
+      $state.error = "Espacio insuficiente en C: ($freeGB GB libres)"
+      Save-State; return
+    }
+    if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+    if (-not (Repair-StoppedWuServices)) { return }
 
-  if ($hadDownloadError -or $instResult.ResultCode -ne 2 -or $errs.Count -gt 0) {
-    $state.stage = "error"
-    $state.status = "Instalacion finalizada con errores (codigo $($instResult.ResultCode))"
-    if (-not $state.error) { $state.error = "Windows Update no informo una instalacion exitosa." }
+    $state.stage="download"; Save-State
+    $toInstall = New-Object -ComObject Microsoft.Update.UpdateColl
+    $hadDownloadError = $false
+    $i = 0
+    foreach ($u in $result.Updates) {
+      if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+      try {
+        if (-not $u.EulaAccepted) { $u.AcceptEula() }
+        if (-not $u.IsDownloaded) {
+          $coll = New-Object -ComObject Microsoft.Update.UpdateColl
+          $coll.Add($u) | Out-Null
+          $dl = $session.CreateUpdateDownloader()
+          $dl.Updates = $coll
+          $dl.Download() | Out-Null
+        }
+        $toInstall.Add($u) | Out-Null
+      } catch {
+        $hadDownloadError = $true
+        $state.error = "Descarga: " + $_.Exception.Message
+      }
+      $i++
+      $state.downloaded  = $i
+      $state.downloadPct = [int][math]::Round(($i / $available) * 100)
+      $state.status      = "Descargando $i de $available..."
+      Save-State
+    }
+    if (Is-Stopped) { $state.stage="stopped"; $state.status="Detenido"; Save-State; return }
+
+    if ($hadDownloadError) {
+      if (Test-ServiceStoppedError $state.error) {
+        if (-not (Repair-StoppedWuServices)) { return }
+      }
+      if ((Test-KbOrWuError $state.error) -and $cycle -lt $cycleMax) {
+        if (Recover-AfterKbError $cycle $cycleMax) { continue }
+        return
+      }
+      $state.stage = "error"
+      $state.status = "Error: descarga persistente tras $cycleMax intentos"
+      Save-State
+      return
+    }
+
+    $state.stage="install"; $state.status="Instalando..."; Save-State
+    $instResult = $null
+    $errs = @()
+    try {
+      $installer = $session.CreateUpdateInstaller()
+      $installer.Updates = $toInstall
+      $instResult = $installer.Install()
+      for ($k = 0; $k -lt $toInstall.Count; $k++) {
+        $r = $instResult.GetUpdateResult($k)
+        if ($r.ResultCode -ne 2) { $errs += ("0x{0:X8}" -f $r.HResult) }
+      }
+      if ($errs.Count -gt 0) { $state.error = "Codigos de error: " + ($errs -join ", ") }
+      $state.status = "Instalacion finalizada (codigo $($instResult.ResultCode))"
+      Save-State
+    } catch {
+      $state.error = "Instalacion: " + $_.Exception.Message
+      Save-State
+    }
+
+    if (-not $instResult -or $instResult.ResultCode -ne 2 -or $errs.Count -gt 0) {
+      if (-not $state.error) { $state.error = "Windows Update no informo una instalacion exitosa." }
+      if (Test-ServiceStoppedError $state.error) {
+        if (-not (Repair-StoppedWuServices)) { return }
+      }
+      if ((Test-KbOrWuError $state.error) -and $cycle -lt $cycleMax) {
+        if (Recover-AfterKbError $cycle $cycleMax) { continue }
+        return
+      }
+      $state.stage = "error"
+      $state.status = "Error: instalacion persistente tras $cycleMax intentos"
+      Save-State
+      return
+    }
+
+    $reboot = $instResult.RebootRequired
+    if (-not $reboot) { try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {} }
+    if ($reboot) { $state.stage="reboot"; $state.rebootRequired=$true; $state.status="Instalado. Requiere reinicio" }
+    else         { $state.stage="done";   $state.status="Actualizado" }
+    $state.error = ''
     Save-State
+    Invoke-RebootIfRequested ($reboot -or $available -gt 0)
     return
   }
-
-  # --- Reinicio requerido? -------------------------------------------------
-  $reboot = $instResult.RebootRequired
-  if (-not $reboot) { try { $reboot = (New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired } catch {} }
-  if ($reboot) { $state.stage="reboot"; $state.rebootRequired=$true; $state.status="Instalado. Requiere reinicio" }
-  else         { $state.stage="done";   $state.status="Actualizado" }
-  Save-State
-  Invoke-RebootIfRequested ($reboot -or $available -gt 0)
 }
 catch {
   $state.stage="error"; $state.status="Error"
@@ -1214,8 +1630,12 @@ $script:ReportRunning     = $false
 $script:RepComment        = ''
 $script:RepWindowDate     = ''
 $script:GridWindowCardSent = $false
+$script:GridWindowNeedsReport = $false
+$script:AutoGridReportTimer = $null
 $script:RepSaveTitle = ''
+$script:RepSaveError = ''
 $script:RepCardAllInventory = $false
+$script:RepTipo = 'Ventana'   # Ventana = parcheo de ventana; Mensual = fuera de ventana
 $script:RepProgress = $null
 $script:RepOnDone = $null
 
@@ -1232,7 +1652,8 @@ $script:ReportWorker = @'
 param(
   [ValidateSet("CurrentMonth","PreviousMonth","SpecificDate","SpecificMonth")]
   [string]$PeriodMode = "CurrentMonth",
-  [string]$SpecificDate = ""
+  [string]$SpecificDate = "",
+  [string]$WindowDate = ""
 )
 $ErrorActionPreference = "SilentlyContinue"
 $base = "C:\Windows\Temp\WUU"
@@ -1241,7 +1662,7 @@ New-Item -ItemType Directory -Path $base -Force | Out-Null
 $o = [ordered]@{
   Dominio=""; Servidor=""; IP=""; Sistema_Operativo=""; Version_Sistema_Operativo="";
   SQL_Instancia="No SQL"; SQL_Version="No SQL"; SQL_Ultima_Actualizacion="No SQL";
-  Fecha_Instalacion=""; KBs_Instaladas=""; Fecha_Reinicio=""; Running_Time=""; Descripcion_Error=""; Disk_Space=""; Nota_Updates=""
+  Fecha_Instalacion=""; KBs_Instaladas=""; KBs_Ventana=""; Fecha_Reinicio=""; Running_Time=""; Descripcion_Error=""; Disk_Space=""; Nota_Updates=""
 }
 function Ensure-WuServicesRunning {
   foreach ($name in @('wuauserv','cryptSvc','bits','msiserver')) {
@@ -1387,34 +1808,43 @@ try {
   $currentMonthStart = (Get-Date -Year $now.Year -Month $now.Month -Day 1).Date
   switch ($PeriodMode) {
     "PreviousMonth" {
-      $periodStart = $currentMonthStart.AddMonths(-1)
-      $periodEnd = $currentMonthStart
+      $monthStart = $currentMonthStart.AddMonths(-1)
     }
     "SpecificDate" {
       $parsedDate = [datetime]::ParseExact($SpecificDate,"yyyy-MM-dd",[Globalization.CultureInfo]::InvariantCulture)
-      $periodStart = $parsedDate.Date
-      $periodEnd = $periodStart.AddDays(1)
+      $monthStart = Get-Date -Year $parsedDate.Year -Month $parsedDate.Month -Day 1
     }
     "SpecificMonth" {
       $parsedDate = [datetime]::ParseExact($SpecificDate,"yyyy-MM-dd",[Globalization.CultureInfo]::InvariantCulture)
-      $periodStart = Get-Date -Year $parsedDate.Year -Month $parsedDate.Month -Day 1
-      $periodEnd = $periodStart.AddMonths(1)
+      $monthStart = Get-Date -Year $parsedDate.Year -Month $parsedDate.Month -Day 1
     }
     default {
-      $periodStart = $currentMonthStart
-      $periodEnd = $currentMonthStart.AddMonths(1)
+      $monthStart = $currentMonthStart
     }
   }
-  $periodHotfixes = @($all | Where-Object {
-    ([datetime]$_.InstalledOn) -ge $periodStart -and ([datetime]$_.InstalledOn) -lt $periodEnd
+  $monthStart = $monthStart.Date
+  $monthEnd = $monthStart.AddMonths(1)
+  $monthHotfixes = @($all | Where-Object {
+    ([datetime]$_.InstalledOn) -ge $monthStart -and ([datetime]$_.InstalledOn) -lt $monthEnd
   } | Sort-Object InstalledOn -Descending)
-  if ($periodHotfixes.Count -gt 0) {
-    $o.KBs_Instaladas = (@($periodHotfixes | Select-Object -ExpandProperty HotFixID -Unique) -join ", ")
-    $latestInPeriod = $periodHotfixes | Select-Object -First 1
+  if ($monthHotfixes.Count -gt 0) {
+    $o.KBs_Instaladas = (@($monthHotfixes | Select-Object -ExpandProperty HotFixID -Unique) -join ", ")
+    $latestInPeriod = $monthHotfixes | Select-Object -First 1
     if ($latestInPeriod) { $o.Fecha_Instalacion = ([datetime]$latestInPeriod.InstalledOn).ToString("yyyy-MM-dd") }
   } elseif ($all.Count -gt 0) {
     $latestAll = $all | Sort-Object InstalledOn -Descending | Select-Object -First 1
     if ($latestAll) { $o.Fecha_Instalacion = ([datetime]$latestAll.InstalledOn).ToString("yyyy-MM-dd") }
+  }
+  $winRaw = "$WindowDate".Trim()
+  if (-not $winRaw -and "$SpecificDate".Trim() -match '^\d{4}-\d{2}-\d{2}$') { $winRaw = "$SpecificDate".Trim() }
+  if ($winRaw -match '^\d{4}-\d{2}-\d{2}$') {
+    $winDay = [datetime]::ParseExact($winRaw,"yyyy-MM-dd",[Globalization.CultureInfo]::InvariantCulture).Date
+    $winHotfixes = @($all | Where-Object {
+      ([datetime]$_.InstalledOn).Date -eq $winDay
+    } | Sort-Object InstalledOn -Descending)
+    if ($winHotfixes.Count -gt 0) {
+      $o.KBs_Ventana = (@($winHotfixes | Select-Object -ExpandProperty HotFixID -Unique) -join ", ")
+    }
   }
 } catch {}
 try {
@@ -2279,11 +2709,16 @@ function Get-RequiredServicesStatus {
   }
   return @{ Ok = $ok; Bad = $bad }
 }
-Ensure-WuServicesRunning
-foreach ($opt in $script:OptionalSvcNames) { Ensure-OptionalServiceRunning $opt }
-$svcSt = Get-RequiredServicesStatus
+$svcSt = $null
+for ($svcTry = 1; $svcTry -le 3; $svcTry++) {
+  Ensure-WuServicesRunning
+  foreach ($opt in $script:OptionalSvcNames) { Ensure-OptionalServiceRunning $opt }
+  $svcSt = Get-RequiredServicesStatus
+  if ($svcSt.Bad.Count -eq 0) { break }
+  Start-Sleep -Seconds 5
+}
 $o.services = if ($svcSt.Bad.Count) { $svcSt.Bad -join ', ' } else { ($svcSt.Ok -join ', ') + ' Running' }
-if ($svcSt.Bad.Count) { $o.error = "Servicios no Running: $($svcSt.Bad -join ', ')" }
+if ($svcSt.Bad.Count) { $o.error = "Servicios no Running tras 3 intentos: $($svcSt.Bad -join ', ')" }
 function Test-IsWsusManaged {
   try {
     $use = (Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -ErrorAction SilentlyContinue).UseWUServer
@@ -2484,7 +2919,9 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
   if ($script:Jobs.ContainsKey($server) -or $script:FixJobs.ContainsKey($server)) { return }
   if ($WorkerMode -eq 'Install' -and (Deny-ServerPatchWithoutFlags $row)) { return }
 
-  if (-not (Test-Path $script:PsExecPath)) {
+  $rm = Get-WuuRmPack
+  $hasPsExec = Test-Path $script:PsExecPath
+  if (-not $hasPsExec -and -not $rm.On) {
     [System.Windows.MessageBox]::Show(
       "No se encuentra PsExec.exe en:`n$script:PsExecPath`n`nColocalo junto a WUU.ps1 o ajusta PsExecPath en config.json.",
       "WUU", 'OK', 'Error') | Out-Null
@@ -2492,35 +2929,40 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
     return
   }
 
-  # Verificacion rapida de conectividad (puerto 445 / SMB) antes de lanzar PsExec
+  $script:GridJobsStarting++
+  try {
+  # SMB (445) primero; WinRM si no hay C$
   $row.State='CheckWSUS'; $row.Status='Verificando conectividad...'; $row.Error=''
   $row.Available=''; $row.Downloaded=''; $row.DownloadPct=''
   $toSec = [int]$script:Cfg.ConnectivityTimeoutSec
-  $canReach = $false
-  try {
-    $tc  = New-Object System.Net.Sockets.TcpClient
-    try {
-      $iar = $tc.BeginConnect($server, 445, $null, $null)
-      $canReach = $iar.AsyncWaitHandle.WaitOne($toSec * 1000) -and $tc.Connected
-    } finally {
-      try { $tc.Close() } catch {}
-    }
-  } catch {}
-  if (-not $canReach) {
+  $channel = Resolve-WuuTransport $server
+  if (-not $channel) {
     $row.State='Unselected'; $row.Sel=$false
-    $row.Error="Sin conectividad (puerto 445, timeout ${toSec}s)"
+    $rmHint = if ($rm.On) { " ni WinRM $($rm.Port)" } else { '' }
+    $row.Error="Sin conectividad (puerto 445$rmHint, timeout ${toSec}s)"
     $row.Status='Error de conexion'
-    Write-Log 'ERROR' "Sin conectividad a $server (puerto 445)"
+    Write-Log 'ERROR' "Sin conectividad a $server (445$rmHint)"
     return
+  }
+  if ($channel -eq 'Smb' -and -not $hasPsExec) {
+    if ($rm.On -and (Test-WuuWinRm $server)) { $channel = 'WinRM' }
+    else {
+      $row.State='Unselected'; $row.Sel=$false
+      $row.Error="PsExec no encontrado y WinRM no disponible"
+      $row.Status='Error de conexion'
+      return
+    }
   }
 
   Send-GridWindowCard -Phase Inicio
 
   # Reset y arranque del cronometro
-  $row.Status='Conectando...'
+  $row.Status = if ($channel -eq 'WinRM') { 'Conectando (WinRM)...' } else { 'Conectando...' }
   $sw = [System.Diagnostics.Stopwatch]::StartNew()
   $deadline = (Get-Date).AddMinutes([int]$script:Cfg.PatchTimeoutMinutes)
-  $script:Sync[$server] = [hashtable]::Synchronized(@{ done=$false; transportError=''; exit=$null })
+  $script:Sync[$server] = [hashtable]::Synchronized(@{
+    done=$false; transportError=''; exit=$null; statusRaw=''; stop=$false; channel=$channel
+  })
 
   # Control de corrida para historial al finalizar (solo instalacion real)
   if ($WorkerMode -eq 'Install') {
@@ -2530,21 +2972,67 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
   if ($RebootAfter) { $script:JobRebootAfter[$server] = $true }
 
   $job = {
-    param($server, $psexec, $worker, $rel, $sync, $mode, $doClearCache, $doRebootAfter)
+    param($server, $psexec, $worker, $rel, $sync, $mode, $doClearCache, $doRebootAfter, $channel, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $waitSec)
+    if ($rmLib) { Invoke-Expression $rmLib }
+    $argLine = "-Mode $mode"
+    if ($doClearCache)  { $argLine += ' -ClearCacheFirst' }
+    if ($doRebootAfter) { $argLine += ' -RebootAfter' }
+    $useRm = ($channel -eq 'WinRM')
     try {
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\status.json" -ErrorAction SilentlyContinue
-      Remove-Item "$remoteDir\stop.flag"   -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\worker.ps1" -Force -ErrorAction Stop
-      $psCmd = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\worker.ps1",'-Mode',$mode)
-      if ($doClearCache)   { $psCmd += '-ClearCacheFirst' }
-      if ($doRebootAfter)  { $psCmd += '-RebootAfter' }
-      $out = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @psCmd 2>&1
-      $code = $LASTEXITCODE
-      $sync[$server].exit = $code
-      if ($code -ne 0) {
-        $sync[$server].transportError = "PsExec codigo $code. " + (($out | Select-Object -Last 3) -join ' ')
+      if (-not $useRm) {
+        try {
+          $remoteDir = "\\$server\C`$\$rel"
+          New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
+          Remove-Item "$remoteDir\status.json" -ErrorAction SilentlyContinue
+          Remove-Item "$remoteDir\stop.flag"   -ErrorAction SilentlyContinue
+          Copy-Item -Path $worker -Destination "$remoteDir\worker.ps1" -Force -ErrorAction Stop
+          $psCmd = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\worker.ps1",'-Mode',$mode)
+          if ($doClearCache)   { $psCmd += '-ClearCacheFirst' }
+          if ($doRebootAfter)  { $psCmd += '-RebootAfter' }
+          $out = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @psCmd 2>&1
+          $code = $LASTEXITCODE
+          $sync[$server].exit = $code
+          if ($code -ne 0) {
+            $sync[$server].transportError = "PsExec codigo $code. " + (($out | Select-Object -Last 3) -join ' ')
+            if ($rmOn) { $useRm = $true } 
+          }
+        } catch {
+          if ($rmOn) { $useRm = $true } else { throw }
+        }
+      }
+      if ($useRm) {
+        $sync[$server].channel = 'WinRM'
+        $sess = $null
+        $tn = ''
+        try {
+          $sess = New-WuuRmSession $server $rmSsl $rmPort $rmTo
+          Copy-WuuRmFile $sess $worker $rel 'worker.ps1'
+          Invoke-Command -Session $sess -ScriptBlock {
+            param($rel)
+            $d = Join-Path 'C:\' $rel
+            Remove-Item (Join-Path $d 'status.json') -Force -ErrorAction SilentlyContinue
+            Remove-Item (Join-Path $d 'stop.flag') -Force -ErrorAction SilentlyContinue
+          } -ArgumentList $rel
+          $tn = Start-WuuRmTask $sess $rel 'worker.ps1' $argLine
+          $deadline = (Get-Date).AddSeconds([Math]::Max(60, [int]$waitSec))
+          while ((Get-Date) -lt $deadline) {
+            if ($sync[$server].stop) { Set-WuuRmText $sess $rel 'stop.flag' '1' }
+            $raw = Get-WuuRmText $sess $rel 'status.json'
+            if ("$raw".Trim()) { $sync[$server].statusRaw = $raw }
+            if ($tn -and -not (Test-WuuRmTaskRunning $sess $tn)) { break }
+            Start-Sleep -Seconds 2
+          }
+          $raw = Get-WuuRmText $sess $rel 'status.json'
+          if ("$raw".Trim()) { $sync[$server].statusRaw = $raw }
+          $sync[$server].exit = 0
+          if (-not "$($sync[$server].statusRaw)".Trim()) {
+            $sync[$server].transportError = 'WinRM: sin status.json'
+            $sync[$server].exit = 1
+          }
+        } finally {
+          if ($sess -and $tn) { try { Stop-WuuRmTask $sess $tn } catch {} }
+          if ($sess) { try { Remove-PSSession $sess } catch {} }
+        }
       }
     } catch {
       $sync[$server].transportError = $_.Exception.Message
@@ -2555,20 +3043,29 @@ function Start-ServerJob($row, [string]$WorkerMode = 'Install', [switch]$ClearCa
 
   $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState='MTA'; $rs.Open()
   $ps = [powershell]::Create(); $ps.Runspace = $rs
+  $waitSec = [int]$script:Cfg.PatchTimeoutMinutes * 60
   $ps.AddScript($job.ToString()).
       AddArgument($server).AddArgument($script:PsExecPath).
       AddArgument($script:LocalWorker).AddArgument($script:RemoteRel).
       AddArgument($script:Sync).AddArgument($WorkerMode).
-      AddArgument([bool]$ClearCacheFirst).AddArgument([bool]$RebootAfter) | Out-Null
+      AddArgument([bool]$ClearCacheFirst).AddArgument([bool]$RebootAfter).
+      AddArgument($channel).AddArgument($script:WuuRmLib).
+      AddArgument([bool]$rm.On).AddArgument([bool]$rm.Ssl).
+      AddArgument([int]$rm.Port).AddArgument([int]$rm.To).
+      AddArgument($waitSec) | Out-Null
   $handle = $ps.BeginInvoke()
 
   $flags = @()
   if ($ClearCacheFirst) { $flags += 'ClearCache' }
   if ($RebootAfter)     { $flags += 'RebootAfter' }
   $flagStr = if ($flags.Count) { " [$($flags -join ',')]" } else { '' }
-  $script:Jobs[$server] = @{ ps=$ps; handle=$handle; rs=$rs; sw=$sw; deadline=$deadline; clearCache=[bool]$ClearCacheFirst }
-  Write-Log 'INFO' "Proceso iniciado: $server (modo: $WorkerMode$flagStr, timeout: $($script:Cfg.PatchTimeoutMinutes)min)"
+  $script:Jobs[$server] = @{ ps=$ps; handle=$handle; rs=$rs; sw=$sw; deadline=$deadline; clearCache=[bool]$ClearCacheFirst; channel=$channel }
+  Write-Log 'INFO' "Proceso iniciado: $server (modo: $WorkerMode$flagStr, canal=$channel, timeout: $($script:Cfg.PatchTimeoutMinutes)min)"
   Start-Timer
+  } finally {
+    if ([int]$script:GridJobsStarting -gt 0) { $script:GridJobsStarting-- }
+  }
+  Request-AutoGridReport
 }
 
 # Detiene el proceso de un servidor (escribe bandera de stop + cierra el runspace)
@@ -2577,6 +3074,7 @@ function Stop-ServerJob($server, [switch]$Reset) {
   if ($job) {
     # Bandera de stop: el trabajador la detecta en puntos seguros y aborta sin
     # cortar una instalacion a la mitad.
+    try { if ($script:Sync[$server]) { $script:Sync[$server].stop = $true } } catch {}
     try { Set-Content -Path "\\$server\C`$\$($script:RemoteRel)\stop.flag" -Value '1' -ErrorAction SilentlyContinue } catch {}
     try { $job.ps.Stop() }    catch {}
     try { $job.ps.Dispose() } catch {}
@@ -2632,6 +3130,7 @@ function On-TimerTick {
       $script:Run.TotalServers = 0
       Save-History -Rows @($script:Servers) -Type 'Parcheo'
     }
+    Request-AutoGridReport
     return
   }
 
@@ -2646,6 +3145,7 @@ function On-TimerTick {
     # Timeout del proceso principal
     if ($now -gt $job.deadline) {
       Write-Log 'ERROR' "Timeout en $server ($($script:Cfg.PatchTimeoutMinutes)min). Deteniendo."
+      try { if ($script:Sync[$server]) { $script:Sync[$server].stop = $true } } catch {}
       try { Set-Content "\\$server\C`$\$($script:RemoteRel)\stop.flag" '1' -ErrorAction SilentlyContinue } catch {}
       try { $job.ps.Stop() }    catch {}
       try { $job.ps.Dispose() } catch {}
@@ -2658,7 +3158,7 @@ function On-TimerTick {
       continue
     }
 
-    # Leer status.json del servidor por el recurso C$
+    # Leer status.json: C$ (SMB) o el buffer WinRM del runspace
     $unc = "\\$server\C`$\$($script:RemoteRel)\status.json"
     $st  = $null
     try {
@@ -2667,6 +3167,13 @@ function On-TimerTick {
         if ($raw) { $st = $raw | ConvertFrom-Json }
       }
     } catch { $st = $null }
+    if (-not $st) {
+      try {
+        $buf = ''
+        if ($script:Sync[$server]) { $buf = "$($script:Sync[$server].statusRaw)" }
+        if ($buf.Trim()) { $st = $buf | ConvertFrom-Json }
+      } catch { $st = $null }
+    }
     if ($st) { Apply-Status $row $st }
 
     # Si el proceso PsExec termino, finalizar
@@ -2720,6 +3227,7 @@ function On-TimerTick {
     }
   }
   Update-ButtonStates
+  Request-AutoGridReport
 }
 
 # Solicita el operador cuando se marca el primer grupo de la sesion.
@@ -3166,13 +3674,30 @@ function Update-InventoryFromLiveData($liveObjects) {
 #  REPORTE - recoleccion, ventana y sincronizacion
 #------------------------------------------------------------------------------
 
+function Resolve-ReportTipo([string]$Requested = '', [switch]$MonthlyInventory) {
+  $t = "$Requested".Trim()
+  if ($t) { return $t }
+  if ($MonthlyInventory) { return 'Mensual' }
+  return 'Ventana'
+}
+
 function Get-SnapReportText([bool]$Value) {
-  if ($Value) { return 'Se confirmo la ejecucion del snapshot de este servidor' }
-  return 'No se recibio la confirmacion de la ejecucion del snapshot de este servidor'
+  if ($Value) { return 'Si' }
+  return 'No'
 }
 
 function Get-ConfirmadoReportText([bool]$Value) {
-  if ($Value) { return 'Se recibio la confirmacion de la ventana' }
+  if ($Value) { return 'Si' }
+  return 'No'
+}
+
+function Get-SnapCommentText([bool]$Value) {
+  if ($Value) { return '' }
+  return 'No se recibio la confirmacion de la ejecucion del snapshot de este servidor'
+}
+
+function Get-ConfirmadoCommentText([bool]$Value) {
+  if ($Value) { return '' }
   return 'El cliente no confirmo la ejecucion de las actualizaciones de este servidor'
 }
 
@@ -3180,10 +3705,44 @@ function Join-ReportComments([string]$Existing, [bool]$Snap, [bool]$Confirmado, 
   $parts = New-Object System.Collections.Generic.List[string]
   if ("$Existing".Trim()) { [void]$parts.Add("$Existing".Trim()) }
   if ($IncludeProcessFlags) {
-    [void]$parts.Add((Get-SnapReportText $Snap))
-    [void]$parts.Add((Get-ConfirmadoReportText $Confirmado))
+    $snapC = Get-SnapCommentText $Snap
+    $confC = Get-ConfirmadoCommentText $Confirmado
+    if ($snapC) { [void]$parts.Add($snapC) }
+    if ($confC) { [void]$parts.Add($confC) }
   }
   return ($parts -join ' | ')
+}
+
+function Merge-ReportErrorText([string]$Existing, [string]$ConsoleError) {
+  $a = "$Existing".Trim()
+  $b = "$ConsoleError".Trim()
+  if (-not $b) { return $a }
+  if (-not $a) { return $b }
+  if ($a -match [regex]::Escape($b)) { return $a }
+  return "$a | $b"
+}
+
+function Get-GridRowForReport([string]$Name, [string]$AltName = '') {
+  if (-not $script:Servers) { return $null }
+  $want = "$Name".Trim()
+  $alt = "$AltName".Trim()
+  $k1 = Get-ServerMatchKey $want
+  $k2 = Get-ServerMatchKey $alt
+  return @($script:Servers | Where-Object {
+    $n = "$($_.Servidor)".Trim()
+    $n -ieq $want -or
+    ($alt -and $n -ieq $alt) -or
+    ((Get-ServerMatchKey $n) -and (
+      ($k1 -and (Get-ServerMatchKey $n) -eq $k1) -or
+      ($k2 -and (Get-ServerMatchKey $n) -eq $k2)
+    ))
+  } | Select-Object -First 1)
+}
+
+function Get-ReportConsoleError([string]$Name, [string]$AltName = '') {
+  $row = Get-GridRowForReport $Name $AltName
+  if ($row) { return "$($row.Error)".Trim() }
+  return ''
 }
 
 function Test-ReportConnectionFailure([string]$ErrorText) {
@@ -3263,10 +3822,10 @@ function Sync-ScheduleToDashboard {
       ScheduledAt     = $(if ($ScheduledAt -gt [datetime]::MinValue) { ConvertTo-CalendarWallClockString $ScheduledAt } else { $null })
       Recurrence      = $Recurrence
       SourceComputer  = $env:COMPUTERNAME
+      Analyst         = "$script:AnalistaAsignado".Trim()
       Cliente         = $(if ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
       targetClient    = $(if ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
-      targetBanks     = $(if ($Details -and "$($Details.TargetBanks)".Trim()) { "$($Details.TargetBanks)".Trim() } elseif ($Details -and "$($Details.Cliente)".Trim()) { "$($Details.Cliente)".Trim() } else { $null })
-      targetGroups    = $(if ($Details -and "$($Details.TargetGroups)".Trim()) { "$($Details.TargetGroups)".Trim() } elseif ($Details -and "$($Details.Group)".Trim()) { "$($Details.Group)".Trim() } else { $null })
+      targetGroups    = $(if ($Details -and "$($Details.TargetGroups)".Trim()) { "$($Details.TargetGroups)".Trim() } else { $null })
       targetServers   = $(if ($Details -and "$($Details.TargetServers)".Trim()) { "$($Details.TargetServers)".Trim() } else { $null })
       Details         = $(if ($Details) { $Details } else { @{} })
     }
@@ -3495,13 +4054,13 @@ function Get-CalendarPublishDetails {
   param([string]$Grupo = '', [string[]]$Servers = @(), $Inventory = $null)
   $clients = @(Get-InventoryClientsForScope -Inventory $Inventory -Grupo $Grupo -Servers $Servers)
   $cliente = if ($clients.Count -gt 0) { $clients -join ', ' } else { '' }
-  $serverTxt = if (@($Servers).Count -gt 0) { (@($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ', ') }
+  $serverTxt = if ("$Grupo".Trim()) { "$Grupo".Trim() }
+               elseif (@($Servers).Count -gt 0) { (@($Servers | ForEach-Object { "$_".Trim() } | Where-Object { $_ }) -join ', ') }
                else { '' }
   return @{
     Cliente       = $cliente
     Group         = "$Grupo".Trim()
-    TargetBanks   = $cliente
-    TargetGroups  = "$Grupo".Trim()
+    TargetGroups  = $cliente
     TargetServers = $serverTxt
   }
 }
@@ -3515,9 +4074,8 @@ function Add-UniqueServerName($Bag, [string]$Name) {
 
 function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
   $csv = @($Inventory)
-  $hasClienteCol = ($csv.Count -gt 0 -and $csv[0].PSObject.Properties.Name -contains 'Cliente')
   $clientHint = ''
-  foreach ($n in @('targetBanks','targetBank','targetClient','client','cliente','Cliente')) {
+  foreach ($n in @('targetClient','client','cliente','Cliente')) {
     $v = "$(Get-CalendarEventProperty $Event $n)".Trim()
     if ($v) { $clientHint = $v; break }
   }
@@ -3534,15 +4092,6 @@ function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
     elseif ($kind -eq 'Both' -and $groupTokens.Count -gt 1) { Add-UniqueServerName $groupNames $g }
   }
 
-  # Soporte de compatibilidad: si targetGroups no resolvio grupo, revisar si en serverTokens viene un Grupo
-  if ($groupNames.Count -eq 0 -and $serverTokens.Count -gt 0) {
-    foreach ($s in $serverTokens) {
-      if ((@(Get-InventoryRowsByGrupo $s $csv)).Count -gt 0) {
-        Add-UniqueServerName $groupNames $s
-      }
-    }
-  }
-
   if ($groupTokens.Count -gt 0 -and $clientNames.Count -eq 0 -and $groupNames.Count -eq 0) {
     return [pscustomobject]@{
       TargetType = ''; TargetValue = ($groupTokens -join ', ')
@@ -3553,20 +4102,16 @@ function Resolve-CalendarEventTargets($Event, $Inventory = $null) {
   }
 
   $cliente = ''
-  if ($hasClienteCol) {
-    foreach ($c in @($clientNames)) {
-      if ((@(Get-InventoryRowsByCliente $c $csv)).Count -gt 0) { $cliente = $c; break }
+  foreach ($c in @($clientNames)) {
+    if ((@(Get-InventoryRowsByCliente $c $csv)).Count -gt 0) { $cliente = $c; break }
+  }
+  if ($clientNames.Count -gt 0 -and -not $cliente) {
+    return [pscustomobject]@{
+      TargetType = ''; TargetValue = ($clientNames -join ', ')
+      Servers = @(); ExtraServers = @(); Group = ''; Cliente = ($clientNames -join ', '); MatchField = 'Cliente'
+      InInventory = $false
+      SkipReason = "Cliente '$($clientNames -join ', ')' no coincide con la columna Cliente de este inventario"
     }
-    if ($clientNames.Count -gt 0 -and -not $cliente) {
-      return [pscustomobject]@{
-        TargetType = ''; TargetValue = ($clientNames -join ', ')
-        Servers = @(); ExtraServers = @(); Group = ''; Cliente = ($clientNames -join ', '); MatchField = 'Cliente'
-        InInventory = $false
-        SkipReason = "Cliente '$($clientNames -join ', ')' no coincide con la columna Cliente de este inventario"
-      }
-    }
-  } else {
-    if ($clientNames.Count -gt 0) { $cliente = $clientNames[0] }
   }
 
   $validGroups = @()
@@ -3766,7 +4311,7 @@ function Register-ImportedCalendarWindowsTask([string]$TaskName, [datetime]$Star
   $jobArg = if ($Mode -eq 'ScheduledReport' -or -not $JobPath) { '' } else { " -JobFile `"$JobPath`"" }
   if ($Mode -eq 'ScheduledReport' -and $JobPath) { $jobArg = " -JobFile `"$JobPath`"" }
   $actionArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`" $flag$jobArg"
-  $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs
+  $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs -WorkingDirectory $script:ScriptDir
   $hours = if ($Mode -eq 'ScheduledPatch') { 8 } else { 2 }
   $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours $hours) `
     -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
@@ -3944,6 +4489,35 @@ function Sync-DashboardCalendarToWuu {
   return [pscustomobject]$result
 }
 
+function Invoke-ScheduledCalendarSync {
+  if (-not [bool]$script:Cfg.Dashboard.Enabled) {
+    Write-Log 'WARN' 'Calendario headless: Dashboard.Enabled = false.'
+    return 1
+  }
+  if (-not (Get-DashboardCalendarUrl)) {
+    Write-Log 'WARN' 'Calendario headless: CalendarUrl vacio.'
+    return 1
+  }
+  Load-Csv
+  $sync = $null
+  try { $sync = Sync-DashboardCalendarToWuu }
+  catch {
+    Write-Log 'ERROR' "Calendario headless: $($_.Exception.Message)"
+    return 1
+  }
+  $errCount = @($sync.Errors).Count
+  Write-Log 'INFO' ("Calendario headless: creadas={0} actualizadas={1} quitadas={2} omitidas={3} errores={4}" -f `
+    [int]$sync.Created, [int]$sync.Updated, [int]$sync.Removed, [int]$sync.Skipped, $errCount)
+  foreach ($m in @($sync.Messages)) {
+    if ("$m".Trim()) { Write-Log 'INFO' "Calendario headless: $m" }
+  }
+  foreach ($e in @($sync.Errors)) {
+    if ("$e".Trim()) { Write-Log 'ERROR' "Calendario headless: $e" }
+  }
+  if ($errCount -gt 0) { return 1 }
+  return 0
+}
+
 # Envia el reporte al endpoint del Centro de Control de Parcheo y actualiza el label de estado
 function Sync-ToDashboard($rows, $lbl) {
   if (-not $script:WUUDashboardUploadEnabled) {
@@ -3972,6 +4546,7 @@ function Sync-ToDashboard($rows, $lbl) {
         Fecha_Ventana             = $_.Fecha_Ventana
         Fecha_Instalacion         = $_.Fecha_Instalacion
         KBs_Instaladas            = $_.KBs_Instaladas
+        KBs_Ventana               = $_.KBs_Ventana
         Fecha_Reinicio            = $_.Fecha_Reinicio
         Running_Time              = $_.Running_Time
         Estado                    = $_.Estado
@@ -3980,6 +4555,7 @@ function Sync-ToDashboard($rows, $lbl) {
         Disk_Space                = $_.Disk_Space
         Snap                      = $_.Snap
         Confirmado                = $_.Confirmado
+        Tipo_Reporte              = $(if ("$($_.Tipo_Reporte)".Trim()) { "$($_.Tipo_Reporte)".Trim() } else { "$($script:RepTipo)" })
       }
     })
     # Un servidor solo puede aparecer una vez (duplicados en CSV/grilla rompen el upsert del API)
@@ -3996,7 +4572,10 @@ function Sync-ToDashboard($rows, $lbl) {
               -ContentType 'application/json; charset=utf-8' -TimeoutSec 120 -UseBasicParsing
     $result = $resp.Content | ConvertFrom-Json
     $count = if ($null -ne $result.count) { [int]$result.count } else { $servers.Count }
-    $lbl.Text = "Sincronizado con Centro de Control de Parcheo correctamente ($count servidores)."
+    $tipo = ''
+    try { $tipo = "$($servers[0].Tipo_Reporte)".Trim() } catch {}
+    if (-not $tipo) { $tipo = Resolve-ReportTipo $script:RepTipo }
+    $lbl.Text = "Sincronizado con Centro de Control de Parcheo correctamente ($count servidores, Tipo_Reporte=$tipo)."
     $lbl.Foreground = [System.Windows.Media.Brushes]::Green
   } catch {
     $detail = $_.Exception.Message
@@ -4015,53 +4594,89 @@ function Sync-ToDashboard($rows, $lbl) {
   }
 }
 
+function ConvertTo-ReportFileName([string]$Title) {
+  $s = ConvertTo-ScheduledTaskName $Title 'Reporte'
+  $s = $s -replace '[\[\]]', '-'
+  $s = ($s -replace '\s+', ' ').Trim(' ', '-')
+  if (-not $s) { $s = 'Reporte' }
+  return $s
+}
+
+function Export-ReportCsvFile($Rows, [string]$File) {
+  $export = @($Rows | ForEach-Object {
+    [pscustomobject][ordered]@{
+      Analista                  = $_.Analista
+      Grupo                     = $_.Grupo
+      Ambiente                  = $_.Ambiente
+      Dominio                   = $_.Dominio
+      Servidor                  = $_.Servidor
+      IP                        = $_.IP
+      Sistema_Operativo         = $_.Sistema_Operativo
+      Version_Sistema_Operativo = $_.Version_Sistema_Operativo
+      SQL_Instancia             = $_.SQL_Instancia
+      SQL_Version               = $_.SQL_Version
+      SQL_Ultima_Actualizacion  = $_.SQL_Ultima_Actualizacion
+      Fecha_Ventana             = $_.Fecha_Ventana
+      Fecha_Instalacion         = $_.Fecha_Instalacion
+      KBs_Instaladas            = $_.KBs_Instaladas
+      KBs_Ventana               = $_.KBs_Ventana
+      Fecha_Reinicio            = $_.Fecha_Reinicio
+      Running_Time              = $_.Running_Time
+      Estado                    = $_.Estado
+      Descripcion_Error         = $_.Descripcion_Error
+      Comentarios               = $_.Comentarios
+      Disk_Space                = $_.Disk_Space
+      Snap                      = $_.Snap
+      Confirmado                = $_.Confirmado
+      Tipo_Reporte              = $(if ("$($_.Tipo_Reporte)".Trim()) { "$($_.Tipo_Reporte)".Trim() } else { 'Ventana' })
+    }
+  })
+  $export | Export-Csv -LiteralPath $File -NoTypeInformation -Delimiter ';' -Encoding UTF8
+}
+
 # Guarda una copia CSV del reporte en la carpeta .\Reportes (un archivo por corrida)
 function Save-ReportCsv($rows, [string]$Title = '') {
+  $script:RepSaveError = ''
+  $dir = Join-Path $script:ScriptDir 'Reportes'
   try {
-    $dir = Join-Path $script:ScriptDir 'Reportes'
-    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $fileName = "Reporte_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')
-    if ("$Title".Trim()) {
-      $safe = ConvertTo-ScheduledTaskName $Title.Trim() 'Reporte'
-      $fileName = "$safe.csv"
-      if (Test-Path -LiteralPath (Join-Path $dir $fileName)) {
-        $fileName = "{0}_{1}.csv" -f $safe, (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')
-      }
-    }
-    $file = Join-Path $dir $fileName
-    # Proyectamos a objetos ordenados para fijar el orden y los nombres de columna
-    $export = $rows | ForEach-Object {
-      [pscustomobject][ordered]@{
-        Analista                  = $_.Analista
-        Grupo                     = $_.Grupo
-        Ambiente                  = $_.Ambiente
-        Dominio                   = $_.Dominio
-        Servidor                  = $_.Servidor
-        IP                        = $_.IP
-        Sistema_Operativo         = $_.Sistema_Operativo
-        Version_Sistema_Operativo = $_.Version_Sistema_Operativo
-        SQL_Instancia             = $_.SQL_Instancia
-        SQL_Version               = $_.SQL_Version
-        SQL_Ultima_Actualizacion  = $_.SQL_Ultima_Actualizacion
-        Fecha_Ventana             = $_.Fecha_Ventana
-        Fecha_Instalacion         = $_.Fecha_Instalacion
-        KBs_Instaladas            = $_.KBs_Instaladas
-        Fecha_Reinicio            = $_.Fecha_Reinicio
-        Running_Time              = $_.Running_Time
-        Estado                    = $_.Estado
-        Descripcion_Error         = $_.Descripcion_Error
-        Comentarios               = $_.Comentarios
-        Disk_Space                = $_.Disk_Space
-        Snap                      = $_.Snap
-        Confirmado                = $_.Confirmado
-      }
-    }
-    # Delimitador ';' para que Excel (locale es-AR) lo abra en columnas con doble clic
-    $export | Export-Csv -Path $file -NoTypeInformation -Delimiter ';' -Encoding UTF8
-    return $file
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
   } catch {
+    $script:RepSaveError = "No se pudo crear la carpeta Reportes: $($_.Exception.Message)"
+    Write-Log 'ERROR' $script:RepSaveError
     return $null
   }
+  $stamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+  $candidates = @()
+  if ("$Title".Trim()) {
+    $safe = ConvertTo-ReportFileName $Title.Trim()
+    $maxName = 150
+    $dirLen = ("$dir").Length
+    if ($dirLen -gt 0 -and ($dirLen + 1 + $maxName + 4) -gt 240) {
+      $maxName = [Math]::Max(40, 240 - $dirLen - 5)
+    }
+    if ($safe.Length -gt $maxName) { $safe = $safe.Substring(0, $maxName).Trim(' ', '-') }
+    $candidates += "$safe.csv"
+    $candidates += ("{0}_{1}.csv" -f $safe, $stamp)
+  }
+  $candidates += "Reporte_$stamp.csv"
+  $candidates = @($candidates | Select-Object -Unique)
+  $lastErr = ''
+  foreach ($fileName in $candidates) {
+    $file = Join-Path $dir $fileName
+    if ($fileName -eq $candidates[0] -and "$Title".Trim() -and (Test-Path -LiteralPath $file)) { continue }
+    try {
+      Export-ReportCsvFile $rows $file
+      Write-Log 'INFO' "CSV local guardado: $file"
+      return $file
+    } catch {
+      $lastErr = $_.Exception.Message
+      Write-Log 'WARN' "No se pudo guardar '$file': $lastErr"
+    }
+  }
+  $script:RepSaveError = $lastErr
+  if (-not $script:RepSaveError) { $script:RepSaveError = 'Error desconocido al guardar el CSV' }
+  Write-Log 'ERROR' "No se pudo guardar copia local en Reportes: $($script:RepSaveError)"
+  return $null
 }
 
 # Construye y muestra la ventana del reporte (grilla + sincronizacion)
@@ -4096,10 +4711,12 @@ function Show-ReportWindow($rows, $savedPath, [string]$Title = '') {
         <DataGridTextColumn Header="SQL Ult. Act."     Binding="{Binding SQL_Ultima_Actualizacion}"  Width="200"/>
         <DataGridTextColumn Header="Fecha Ventana"     Binding="{Binding Fecha_Ventana}"             Width="120"/>
         <DataGridTextColumn Header="Fecha Instalacion" Binding="{Binding Fecha_Instalacion}"         Width="130"/>
-        <DataGridTextColumn Header="KBs Instaladas"    Binding="{Binding KBs_Instaladas}"            Width="200"/>
+        <DataGridTextColumn Header="KBs del mes"       Binding="{Binding KBs_Instaladas}"            Width="220"/>
+        <DataGridTextColumn Header="KBs ventana"       Binding="{Binding KBs_Ventana}"               Width="220"/>
         <DataGridTextColumn Header="Fecha Reinicio"    Binding="{Binding Fecha_Reinicio}"            Width="150"/>
         <DataGridTextColumn Header="Running Time"      Binding="{Binding Running_Time}"              Width="110"/>
         <DataGridTextColumn Header="Estado"            Binding="{Binding Estado}"                    Width="120"/>
+        <DataGridTextColumn Header="Tipo reporte"      Binding="{Binding Tipo_Reporte}"              Width="100"/>
         <DataGridTextColumn Header="Disk Space"        Binding="{Binding Disk_Space}"                Width="180"/>
         <DataGridTextColumn Header="Descripcion Error" Binding="{Binding Descripcion_Error}"         Width="220"/>
         <DataGridTextColumn Header="Snap"              Binding="{Binding Snap}"                      Width="280"/>
@@ -4128,7 +4745,12 @@ function Show-ReportWindow($rows, $savedPath, [string]$Title = '') {
 
   $dgR.ItemsSource = $rows
   if ($savedPath) { $lblF.Text = "Copia local guardada en: $savedPath" }
-  else            { $lblF.Text = "No se pudo guardar la copia local (revisa permisos en la carpeta Reportes)."; $lblF.Foreground = [System.Windows.Media.Brushes]::Red }
+  else {
+    $why = "$($script:RepSaveError)".Trim()
+    if (-not $why) { $why = 'revisa la ruta, el nombre del archivo y que Reportes no este bloqueada por OneDrive o Excel' }
+    $lblF.Text = "No se pudo guardar la copia local: $why"
+    $lblF.Foreground = [System.Windows.Media.Brushes]::Red
+  }
   $fnSyncDash = ${function:Sync-ToDashboard}
   $bClose.Add_Click({ $win.Close() })
   $bResy.Add_Click({ & $fnSyncDash $rows $lbl }.GetNewClosure())
@@ -4299,35 +4921,120 @@ function Show-ReportScopeDialog {
   return $box.Result
 }
 
-function Show-Report {
-  if ([bool]$script:ReportRunning) { return }
-  Flush-GridProcessFlags
-  $targets = @()
-  $periodMode = 'CurrentMonth'
-  $specificDate = ''
-  $script:RepComment = ''
-  $script:RepWindowDate = (Get-Date).ToString('yyyy-MM-dd')
+function Test-GridWindowBusy {
+  if ([int]$script:GridJobsStarting -gt 0) { return $true }
+  $queueCount = 0
+  if ($null -ne $script:FixQueue) { $queueCount = [int]$script:FixQueue.Count }
+  $jobs = 0; if ($null -ne $script:Jobs) { $jobs = [int]$script:Jobs.Count }
+  $fix = 0; if ($null -ne $script:FixJobs) { $fix = [int]$script:FixJobs.Count }
+  $reb = 0; if ($null -ne $script:RebootJobs) { $reb = [int]$script:RebootJobs.Count }
+  $auto = 0; if ($null -ne $script:AutoRebootPending) { $auto = [int]$script:AutoRebootPending.Count }
+  if ($jobs -gt 0 -or $fix -gt 0 -or $queueCount -gt 0 -or $reb -gt 0 -or $auto -gt 0 -or [bool]$script:ReportRunning) {
+    return $true
+  }
+  foreach ($row in @($script:Servers)) {
+    $state = "$($row.State)"
+    $status = "$($row.Status)"
+    if ($status -match '(?i)timeout|^error(\s|$)|error de conexion|sin conectividad|detenido') { continue }
+    if ($state -eq 'DownloadInstall' -and $status -notmatch '(?i)finalizada') { return $true }
+    if ($state -in @('CheckWSUS','Remediation') -and $status -match '(?i)descarg|instalando|conectando|verificando|chequeando|remediando|en curso') {
+      return $true
+    }
+    if ($status -match '(?i)^Fix:.*(espera|copiando|procesando|preparando|reintento)') { return $true }
+  }
+  return $false
+}
 
-  if ($script:Servers.Count -gt 0) {
-    if (-not "$script:RepLocalTitle".Trim()) {
+function Stop-AutoGridReportTimer {
+  if ($script:AutoGridReportTimer) {
+    try { $script:AutoGridReportTimer.Stop() } catch {}
+  }
+}
+
+function Cancel-AutoGridReport {
+  param([string]$Reason = '')
+  Stop-AutoGridReportTimer
+  $script:GridWindowNeedsReport = $false
+  if ("$Reason".Trim()) {
+    Write-Log 'INFO' "Reporte automatico de grilla cancelado: $Reason"
+  }
+}
+
+function Start-GridWindowReport {
+  param([switch]$Auto)
+  if ([bool]$script:ReportRunning) { return }
+  if ($Auto -and (Test-GridWindowBusy)) {
+    Write-Log 'INFO' 'Reporte automatico pospuesto: hay servidores en descarga, instalacion o reinicio'
+    return
+  }
+  if (-not $script:Servers -or @($script:Servers).Count -eq 0) { return }
+  Flush-GridProcessFlags
+  $title = "$($script:RepLocalTitle)".Trim()
+  if (-not $title) {
+    if (-not $Auto) {
       $taskTitle = Prompt-ReportTaskName
       if (-not $taskTitle) { return }
       Set-ReportTaskTitle $taskTitle
+      $title = "$taskTitle".Trim()
+    } else {
+      $title = 'Ventana {0}' -f (Get-Date).ToString('yyyy-MM-dd')
     }
-    $targets = @($script:Servers | ForEach-Object { $_.Servidor } | Where-Object { $_ } | Sort-Object -Unique)
-    Write-Log 'INFO' "Reporte de grilla | tarea=$($script:RepLocalTitle) | servidores=$($targets.Count)"
-  } else {
-    $scope = Show-ReportScopeDialog
-    if (-not $scope) { return }
-    $targets = @($scope.Servers)
-    $periodMode = 'SpecificDate'
-    $specificDate = ([datetime]$scope.Date).ToString('yyyy-MM-dd')
-    $script:RepWindowDate = $specificDate
-    $script:RepComment = "$($scope.Motivo)".Trim()
-    Write-Log 'INFO' "Reporte por grupo '$($scope.Group)' | fecha ventana=$specificDate | servidores=$($targets.Count) | motivo=$($script:RepComment)"
   }
+  $targets = @($script:Servers | ForEach-Object { $_.Servidor } | Where-Object { $_ } | Sort-Object -Unique)
   if ($targets.Count -eq 0) { return }
-  [void](Start-ReportCollection -Targets $targets -PeriodMode $periodMode -SpecificDate $specificDate -WindowDate $script:RepWindowDate -Comment $script:RepComment)
+  $script:RepComment = ''
+  $script:RepWindowDate = (Get-Date).ToString('yyyy-MM-dd')
+  Stop-AutoGridReportTimer
+  $script:GridWindowNeedsReport = $false
+  $src = if ($Auto) { 'automatico al finalizar la ventana' } else { 'manual' }
+  Write-Log 'INFO' "Reporte de grilla ($src) | tarea=$title | servidores=$($targets.Count)"
+  $ok = Start-ReportCollection -Targets $targets -PeriodMode 'CurrentMonth' -SpecificDate '' -WindowDate $script:RepWindowDate -Title $title -Comment '' -TipoReporte 'Ventana'
+  if (-not $ok) { $script:GridWindowNeedsReport = $true }
+}
+
+function Request-AutoGridReport {
+  if (-not $script:GridWindowNeedsReport) { return }
+  if (Test-GridWindowBusy) {
+    Stop-AutoGridReportTimer
+    return
+  }
+  if (-not $script:Servers -or @($script:Servers).Count -eq 0) {
+    Cancel-AutoGridReport 'grilla vacia'
+    return
+  }
+  if (-not $script:AutoGridReportTimer) {
+    $script:AutoGridReportTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:AutoGridReportTimer.Interval = [TimeSpan]::FromSeconds(12)
+    $script:AutoGridReportTimer.add_Tick({
+      if ($script:AutoGridReportTimer) { $script:AutoGridReportTimer.Stop() }
+      if (-not $script:GridWindowNeedsReport) { return }
+      if (Test-GridWindowBusy) { return }
+      Write-Log 'INFO' 'Ventana de grilla finalizada: generando reporte automatico'
+      Start-GridWindowReport -Auto
+    })
+  }
+  if ($script:AutoGridReportTimer.IsEnabled) { return }
+  $script:AutoGridReportTimer.Start()
+  Write-Log 'INFO' 'Ventana de grilla inactiva: el reporte automatico arranca en 12s'
+}
+
+function Show-Report {
+  if ([bool]$script:ReportRunning) { return }
+  if ($script:Servers.Count -gt 0) {
+    Start-GridWindowReport
+    return
+  }
+  Flush-GridProcessFlags
+  $scope = Show-ReportScopeDialog
+  if (-not $scope) { return }
+  $targets = @($scope.Servers)
+  $periodMode = 'SpecificDate'
+  $specificDate = ([datetime]$scope.Date).ToString('yyyy-MM-dd')
+  $script:RepWindowDate = $specificDate
+  $script:RepComment = "$($scope.Motivo)".Trim()
+  Write-Log 'INFO' "Reporte por grupo '$($scope.Group)' | fecha ventana=$specificDate | servidores=$($targets.Count) | motivo=$($script:RepComment)"
+  if ($targets.Count -eq 0) { return }
+  [void](Start-ReportCollection -Targets $targets -PeriodMode $periodMode -SpecificDate $specificDate -WindowDate $script:RepWindowDate -Comment $script:RepComment -TipoReporte 'Mensual')
 }
 
 function Get-InventoryServerNames {
@@ -4352,21 +5059,20 @@ function Start-ReportCollection {
     [string]$WindowDate = '',
     [string]$Title = '',
     [string]$Comment = '',
+    [string]$TipoReporte = '',
     [switch]$FullInventoryCard
   )
   if ([bool]$script:ReportRunning) { return $false }
   $targets = @($Targets | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
   if ($targets.Count -eq 0) { return $false }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return $false
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return $false }
   $script:RepComment = "$Comment"
   if ("$WindowDate".Trim()) { $script:RepWindowDate = "$WindowDate".Trim() }
   $script:RepPeriodMode = "$PeriodMode".Trim()
   $script:RepSpecificDate = "$SpecificDate".Trim()
   $script:RepSaveTitle = "$Title".Trim()
   $script:RepCardAllInventory = [bool]$FullInventoryCard
+  $script:RepTipo = Resolve-ReportTipo $TipoReporte -MonthlyInventory:$FullInventoryCard
   foreach ($j in $script:RepPool) {
     try { $j.ps.Stop() } catch {}
     try { $j.ps.Dispose() } catch {}
@@ -4381,26 +5087,25 @@ function Start-ReportCollection {
   $script:RepDeadline    = (Get-Date).AddMinutes(10)
   $script:RepPool        = @()
 
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $rjob = {
-    param($server, $psexec, $worker, $rel, $periodMode, $specificDate, $bag)
+    param($server, $psexec, $worker, $rel, $periodMode, $specificDate, $windowDate, $bag, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $obj = $null
     try {
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\report.json" -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\report.ps1" -Force -ErrorAction Stop
-      $reportArgs = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\report.ps1",'-PeriodMode',$periodMode)
-      if ($periodMode -in @('SpecificDate','SpecificMonth') -and $specificDate) { $reportArgs += @('-SpecificDate',$specificDate) }
-      $null = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @reportArgs 2>&1
-      if (Test-Path "$remoteDir\report.json") {
-        $raw = Get-Content "$remoteDir\report.json" -Raw
-        if ($raw) { $obj = $raw | ConvertFrom-Json }
-      }
+      $extra = @('-PeriodMode', $periodMode)
+      if ($periodMode -in @('SpecificDate','SpecificMonth') -and $specificDate) { $extra += @('-SpecificDate', $specificDate) }
+      if ("$windowDate".Trim()) { $extra += @('-WindowDate', "$windowDate".Trim()) }
+      $raw = Invoke-WuuRemoteScript $server $worker $rel 'report.ps1' $extra 'report.json' $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+      if ("$raw".Trim()) { $obj = $raw | ConvertFrom-Json }
     } catch {}
     if (-not $obj) {
       $obj = [pscustomobject]@{
         Dominio=''; Servidor=$server; IP=''; Sistema_Operativo='';
-        Version_Sistema_Operativo=''; Fecha_Instalacion=''; KBs_Instaladas='';
+        Version_Sistema_Operativo=''; Fecha_Instalacion=''; KBs_Instaladas=''; KBs_Ventana='';
         Fecha_Reinicio=''; Running_Time=''; Descripcion_Error='Falla de conexion: sin conexion o sin datos'; Disk_Space=''
       }
     }
@@ -4415,7 +5120,11 @@ function Start-ReportCollection {
         AddArgument($server).AddArgument($script:PsExecPath).
         AddArgument($script:LocalReportWorker).AddArgument($script:RemoteRel).
         AddArgument($periodMode).AddArgument($specificDate).
-        AddArgument($script:RepBag) | Out-Null
+        AddArgument("$($script:RepWindowDate)").
+        AddArgument($script:RepBag).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+        AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
     $script:RepPool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
   }
 
@@ -4455,6 +5164,19 @@ function Get-PeriodMonthKey([string]$PeriodMode, [string]$SpecificDate = '', [st
   return $now.ToString('yyyy-MM')
 }
 
+function Add-UniqueKbMap($Map, [string]$Raw) {
+  foreach ($part in ("$Raw" -split '[,;]')) {
+    $kb = $part.Trim()
+    if (-not $kb) { continue }
+    $Map[$kb.ToUpperInvariant()] = $kb
+  }
+}
+
+function Join-KbMap($Map) {
+  if (-not $Map -or $Map.Count -eq 0) { return '' }
+  return ((@($Map.Keys) | Sort-Object) | ForEach-Object { $Map[$_] }) -join ', '
+}
+
 function Get-MonthlyBankSummaryPath([string]$MonthKey) {
   if ("$MonthKey" -notmatch '^\d{4}-\d{2}$') { throw "Mes invalido: $MonthKey" }
   $dir = Join-Path $script:ScriptDir 'Reportes\Acumulado'
@@ -4465,8 +5187,8 @@ function Get-MonthlyBankSummaryPath([string]$MonthKey) {
 # Una fila por ventana (Cliente + Grupo). Total = servidores de ese grupo en el CSV.
 # Las filas recibidas son el acumulado del mes. Un grupo sin ventana no aparece.
 function Get-MonthlyBankSummary($ReportRows) {
-  $snapNo = 'No se recibio la confirmacion de la ejecucion del snapshot de este servidor'
-  $confNo = 'El cliente no confirmo la ejecucion de las actualizaciones de este servidor'
+  $snapNo = 'No'
+  $confNo = 'No'
   $invOnce = @{}
   $groupTotal = @{}
   foreach ($r in @($script:Csv)) {
@@ -4507,7 +5229,7 @@ function Get-MonthlyBankSummary($ReportRows) {
       $buckets[$gk] = @{
         Banco = $cli; Grupo = $grp
         Total = $total; Actualizados = 0; Error = 0; SinConfirmar = 0; SinSnap = 0; SinActualizar = 0
-        Seen = @{}
+        Seen = @{}; KbsMes = @{}; KbsVentana = @{}
       }
     }
     $b = $buckets[$gk]
@@ -4517,6 +5239,8 @@ function Get-MonthlyBankSummary($ReportRows) {
     if ("$($hit.Descripcion_Error)".Trim()) { $b.Error++ }
     if ("$($hit.Confirmado)".Trim() -eq $confNo) { $b.SinConfirmar++ }
     if ("$($hit.Snap)".Trim() -eq $snapNo) { $b.SinSnap++ }
+    Add-UniqueKbMap $b.KbsMes "$($hit.KBs_Instaladas)"
+    Add-UniqueKbMap $b.KbsVentana "$($hit.KBs_Ventana)"
   }
   foreach ($k in @($invOnce.Keys)) {
     $gk = $invOnce[$k].Cliente + "`n" + $invOnce[$k].Grupo
@@ -4546,6 +5270,8 @@ function Get-MonthlyBankSummary($ReportRows) {
       '% Sin Snap'       = (Format-BankPercent $b.SinSnap $b.Total)
       'Sin actualizar'   = $b.SinActualizar
       '% Sin actualizar' = (Format-BankPercent $b.SinActualizar $b.Total)
+      'KBs del mes'      = (Join-KbMap $b.KbsMes)
+      'KBs ventana'      = (Join-KbMap $b.KbsVentana)
     })
   }
   return @($out)
@@ -4590,6 +5316,8 @@ function Publish-MonthlyBankSummary($ReportRows, [string]$MonthKey) {
       Descripcion_Error = "$($r.Descripcion_Error)"
       Snap              = "$($r.Snap)".Trim()
       Confirmado        = "$($r.Confirmado)".Trim()
+      KBs_Instaladas    = "$($r.KBs_Instaladas)"
+      KBs_Ventana       = "$($r.KBs_Ventana)"
     }
     $updated++
   }
@@ -4677,17 +5405,13 @@ function On-ReportTick {
       $rr.Fecha_Ventana             = "$($script:RepWindowDate)"
       $rr.Fecha_Instalacion         = "$($o.Fecha_Instalacion)"
       $rr.KBs_Instaladas            = "$($o.KBs_Instaladas)"
+      $rr.KBs_Ventana               = "$($o.KBs_Ventana)"
       $rr.Fecha_Reinicio            = "$($o.Fecha_Reinicio)"
       $rr.Running_Time              = "$($o.Running_Time)"
-      $rr.Descripcion_Error         = "$($o.Descripcion_Error)"
       $qname = ''
       try { $qname = "$($o.QueryName)".Trim() } catch {}
-      $gridRow = $script:Servers | Where-Object {
-        $n = "$($_.Servidor)".Trim()
-        $n -ieq "$($o.Servidor)".Trim() -or
-        ($qname -and $n -ieq $qname) -or
-        ((Get-ServerMatchKey $n) -and ((Get-ServerMatchKey $n) -eq (Get-ServerMatchKey $o.Servidor) -or ($qname -and (Get-ServerMatchKey $n) -eq (Get-ServerMatchKey $qname))))
-      } | Select-Object -First 1
+      $gridRow = Get-GridRowForReport "$($o.Servidor)" $qname
+      $rr.Descripcion_Error         = Merge-ReportErrorText "$($o.Descripcion_Error)" $(if ($gridRow) { "$($gridRow.Error)" } else { '' })
       $gridComment = if ($gridRow) { "$($gridRow.Comentarios)".Trim() } else { '' }
       $motivo = "$($script:RepComment)".Trim()
       if ($gridComment -and $motivo) {
@@ -4700,6 +5424,7 @@ function On-ReportTick {
       $confVal = [bool]$flags.Confirmado
       $rr.Snap = Get-SnapReportText $snapVal
       $rr.Confirmado = Get-ConfirmadoReportText $confVal
+      $rr.Tipo_Reporte = Resolve-ReportTipo $script:RepTipo
       $rr.Comentarios = Join-ReportComments $rr.Comentarios $snapVal $confVal
       $nota = ''
       try { $nota = "$($o.Nota_Updates)" } catch {}
@@ -4902,10 +5627,7 @@ function Start-Consult {
   $names = @($scope.Names)
   $checkKbs = "$($scope.KBs)".Trim()
   if ($names.Count -eq 0) { return }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
 
   $targets = @()
   $script:ConsultMeta = @{}
@@ -4935,21 +5657,19 @@ function Start-Consult {
   $script:ConsultPool = @()
   Write-Log 'INFO' "Consulta iniciada: $($targets.Count) servidor(es)$(if ($checkKbs) { " | KBs=$checkKbs" } else { '' })."
 
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $cjob = {
-    param($server, $psexec, $worker, $rel, $checkKbs, $bag)
+    param($server, $psexec, $worker, $rel, $checkKbs, $bag, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $obj = $null
     try {
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\consult.json" -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\consult.ps1" -Force -ErrorAction Stop
-      $consultArgs = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\consult.ps1")
-      if ("$checkKbs".Trim()) { $consultArgs += @('-CheckKBs', "$checkKbs") }
-      $null = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe @consultArgs 2>&1
-      if (Test-Path "$remoteDir\consult.json") {
-        $raw = Get-Content "$remoteDir\consult.json" -Raw
-        if ($raw) { $obj = $raw | ConvertFrom-Json }
-      }
+      $extra = @()
+      if ("$checkKbs".Trim()) { $extra += @('-CheckKBs', "$checkKbs") }
+      $raw = Invoke-WuuRemoteScript $server $worker $rel 'consult.ps1' $extra 'consult.json' $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+      if ("$raw".Trim()) { $obj = $raw | ConvertFrom-Json }
     } catch {}
     if (-not $obj) {
       $obj = [pscustomobject]@{
@@ -4974,7 +5694,10 @@ function Start-Consult {
     $ps.AddScript($cjob.ToString()).
         AddArgument($server).AddArgument($script:PsExecPath).
         AddArgument($script:LocalConsultWorker).AddArgument($script:RemoteRel).
-        AddArgument($checkKbs).AddArgument($script:ConsultBag) | Out-Null
+        AddArgument($checkKbs).AddArgument($script:ConsultBag).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+        AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
     $script:ConsultPool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
   }
 
@@ -5394,9 +6117,16 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
   })
   $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $fjob = {
-    param($server, $psexec, $fixWorker, $rel, $packageData, $mode, $sync)
+    param($server, $psexec, $fixWorker, $rel, $packageData, $mode, $sync, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $results = @()
+    $sess = $null
+    $useRm = $false
     try {
       $remoteDir = "\\$server\C`$\$rel"
       $dirOk = $false
@@ -5409,9 +6139,17 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
           break
         } catch { $dirErr = $_.Exception.Message }
       }
-      if (-not $dirOk) { throw $dirErr }
+      if (-not $dirOk) {
+        if (-not $rmOn) { throw $dirErr }
+        $useRm = $true
+        $sess = New-WuuRmSession $server $rmSsl $rmPort $rmTo
+        Invoke-Command -Session $sess -ScriptBlock {
+          param($d) New-Item -ItemType Directory -Path $d -Force | Out-Null
+        } -ArgumentList (Join-Path 'C:\' $rel) | Out-Null
+      }
       if ($mode -eq 'install') {
-        Copy-Item -Path $fixWorker -Destination "$remoteDir\fix.ps1" -Force -ErrorAction Stop
+        if ($useRm) { Copy-WuuRmFile $sess $fixWorker $rel 'fix.ps1' }
+        else { Copy-Item -Path $fixWorker -Destination "$remoteDir\fix.ps1" -Force -ErrorAction Stop }
       }
 
       $robocopy = Join-Path $env:SystemRoot 'System32\robocopy.exe'
@@ -5437,7 +6175,20 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
           }
           $srcLen = (Get-Item -LiteralPath $srcPath).Length
           $destOk = $false
-          if (Test-Path -LiteralPath $pkgRemote -PathType Leaf) {
+          if ($useRm) {
+            $dstLen = [long](Invoke-Command -Session $sess -ScriptBlock {
+              param($rel, $name)
+              $p = Join-Path (Join-Path 'C:\' $rel) $name
+              if (Test-Path -LiteralPath $p -PathType Leaf) { (Get-Item -LiteralPath $p).Length } else { -1 }
+            } -ArgumentList $rel, $pkgName)
+            if ($dstLen -eq $srcLen) { $destOk = $true; $entry.alreadyExists = $true }
+            elseif ($dstLen -ge 0) {
+              Invoke-Command -Session $sess -ScriptBlock {
+                param($rel, $name)
+                Remove-Item -LiteralPath (Join-Path (Join-Path 'C:\' $rel) $name) -Force -ErrorAction SilentlyContinue
+              } -ArgumentList $rel, $pkgName
+            }
+          } elseif (Test-Path -LiteralPath $pkgRemote -PathType Leaf) {
             $dstLen = (Get-Item -LiteralPath $pkgRemote).Length
             if ($dstLen -eq $srcLen) {
               $destOk = $true
@@ -5456,19 +6207,36 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
                   $sync.current = "$pkgName (reintento $tryCopy)"
                   Start-Sleep -Seconds (5 * $tryCopy)
                 }
-                & $robocopy $srcDir $remoteDir $pkgName /Z /R:1 /W:3 /NFL /NDL /NJH /NJS /NP | Out-Null
-                if ($LASTEXITCODE -ge 8) { throw "robocopy codigo $LASTEXITCODE" }
-                if (-not (Test-Path -LiteralPath $pkgRemote -PathType Leaf)) {
-                  throw 'La copia no dejo el archivo en el servidor'
+                if ($useRm) {
+                  Copy-WuuRmFile $sess $srcPath $rel $pkgName
+                  $dstLen = [long](Invoke-Command -Session $sess -ScriptBlock {
+                    param($rel, $name)
+                    $p = Join-Path (Join-Path 'C:\' $rel) $name
+                    if (Test-Path -LiteralPath $p -PathType Leaf) { (Get-Item -LiteralPath $p).Length } else { -1 }
+                  } -ArgumentList $rel, $pkgName)
+                  if ($dstLen -ne $srcLen) { throw "Copia incompleta ($dstLen de $srcLen bytes)" }
+                } else {
+                  & $robocopy $srcDir $remoteDir $pkgName /Z /R:1 /W:3 /NFL /NDL /NJH /NJS /NP | Out-Null
+                  if ($LASTEXITCODE -ge 8) { throw "robocopy codigo $LASTEXITCODE" }
+                  if (-not (Test-Path -LiteralPath $pkgRemote -PathType Leaf)) {
+                    throw 'La copia no dejo el archivo en el servidor'
+                  }
+                  $dstLen = (Get-Item -LiteralPath $pkgRemote).Length
+                  if ($dstLen -ne $srcLen) { throw "Copia incompleta ($dstLen de $srcLen bytes)" }
                 }
-                $dstLen = (Get-Item -LiteralPath $pkgRemote).Length
-                if ($dstLen -ne $srcLen) { throw "Copia incompleta ($dstLen de $srcLen bytes)" }
                 $copied = $true
                 $entry.copied = $true
                 break
               } catch {
                 $lastCopyErr = $_.Exception.Message
-                Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
+                if ($useRm) {
+                  Invoke-Command -Session $sess -ScriptBlock {
+                    param($rel, $name)
+                    Remove-Item -LiteralPath (Join-Path (Join-Path 'C:\' $rel) $name) -Force -ErrorAction SilentlyContinue
+                  } -ArgumentList $rel, $pkgName
+                } else {
+                  Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
+                }
               }
             }
             if (-not $copied) { throw $lastCopyErr }
@@ -5482,31 +6250,49 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
               'Archivo copiado al servidor'
             }
           } else {
-            Remove-Item "$remoteDir\fix.json" -ErrorAction SilentlyContinue
-            $out = & $psexec "\\$server" -accepteula -nobanner -s `
-                      powershell.exe -ExecutionPolicy Bypass -NonInteractive `
-                      -File "C:\$rel\fix.ps1" -PackageName $pkgName 2>&1
-            $psexecExit = $LASTEXITCODE
-            if (Test-Path "$remoteDir\fix.json") {
-              $raw = Get-Content "$remoteDir\fix.json" -Raw -ErrorAction Stop
+            if ($useRm) {
+              Invoke-Command -Session $sess -ScriptBlock {
+                param($rel)
+                Remove-Item -LiteralPath (Join-Path (Join-Path 'C:\' $rel) 'fix.json') -Force -ErrorAction SilentlyContinue
+              } -ArgumentList $rel
+              Invoke-WuuRmSystem $sess $rel 'fix.ps1' "-PackageName `"$pkgName`"" 600
+              $raw = Get-WuuRmText $sess $rel 'fix.json'
+              if (-not "$raw".Trim()) { throw 'Sin respuesta del servidor (fix.json)' }
               $fx = $raw | ConvertFrom-Json
-              $entry.exitCode = [long]$fx.exitCode
-              $entry.message = "$($fx.message)"
-              if ($entry.alreadyExists) {
-                $entry.message += ' (archivo existente, mismo tamano; no se volvio a copiar)'
-              }
-              $entry.rebootRequired = [bool]$fx.rebootRequired
             } else {
-              $tail = (($out | Select-Object -Last 3) -join ' ')
-              if ($psexecExit -ne 0) { throw "PsExec codigo $psexecExit. $tail" }
-              throw 'Sin respuesta del servidor (fix.json)'
+              Remove-Item "$remoteDir\fix.json" -ErrorAction SilentlyContinue
+              $out = & $psexec "\\$server" -accepteula -nobanner -s `
+                        powershell.exe -ExecutionPolicy Bypass -NonInteractive `
+                        -File "C:\$rel\fix.ps1" -PackageName $pkgName 2>&1
+              $psexecExit = $LASTEXITCODE
+              if (Test-Path "$remoteDir\fix.json") {
+                $raw = Get-Content "$remoteDir\fix.json" -Raw -ErrorAction Stop
+                $fx = $raw | ConvertFrom-Json
+              } else {
+                $tail = (($out | Select-Object -Last 3) -join ' ')
+                if ($psexecExit -ne 0) { throw "PsExec codigo $psexecExit. $tail" }
+                throw 'Sin respuesta del servidor (fix.json)'
+              }
             }
+            $entry.exitCode = [long]$fx.exitCode
+            $entry.message = "$($fx.message)"
+            if ($entry.alreadyExists) {
+              $entry.message += ' (archivo existente, mismo tamano; no se volvio a copiar)'
+            }
+            $entry.rebootRequired = [bool]$fx.rebootRequired
           }
         } catch {
           $entry.message = $_.Exception.Message
         } finally {
           if ($mode -eq 'install' -and [long]$entry.exitCode -in @(0,3010,2359302)) {
-            Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
+            if ($useRm) {
+              Invoke-Command -Session $sess -ScriptBlock {
+                param($rel, $name)
+                Remove-Item -LiteralPath (Join-Path (Join-Path 'C:\' $rel) $name) -Force -ErrorAction SilentlyContinue
+              } -ArgumentList $rel, $pkgName
+            } else {
+              Remove-Item -LiteralPath $pkgRemote -Force -ErrorAction SilentlyContinue
+            }
           }
         }
         $results += [pscustomobject]$entry
@@ -5514,6 +6300,7 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
     } catch {
       $sync.transportError = $_.Exception.Message
     } finally {
+      if ($sess) { try { Remove-PSSession $sess } catch {} }
       $sync.resultJson = @($results) | ConvertTo-Json -Depth 4 -Compress
       $sync.done = $true
     }
@@ -5526,7 +6313,10 @@ function Start-FixJob($row, [array]$packages, [ValidateSet('copy','install')][st
       AddArgument($script:LocalFixWorker).AddArgument($script:RemoteRel).
       AddArgument($packageData).
       AddArgument($mode).
-      AddArgument($sync) | Out-Null
+      AddArgument($sync).
+      AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+      AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+      AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
   $handle = $ps.BeginInvoke()
 
   $names = @($packageData | ForEach-Object { $_.Name })
@@ -5547,6 +6337,7 @@ function On-FixTick {
   if ($script:FixJobs.Count -eq 0) {
     if ($script:FixTimer) { $script:FixTimer.Stop() }
     Update-ButtonStates
+    Request-AutoGridReport
     return
   }
 
@@ -5643,6 +6434,7 @@ function On-FixTick {
     Start-QueuedFixJobs
   }
   Update-ButtonStates
+  Request-AutoGridReport
 }
 
 function Start-FixFlow {
@@ -5665,12 +6457,7 @@ function Start-FixFlow {
   }
   $mode = Show-FixModePicker
   if (-not $mode) { return }
-  if ($mode -eq 'install' -and -not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show(
-      "No se encuentra PsExec.exe en:`n$script:PsExecPath",
-      'WUU', 'OK', 'Error') | Out-Null
-    return
-  }
+  if ($mode -eq 'install' -and -not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   $packageNames = @($selectedPackages | ForEach-Object { $_.Name })
   $action = if ($mode -eq 'copy') { 'Solo copiar' } else { 'Copiar e instalar (reinicia si el paquete lo requiere)' }
   $visibleTargets = @($targets | Select-Object -First 20) -join "`n- "
@@ -5706,6 +6493,7 @@ function Start-FixFlow {
   Send-GridWindowCard -Phase Inicio
   Start-FixTimer
   Update-ButtonStates
+  Request-AutoGridReport
 }
 
 #------------------------------------------------------------------------------
@@ -5715,25 +6503,18 @@ function Start-FixFlow {
 # Ejecuta un script de consulta en un servidor (en segundo plano) y al terminar
 # invoca $onDone con (rawJson, error). No congela la interfaz.
 function Start-RemoteQuery($server, $worker, $remoteName, $jsonName, $onDone) {
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $sync = [hashtable]::Synchronized(@{ done=$false; data=$null; err='' })
   $job = {
-    param($server,$psexec,$worker,$rel,$remoteName,$jsonName,$sync)
+    param($server,$psexec,$worker,$rel,$remoteName,$jsonName,$sync,$rmLib,$rmOn,$rmSsl,$rmPort,$rmTo,$smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     try {
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\$jsonName" -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\$remoteName" -Force -ErrorAction Stop
-      $null = & $psexec "\\$server" -accepteula -nobanner -s `
-                powershell.exe -ExecutionPolicy Bypass -NonInteractive `
-                -File "C:\$rel\$remoteName" 2>&1
-      if (Test-Path "$remoteDir\$jsonName") {
-        $raw = Get-Content "$remoteDir\$jsonName" -Raw
-        if ($raw) { $sync.data = $raw } else { $sync.err = "Respuesta vacia" }
-      } else { $sync.err = "Sin respuesta del servidor" }
+      $raw = Invoke-WuuRemoteScript $server $worker $rel $remoteName @() $jsonName $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+      if ("$raw".Trim()) { $sync.data = $raw } else { $sync.err = 'Sin respuesta del servidor' }
     } catch { $sync.err = $_.Exception.Message }
     finally { $sync.done = $true }
   }
@@ -5742,7 +6523,9 @@ function Start-RemoteQuery($server, $worker, $remoteName, $jsonName, $onDone) {
   $ps.AddScript($job.ToString()).
       AddArgument($server).AddArgument($script:PsExecPath).AddArgument($worker).
       AddArgument($script:RemoteRel).AddArgument($remoteName).AddArgument($jsonName).
-      AddArgument($sync) | Out-Null
+      AddArgument($sync).AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+      AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+      AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
   $handle   = $ps.BeginInvoke()
   $deadline = (Get-Date).AddMinutes(3)
   $t = New-Object System.Windows.Threading.DispatcherTimer
@@ -5916,79 +6699,47 @@ function Show-DiskSpace($server) {
 # Arranca el monitoreo de un servidor recien reiniciado (en segundo plano)
 function Start-RebootMonitor($server) {
   if ($script:RebootJobs.ContainsKey($server)) { return }
-  if (-not (Test-Path $script:PsExecPath)) { return }
+  if (-not (Test-WuuRemoteReady)) { return }
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $sync = [hashtable]::Synchronized(@{ done=$false; phase='rebooting'; status='Reiniciando...'; result=''; available=0; reboot=$false; svcError='' })
 
   $job = {
-    param($server, $psexec, $worker, $rel, $sync)
-    # Prueba si el puerto SMB (445) responde; mas fiable que ICMP en entornos con firewall
-    function Test-Smb($s) {
-      try {
-        $c = New-Object System.Net.Sockets.TcpClient
-        $iar = $c.BeginConnect($s, 445, $null, $null)
-        $ok = $iar.AsyncWaitHandle.WaitOne(2000)
-        $res = ($ok -and $c.Connected)
-        $c.Close()
-        return $res
-      } catch { return $false }
+    param($server, $psexec, $worker, $rel, $sync, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
+    function Test-Reach($s) {
+      if (Test-WuuTcpPort $s 445 2) { return $true }
+      if ($rmOn -and (Test-WuuTcpPort $s $rmPort 2)) { return $true }
+      return $false
     }
     try {
-      # Fase A: esperar a que el servidor caiga (hasta 4 min)
       $sync.phase='rebooting'; $sync.status='Reiniciando...'
       $wentDown=$false; $t0=Get-Date
       while ((((Get-Date)-$t0).TotalMinutes) -lt 4) {
-        if (-not (Test-Smb $server)) { $wentDown=$true; break }
+        if (-not (Test-Reach $server)) { $wentDown=$true; break }
         Start-Sleep -Seconds 5
       }
-      # Fase B: esperar a que vuelva (hasta 20 min)
       $sync.phase='waiting'; $sync.status='Esperando que vuelva...'
-      if (-not $wentDown) { Start-Sleep -Seconds 90 }   # reinicio muy rapido: dar tiempo
+      if (-not $wentDown) { Start-Sleep -Seconds 90 }
       $backUp=$false; $t1=Get-Date
       while ((((Get-Date)-$t1).TotalMinutes) -lt 20) {
-        if (Test-Smb $server) { $backUp=$true; break }
+        if (Test-Reach $server) { $backUp=$true; break }
         Start-Sleep -Seconds 10
       }
       if (-not $backUp) { $sync.phase='timeout'; $sync.status='No volvio a responder (timeout)'; $sync.result='timeout'; return }
 
       Start-Sleep -Seconds 45
-      $remoteDir = "\\$server\C`$\$rel"
-      $shareReady = $false
-      $tShare = Get-Date
-      while ((((Get-Date) - $tShare).TotalMinutes) -lt 5) {
-        try {
-          New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-          if (Test-Path $remoteDir) { $shareReady = $true; break }
-        } catch {}
-        $sync.phase='waiting'; $sync.status='Esperando recurso C$...'
-        Start-Sleep -Seconds 10
-      }
-      if (-not $shareReady) {
-        $sync.result='verifyfail'
-        $sync.status='No se pudo verificar tras reinicio'
-        $sync.svcError='C$ no accesible tras el reinicio'
-        return
-      }
-
       $sync.phase='verify'; $sync.status='Verificando...'
       $lastDetail = ''
       $verified = $false
       for ($attempt = 1; $attempt -le 6; $attempt++) {
         $sync.status = "Verificando (intento $attempt/6)..."
         try {
-          New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-          Remove-Item "$remoteDir\verify.json" -ErrorAction SilentlyContinue
-          Copy-Item -Path $worker -Destination "$remoteDir\verify.ps1" -Force -ErrorAction Stop
-          $pout = & $psexec "\\$server" -accepteula -nobanner -s `
-                    powershell.exe -ExecutionPolicy Bypass -NonInteractive `
-                    -File "C:\$rel\verify.ps1" 2>&1 | Out-String
-          $pcode = $LASTEXITCODE
-          $jsonReady = $false
-          for ($w = 0; $w -lt 8; $w++) {
-            if (Test-Path "$remoteDir\verify.json") { $jsonReady = $true; break }
-            Start-Sleep -Seconds 2
-          }
-          if ($jsonReady) {
-            $v = Get-Content "$remoteDir\verify.json" -Raw | ConvertFrom-Json
+          $raw = Invoke-WuuRemoteScript $server $worker $rel 'verify.ps1' @() 'verify.json' $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+          if ("$raw".Trim()) {
+            $v = $raw | ConvertFrom-Json
             $sync.available = [int]$v.available
             $sync.reboot    = [bool]$v.rebootRequired
             $sync.svcError  = "$($v.error)"
@@ -5999,8 +6750,7 @@ function Start-RebootMonitor($server) {
             $verified = $true
             break
           }
-          $lastDetail = "PsExec codigo=$pcode"
-          if ("$pout".Trim()) { $lastDetail = "$lastDetail $($pout.Trim())" }
+          $lastDetail = 'Sin verify.json'
         } catch {
           $lastDetail = $_.Exception.Message
         }
@@ -6023,7 +6773,9 @@ function Start-RebootMonitor($server) {
   $ps.AddScript($job.ToString()).
       AddArgument($server).AddArgument($script:PsExecPath).
       AddArgument($script:LocalVerifyWorker).AddArgument($script:RemoteRel).
-      AddArgument($sync) | Out-Null
+      AddArgument($sync).AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+      AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+      AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
   $handle = $ps.BeginInvoke()
   $script:RebootJobs[$server] = @{ ps=$ps; handle=$handle; rs=$rs; sync=$sync }
   Start-RebootTimer
@@ -6042,7 +6794,11 @@ function Start-RebootTimer {
 
 # Tick: refleja el avance del monitoreo en la grilla y finaliza al terminar
 function On-RebootTick {
-  if ($script:RebootJobs.Count -eq 0) { if ($script:RebootTimer) { $script:RebootTimer.Stop() }; return }
+  if ($script:RebootJobs.Count -eq 0) {
+    if ($script:RebootTimer) { $script:RebootTimer.Stop() }
+    Request-AutoGridReport
+    return
+  }
   foreach ($server in @($script:RebootJobs.Keys)) {
     $job  = $script:RebootJobs[$server]
     $sync = $job.sync
@@ -6077,6 +6833,7 @@ function On-RebootTick {
       $script:RebootJobs.Remove($server)
     }
   }
+  Request-AutoGridReport
 }
 
 # Detiene todos los monitoreos post-reinicio
@@ -6092,7 +6849,7 @@ function Stop-AllRebootMonitors {
 }
 
 #==============================================================================
-#  AUTO-REINICIO (countdown + ejecucion via PsExec)
+#  AUTO-REINICIO (countdown + ejecucion via PsExec o WinRM)
 #==============================================================================
 
 function Start-AutoRebootTimer {
@@ -6107,6 +6864,7 @@ function Start-AutoRebootTimer {
 function On-AutoRebootTick {
   if ($script:AutoRebootPending.Count -eq 0) {
     if ($script:AutoRebootTimer) { $script:AutoRebootTimer.Stop() }
+    Request-AutoGridReport
     return
   }
   foreach ($server in @($script:AutoRebootPending.Keys)) {
@@ -6120,23 +6878,23 @@ function On-AutoRebootTick {
     } else {
       # Tiempo cumplido: ejecutar el reinicio
       $script:AutoRebootPending.Remove($server)
-      if (-not (Test-Path $script:PsExecPath)) {
-        Write-Log 'ERROR' "Auto-reinicio ${server}: PsExec no encontrado"
-        if ($row) { $row.Error = 'Auto-reinicio: PsExec no encontrado' }
+      if (-not (Test-WuuRemoteReady)) {
+        Write-Log 'ERROR' "Auto-reinicio ${server}: sin PsExec ni WinRM"
+        if ($row) { $row.Error = 'Auto-reinicio: sin transporte remoto' }
         continue
       }
       try {
-        $null = & $script:PsExecPath "\\$server" -accepteula -nobanner -d -s `
-                  shutdown /r /t 10 /c "Reinicio automatico iniciado por WUU" 2>&1
+        Invoke-WuuRemoteShutdown $server 'Reinicio automatico iniciado por WUU'
         if ($row) { $row.Status = 'Reinicio automatico enviado' }
         Write-Log 'INFO' "Auto-reinicio enviado a $server"
-        Start-RebootMonitor $server   # el monitor existente toma el control desde aqui
+        Start-RebootMonitor $server
       } catch {
         if ($row) { $row.Error = "Auto-reinicio: $($_.Exception.Message)" }
         Write-Log 'ERROR' "Auto-reinicio ${server}: $($_.Exception.Message)"
       }
     }
   }
+  Request-AutoGridReport
 }
 
 # Cancela el countdown de un servidor (si el usuario lo reinicia manualmente antes)
@@ -6433,7 +7191,9 @@ function Resolve-ScheduledReportPeriod($Job = $null, $Cfg = $null) {
 
 function Test-OneServerConnection([string]$Server, [int]$TimeoutSec = 3) {
   $dns = 'Error'; $tcp = 'Error'; $share = 'No probado'
+  $rmPort = 'N/A'; $rmOk = 'N/A'
   $ipResolved = ''; $details = New-Object System.Collections.Generic.List[string]
+  $rm = Get-WuuRmPack
   try {
     $addrs = @([System.Net.Dns]::GetHostAddresses($Server) | Where-Object { $_.AddressFamily -eq 'InterNetwork' })
     if ($addrs.Count -eq 0) { throw 'sin direccion IPv4' }
@@ -6443,37 +7203,40 @@ function Test-OneServerConnection([string]$Server, [int]$TimeoutSec = 3) {
     $details.Add("DNS: no se resuelve el nombre ($($_.Exception.Message))")
     return [pscustomobject]@{
       DNS = $dns; IP_Resuelta = $ipResolved; Puerto_445 = $tcp; Recurso_CS = $share
+      Puerto_WinRM = $rmPort; WinRM = $rmOk
       Estado = 'Error'; Detalle = ($details -join ' | ')
     }
   }
-  $canReach = $false
-  try {
-    $tc = New-Object System.Net.Sockets.TcpClient
-    try {
-      $iar = $tc.BeginConnect($Server, 445, $null, $null)
-      $canReach = $iar.AsyncWaitHandle.WaitOne([Math]::Max(1, $TimeoutSec) * 1000) -and $tc.Connected
-    } finally { try { $tc.Close() } catch {} }
-  } catch {
-    $details.Add("Puerto 445: $($_.Exception.Message)")
-  }
+  $canReach = Test-WuuTcpPort $Server 445 $TimeoutSec
   if ($canReach) { $tcp = 'OK' } else {
     $details.Add("Sin conectividad (puerto 445, timeout ${TimeoutSec}s)")
-    return [pscustomobject]@{
-      DNS = $dns; IP_Resuelta = $ipResolved; Puerto_445 = $tcp; Recurso_CS = $share
-      Estado = 'Error'; Detalle = ($details -join ' | ')
+  }
+  if ($tcp -eq 'OK') {
+    try {
+      $unc = "\\$Server\C$"
+      if (Test-Path -LiteralPath $unc) { $share = 'OK' }
+      else { throw 'el recurso C$ no responde' }
+    } catch {
+      $share = 'Error'
+      $details.Add("C`$ no accesible: $($_.Exception.Message)")
     }
   }
-  try {
-    $unc = "\\$Server\C$"
-    if (Test-Path -LiteralPath $unc) { $share = 'OK' }
-    else { throw 'el recurso C$ no responde' }
-  } catch {
-    $share = 'Error'
-    $details.Add("C`$ no accesible: $($_.Exception.Message)")
+  if ($rm.On) {
+    if (Test-WuuTcpPort $Server $rm.Port $rm.To) {
+      $rmPort = 'OK'
+      if (Test-WuuWinRm $Server) { $rmOk = 'OK' }
+      else { $rmOk = 'Error'; $details.Add('WinRM: sesion rechazada') }
+    } else {
+      $rmPort = 'Error'
+      $details.Add("Sin conectividad WinRM (puerto $($rm.Port))")
+    }
   }
-  $ok = ($dns -eq 'OK' -and $tcp -eq 'OK' -and $share -eq 'OK')
+  $smbOk = ($dns -eq 'OK' -and $tcp -eq 'OK' -and $share -eq 'OK')
+  $winOk = ($dns -eq 'OK' -and $rmOk -eq 'OK')
+  $ok = $smbOk -or $winOk
   return [pscustomobject]@{
     DNS = $dns; IP_Resuelta = $ipResolved; Puerto_445 = $tcp; Recurso_CS = $share
+    Puerto_WinRM = $rmPort; WinRM = $rmOk
     Estado = $(if ($ok) { 'OK' } else { 'Error' })
     Detalle = $(if ($ok) { '' } else { ($details -join ' | ') })
   }
@@ -6490,9 +7253,11 @@ function Split-WsusEndpoint([string]$Url) {
   return [pscustomobject]@{ Url = "$Url".Trim(); Host = $u.Host; Port = $port; Scheme = $u.Scheme }
 }
 
-function Test-ConnectivityOverallOk([string]$Dns, [string]$Tcp, [string]$Share, [string]$WsusEstado) {
+function Test-ConnectivityOverallOk([string]$Dns, [string]$Tcp, [string]$Share, [string]$WsusEstado, [string]$WinRm = '') {
   $wsusOk = ("$WsusEstado" -in @('OK', 'N/A', 'No probado', ''))
-  return ("$Dns" -eq 'OK' -and "$Tcp" -eq 'OK' -and "$Share" -eq 'OK' -and $wsusOk)
+  $smbOk = ("$Dns" -eq 'OK' -and "$Tcp" -eq 'OK' -and "$Share" -eq 'OK')
+  $rmOk = ("$Dns" -eq 'OK' -and "$WinRm" -eq 'OK')
+  return (($smbOk -or $rmOk) -and $wsusOk)
 }
 
 function Get-WsusCheckScriptText([int]$TimeoutSec = 3) {
@@ -7084,13 +7849,16 @@ function Invoke-ConnectivityAudit {
   }
   $bag = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
   $probe = {
-    param($t, $timeoutSec, $bag, $osMapBody, $psexec, $wsusScript, $sqlScript, $sqlCols)
+    param($t, $timeoutSec, $bag, $osMapBody, $psexec, $wsusScript, $sqlScript, $sqlCols, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $dns = 'Error'; $tcp = 'Error'; $share = 'No probado'
+    $rmPortSt = 'N/A'; $rmOk = 'N/A'
     $ipResolved = ''; $details = @()
     $osName = "$($t.OS)".Trim(); $osVer = "$($t.Version)".Trim(); $osNote = ''
     $osSource = if ($osName -or $osVer) { 'Inventario' } else { '' }
     $wsusUrl = ''; $wsusEstado = 'No probado'; $wsusNote = ''
     $adDs = 'No probado'; $adValor = 'No probado'; $adRol = 'No probado'; $adNote = ''
+    $sess = $null
     try {
       $addrs = @([System.Net.Dns]::GetHostAddresses($t.Servidor) | Where-Object { $_.AddressFamily -eq 'InterNetwork' })
       if ($addrs.Count -eq 0) { throw 'sin direccion IPv4' }
@@ -7119,6 +7887,21 @@ function Invoke-ConnectivityAudit {
         $details += "C`$ no accesible: $($_.Exception.Message)"
       }
     }
+    if ($rmOn -and $dns -eq 'OK') {
+      try {
+        if (Test-WuuTcpPort $t.Servidor $rmPort $rmTo) {
+          $rmPortSt = 'OK'
+          $sess = New-WuuRmSession $t.Servidor $rmSsl $rmPort $rmTo
+          $rmOk = 'OK'
+        } else {
+          $rmPortSt = 'Error'
+          $details += "Sin conectividad WinRM (puerto $rmPort)"
+        }
+      } catch {
+        $rmOk = 'Error'
+        $details += "WinRM: $($_.Exception.Message)"
+      }
+    }
     if ($share -eq 'OK' -and (-not $osName -or -not $osVer)) {
       try {
         $dll = "\\$($t.Servidor)\C`$\Windows\System32\netlogon.dll"
@@ -7135,6 +7918,18 @@ function Invoke-ConnectivityAudit {
         } else { $osNote = 'SO: version de netlogon.dll no reconocida' }
       } catch {
         $osNote = "SO: no se pudo leer netlogon.dll ($($_.Exception.Message))"
+      }
+    } elseif ($sess -and (-not $osName -or -not $osVer)) {
+      try {
+        $info = Invoke-Command -Session $sess -ScriptBlock {
+          $o = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+          [pscustomobject]@{ Caption = "$($o.Caption)".Trim(); Version = "$($o.Version)".Trim() }
+        }
+        if (-not $osName -and "$($info.Caption)".Trim()) { $osName = "$($info.Caption)".Trim() }
+        if (-not $osVer -and "$($info.Version)".Trim()) { $osVer = "$($info.Version)".Trim() }
+        if ($osName -or $osVer) { $osSource = 'Detectado (WinRM)' }
+      } catch {
+        $osNote = "SO: no se pudo leer por WinRM ($($_.Exception.Message))"
       }
     }
     if ($share -eq 'OK') {
@@ -7175,6 +7970,39 @@ function Invoke-ConnectivityAudit {
           $wsusEstado = 'Error'
           $wsusNote = "WSUS: $($_.Exception.Message)"
         }
+      }
+    } elseif ($sess) {
+      try {
+        Invoke-Command -Session $sess -ScriptBlock {
+          param($rel, $name, $text)
+          $dir = Join-Path 'C:\' $rel
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          Remove-Item -LiteralPath (Join-Path $dir 'wsuscheck.json') -Force -ErrorAction SilentlyContinue
+          Set-Content -LiteralPath (Join-Path $dir $name) -Value $text -Encoding UTF8
+        } -ArgumentList 'Windows\Temp\WUU', 'wsuscheck.ps1', $wsusScript | Out-Null
+        Invoke-WuuRmSystem $sess 'Windows\Temp\WUU' 'wsuscheck.ps1' '' 120
+        $rawW = Get-WuuRmText $sess 'Windows\Temp\WUU' 'wsuscheck.json'
+        if ("$rawW".Trim()) {
+          $w = $rawW | ConvertFrom-Json
+          $wsusUrl = "$($w.Url)".Trim()
+          $wsusEstado = "$($w.Estado)".Trim()
+          if (-not $wsusEstado) { $wsusEstado = 'N/A' }
+          if (-not $wsusUrl) {
+            $wsusUrl = if ("$($w.Host)".Trim()) { "$($w.Host):$($w.Port)" } else { 'No configurado (WU directo)' }
+          }
+          if ("$($w.Detalle)".Trim()) { $wsusNote = "WSUS: $($w.Detalle)" }
+          if ("$($w.AD_DS)".Trim()) { $adDs = "$($w.AD_DS)".Trim() }
+          if ("$($w.Rol)".Trim()) { $adRol = "$($w.Rol)".Trim() }
+          $adValor = "$($w.Valor)".Trim()
+          if (-not $adValor) { $adValor = 'No probado' }
+          if ($adDs -eq 'Si') { $adNote = "AD DS: Si | Valor $adValor | $adRol" }
+        } else {
+          $wsusEstado = 'Error'
+          $wsusNote = 'WSUS: no se obtuvo respuesta remota (WinRM)'
+        }
+      } catch {
+        $wsusEstado = 'Error'
+        $wsusNote = "WSUS: $($_.Exception.Message)"
       }
     }
     $sqlVals = @{}
@@ -7237,8 +8065,61 @@ function Invoke-ConnectivityAudit {
           $sqlNote = "SQL: $($_.Exception.Message)"
         }
       }
+    } elseif ($sess) {
+      try {
+        $hasSql = [bool](Invoke-Command -Session $sess -ScriptBlock {
+          $root = 'C:\Program Files\Microsoft SQL Server'
+          if (-not (Test-Path -LiteralPath $root)) { return $false }
+          foreach ($d in @(Get-ChildItem -LiteralPath $root -Directory -Filter 'MSSQL*' -ErrorAction SilentlyContinue)) {
+            $exe = Join-Path $d.FullName 'MSSQL\Binn\sqlservr.exe'
+            if (Test-Path -LiteralPath $exe) { return $true }
+          }
+          return $false
+        })
+        if (-not $hasSql) {
+          foreach ($e in @($sqlCols)) { $sqlVals[[string]$e.Value] = 'No SQL' }
+        } else {
+          Invoke-Command -Session $sess -ScriptBlock {
+            param($rel, $name, $text)
+            $dir = Join-Path 'C:\' $rel
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            Remove-Item -LiteralPath (Join-Path $dir 'sqlcheck.json') -Force -ErrorAction SilentlyContinue
+            Set-Content -LiteralPath (Join-Path $dir $name) -Value $text -Encoding UTF8
+          } -ArgumentList 'Windows\Temp\WUU', 'sqlcheck.ps1', $sqlScript | Out-Null
+          Invoke-WuuRmSystem $sess 'Windows\Temp\WUU' 'sqlcheck.ps1' '' 180
+          $rawS = Get-WuuRmText $sess 'Windows\Temp\WUU' 'sqlcheck.json'
+          if ("$rawS".Trim()) {
+            $sj = $rawS | ConvertFrom-Json
+            if (-not $sj.EsSQL) {
+              foreach ($e in @($sqlCols)) { $sqlVals[[string]$e.Value] = 'No SQL' }
+            } else {
+              $badNames = @()
+              foreach ($e in @($sqlCols)) {
+                $short = [string]$e.Key
+                $header = [string]$e.Value
+                $val = "$($sj.$short)".Trim()
+                if (-not $val) { $val = 'No probado' }
+                $sqlVals[$header] = $val
+                if ($val -like 'Error*') { $badNames += $header }
+              }
+              if ($badNames.Count -gt 0) {
+                $shown = @($badNames | Select-Object -First 3)
+                $extraN = $badNames.Count - $shown.Count
+                $list = ($shown -join ', ')
+                if ($extraN -gt 0) { $list += " +$extraN" }
+                $sqlNote = "SQL: $($badNames.Count) chequeo(s) con error ($list)"
+              }
+            }
+          } else {
+            $sqlNote = 'SQL: no se obtuvo respuesta remota (WinRM)'
+          }
+        }
+      } catch {
+        $sqlNote = "SQL: $($_.Exception.Message)"
+      }
     }
-    $ok = ($dns -eq 'OK' -and $tcp -eq 'OK' -and $share -eq 'OK' -and ($wsusEstado -in @('OK','N/A','No probado','')))
+    if ($sess) { try { Remove-PSSession $sess } catch {} }
+    $ok = ($dns -eq 'OK' -and (($tcp -eq 'OK' -and $share -eq 'OK') -or ($rmOk -eq 'OK')) -and ($wsusEstado -in @('OK','N/A','No probado','')))
     $detalle = @(@($details) + @($osNote) + @($wsusNote) + @($adNote) + @($sqlNote) | Where-Object { $_ })
     if ($ok) { $detalle = @(@($osNote) + @($wsusNote) + @($adNote) + @($sqlNote) | Where-Object { $_ }) }
     $item = [ordered]@{
@@ -7248,6 +8129,7 @@ function Invoke-ConnectivityAudit {
       Sistema_Operativo = $osName; Version_SO = $osVer; Origen_SO = $osSource
       En_Inventario = $t.En_Inventario
       DNS = $dns; Puerto_445 = $tcp; Recurso_CS = $share
+      Puerto_WinRM = $rmPortSt; WinRM = $rmOk
       WSUS = $wsusUrl; WSUS_Estado = $wsusEstado
       'AD DS' = $adDs; Valor = $adValor; Rol = $adRol
     }
@@ -7265,6 +8147,7 @@ function Invoke-ConnectivityAudit {
   $sqlMap = Get-SqlHealthColumnMap
   $sqlCols = @($sqlMap.GetEnumerator() | ForEach-Object { [pscustomobject]@{ Key = [string]$_.Key; Value = [string]$_.Value } })
   $psexecPath = "$script:PsExecPath"
+  $rmPack = Get-WuuRmPack
   $total = $targets.Count
   $reportProgress = {
     param($done, $totalCount, $callback)
@@ -7284,7 +8167,7 @@ function Invoke-ConnectivityAudit {
     foreach ($t in @($targets[$i..$end])) {
       $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState = 'MTA'; $rs.Open()
       $ps = [powershell]::Create(); $ps.Runspace = $rs
-      $ps.AddScript($probe.ToString()).AddArgument($t).AddArgument($timeout).AddArgument($bag).AddArgument($osMapBody).AddArgument($psexecPath).AddArgument($wsusScript).AddArgument($sqlScript).AddArgument($sqlCols) | Out-Null
+      $ps.AddScript($probe.ToString()).AddArgument($t).AddArgument($timeout).AddArgument($bag).AddArgument($osMapBody).AddArgument($psexecPath).AddArgument($wsusScript).AddArgument($sqlScript).AddArgument($sqlCols).AddArgument($script:WuuRmLib).AddArgument([bool]$rmPack.On).AddArgument([bool]$rmPack.Ssl).AddArgument([int]$rmPack.Port).AddArgument([int]$rmPack.To) | Out-Null
       $pool += @{ ps = $ps; handle = $ps.BeginInvoke(); rs = $rs }
     }
     foreach ($j in $pool) {
@@ -7308,6 +8191,8 @@ function Invoke-ConnectivityAudit {
       En_Inventario = $_.En_Inventario
       DNS = $_.DNS; Puerto_445 = $_.Puerto_445
       'Recurso_C$' = $_.Recurso_CS
+      Puerto_WinRM = $(if ("$($_.Puerto_WinRM)".Trim()) { $_.Puerto_WinRM } else { 'N/A' })
+      WinRM = $(if ("$($_.WinRM)".Trim()) { $_.WinRM } else { 'N/A' })
       WSUS = $_.WSUS; WSUS_Estado = $_.WSUS_Estado
       'AD DS' = $(if ("$($_.'AD DS')".Trim()) { "$($_.'AD DS')".Trim() } else { 'No probado' })
       Valor = $(if ("$($_.Valor)".Trim()) { "$($_.Valor)".Trim() } else { 'No probado' })
@@ -7593,8 +8478,8 @@ function Invoke-RemoteRebootBatch {
     Rows = @(); Ok = 0; Fail = 0; Total = $targets.Count
   }
   if ($targets.Count -eq 0) { return [pscustomobject]$result }
-  if (-not (Test-Path $script:PsExecPath)) {
-    throw "No se encuentra PsExec.exe en: $($script:PsExecPath)"
+  if (-not (Test-WuuRemoteReady)) {
+    throw "No hay transporte remoto (PsExec ni WinRM)."
   }
   $timeout = 3
   try { $timeout = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
@@ -7605,33 +8490,26 @@ function Invoke-RemoteRebootBatch {
     $inv = @($script:Csv | Where-Object { "$($_.Servidor)".Trim() -ieq $sv } | Select-Object -First 1)
     if ($inv.Count -gt 0) { $ipMap[$sv] = "$($inv[0].IP)".Trim() }
   }
+  $rm = Get-WuuRmPack
   $worker = {
-    param($server, $psexec, $timeoutSec, $comment, $ipMap, $bag)
+    param($server, $psexec, $timeoutSec, $comment, $ipMap, $bag, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $started = Get-Date
     $row = [ordered]@{
       Servidor=$server; IP=''; State='Error'; Status='Error'; Error=''; RunningTime=''; Detalle=''
     }
     try {
       if ($ipMap -and $ipMap.ContainsKey($server)) { $row.IP = "$($ipMap[$server])" }
-      $reachable = $false
-      $tcp = New-Object System.Net.Sockets.TcpClient
-      try {
-        $iar = $tcp.BeginConnect($server, 445, $null, $null)
-        $reachable = $iar.AsyncWaitHandle.WaitOne($timeoutSec * 1000) -and $tcp.Connected
-      } finally { try { $tcp.Close() } catch {} }
-      if (-not $reachable) { throw "Sin conectividad (puerto 445, timeout ${timeoutSec}s)" }
-      $output = & $psexec "\\$server" -accepteula -nobanner -d -s `
-        shutdown /r /t 10 /c $comment 2>&1
-      $code = $LASTEXITCODE
-      if ($code -eq 0) {
+      $ok = $false
+      try { $ok = [bool](Invoke-WuuRmShutdown $server $psexec $comment $timeoutSec $rmOn $rmSsl $rmPort $rmTo) } catch {
+        throw
+      }
+      if ($ok) {
         $row.State = 'OK'
         $row.Status = 'Reinicio enviado'
         $row.Detalle = 'Reinicio enviado (10 s)'
       } else {
-        $tail = (($output | Select-Object -Last 2) -join ' ').Trim()
-        $row.Error = "PsExec codigo $code$(if ($tail) { ": $tail" })"
-        $row.Status = 'Error'
-        $row.Detalle = $row.Error
+        throw 'Sin SMB/PsExec ni WinRM para reinicio'
       }
     } catch {
       $row.Error = $_.Exception.Message
@@ -7655,7 +8533,9 @@ function Invoke-RemoteRebootBatch {
       $ps.RunspacePool = $runspacePool
       $ps.AddScript($worker.ToString()).
         AddArgument($server).AddArgument($script:PsExecPath).
-        AddArgument($timeout).AddArgument($Comment).AddArgument($ipMap).AddArgument($bag) | Out-Null
+        AddArgument($timeout).AddArgument($Comment).AddArgument($ipMap).AddArgument($bag).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).AddArgument([int]$rm.To) | Out-Null
       $pool += @{ ps = $ps; handle = $ps.BeginInvoke() }
     }
     $deadline = (Get-Date).AddMinutes(10)
@@ -7683,7 +8563,7 @@ function Show-SchedulerWindow {
   [xml]$sx = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WUU - Programar" Height="680" Width="720" MinHeight="520" MinWidth="600"
+        Title="WUU - Programar" Height="720" Width="720" MinHeight="560" MinWidth="600"
         WindowStartupLocation="CenterScreen" Background="#FFF3F4F6" FontFamily="Segoe UI" FontSize="13">
   <Grid Margin="10">
     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -7757,46 +8637,81 @@ function Show-SchedulerWindow {
       <TabItem Header="Ventana de actualizacion">
         <Grid Margin="12">
           <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+            <RowDefinition Height="*" MinHeight="80"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="160"/>
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
-          <TextBlock Grid.Row="0" Text="Programar parcheo normal (una unica ejecucion)" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
-          <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-            <RadioButton x:Name="rbUpdateGroup" Content="Grupo completo" IsChecked="True" GroupName="TargetMode" Margin="0,0,22,0"/>
-            <RadioButton x:Name="rbUpdateServer" Content="Servidor individual" GroupName="TargetMode"/>
-          </StackPanel>
-          <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-              <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Grupo:" VerticalAlignment="Center" Margin="0,6"/>
-            <ComboBox x:Name="cmbUpdateGroup" Grid.Row="0" Grid.Column="1" Padding="4,3" Margin="0,4"/>
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Buscar servidor:" VerticalAlignment="Center" Margin="0,6"/>
-            <TextBox x:Name="txtUpdateServer" Grid.Row="1" Grid.Column="1" Padding="4,3" Margin="0,4" IsEnabled="False"/>
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Coincidencias:" VerticalAlignment="Top" Margin="0,8"/>
-            <ListBox x:Name="lstUpdateMatches" Grid.Row="2" Grid.Column="1" Height="56" Margin="0,4" IsEnabled="False" DisplayMemberPath="Display"/>
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Nombre de tarea:" VerticalAlignment="Center" Margin="0,6"/>
-            <TextBox x:Name="txtUpdateTaskName" Grid.Row="3" Grid.Column="1" Padding="4,3" Margin="0,4"
-                     ToolTip="Opcional. Si lo dejas vacio, WUU genera un nombre. Al sincronizar el calendario se usa el titulo del evento."/>
-            <TextBlock Grid.Row="4" Grid.Column="0" Text="Fecha y hora:" VerticalAlignment="Center" Margin="0,6"/>
-            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
-              <TextBox x:Name="txtUpdateDate" Width="120" Padding="4,3" Margin="0,4,8,4" ToolTip="dd/mm/aaaa"/>
-              <TextBox x:Name="txtUpdateHour" Width="45" Padding="4,3" Margin="0,4,5,4" TextAlignment="Center"/>
-              <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
-              <TextBox x:Name="txtUpdateMin" Width="45" Padding="4,3" Margin="0,4" TextAlignment="Center"/>
+          <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="Programar parcheo normal (una unica ejecucion)" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+              <Border Padding="8,6" Background="White" BorderBrush="#FFE2E8F0" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8">
+                <StackPanel>
+                  <TextBlock Text="Sincronizacion automatica del calendario (sin abrir WUU)" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Estado diario:" VerticalAlignment="Center" Margin="0,4"/>
+                    <TextBlock x:Name="lblCalSyncState" Grid.Row="0" Grid.Column="1" Text="-" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,4"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Nombre de tarea:" VerticalAlignment="Center" Margin="0,4"/>
+                    <TextBox x:Name="txtCalSyncName" Grid.Row="1" Grid.Column="1" Padding="4,3" Margin="0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Hora de consulta:" VerticalAlignment="Center" Margin="0,4"/>
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                      <TextBox x:Name="txtCalSyncHour" Width="45" Padding="4,3" Margin="0,2,6,2" TextAlignment="Center"/>
+                      <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                      <TextBox x:Name="txtCalSyncMin" Width="45" Padding="4,3" Margin="0,2" TextAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Fecha de inicio:" VerticalAlignment="Center" Margin="0,4"/>
+                    <TextBox x:Name="txtCalSyncDate" Grid.Row="3" Grid.Column="1" Padding="4,3" Margin="0,2" ToolTip="Formato: dd/mm/aaaa"/>
+                  </Grid>
+                  <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button x:Name="btnCalSyncCreate" Content="Crear / Actualizar tarea diaria" Padding="12,6" Margin="0,0,8,0"/>
+                    <Button x:Name="btnCalSyncDelete" Content="Eliminar tarea diaria" Padding="12,6"/>
+                  </StackPanel>
+                  <TextBlock Text="La tarea diaria consulta el calendario y crea las ventanas en el Programador de Windows. Sincronizar calendario sigue disponible a mano." Foreground="#FF475569" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+              </Border>
+              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <RadioButton x:Name="rbUpdateGroup" Content="Grupo completo" IsChecked="True" GroupName="TargetMode" Margin="0,0,22,0"/>
+                <RadioButton x:Name="rbUpdateServer" Content="Servidor individual" GroupName="TargetMode"/>
+              </StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Grupo:" VerticalAlignment="Center" Margin="0,6"/>
+                <ComboBox x:Name="cmbUpdateGroup" Grid.Row="0" Grid.Column="1" Padding="4,3" Margin="0,4"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Buscar servidor:" VerticalAlignment="Center" Margin="0,6"/>
+                <TextBox x:Name="txtUpdateServer" Grid.Row="1" Grid.Column="1" Padding="4,3" Margin="0,4" IsEnabled="False"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Coincidencias:" VerticalAlignment="Top" Margin="0,8"/>
+                <ListBox x:Name="lstUpdateMatches" Grid.Row="2" Grid.Column="1" Height="56" Margin="0,4" IsEnabled="False" DisplayMemberPath="Display"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Nombre de tarea:" VerticalAlignment="Center" Margin="0,6"/>
+                <TextBox x:Name="txtUpdateTaskName" Grid.Row="3" Grid.Column="1" Padding="4,3" Margin="0,4"
+                         ToolTip="Opcional. Si lo dejas vacio, WUU genera un nombre. Al sincronizar el calendario se usa el titulo del evento."/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Fecha y hora:" VerticalAlignment="Center" Margin="0,6"/>
+                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                  <TextBox x:Name="txtUpdateDate" Width="120" Padding="4,3" Margin="0,4,8,4" ToolTip="dd/mm/aaaa"/>
+                  <TextBox x:Name="txtUpdateHour" Width="45" Padding="4,3" Margin="0,4,5,4" TextAlignment="Center"/>
+                  <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                  <TextBox x:Name="txtUpdateMin" Width="45" Padding="4,3" Margin="0,4" TextAlignment="Center"/>
+                </StackPanel>
+              </Grid>
+              <TextBlock x:Name="lblUpdateTarget" Text="" Margin="0,8,0,0" TextWrapping="Wrap"/>
             </StackPanel>
-          </Grid>
-          <TextBlock x:Name="lblUpdateTarget" Grid.Row="3" Text="" Margin="0,8,0,0" TextWrapping="Wrap"/>
-          <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,8">
-            <Button x:Name="btnScheduleUpdate" Content="Programar actualizacion unica" Padding="12,6" Margin="0,0,8,0"/>
-            <Button x:Name="btnRefreshUpdates" Content="Refrescar lista" Padding="12,6" Margin="0,0,8,0"/>
-            <Button x:Name="btnSyncCalendar" Content="Sincronizar calendario" Padding="12,6" Margin="0,0,8,0"/>
-            <Button x:Name="btnDeleteUpdate" Content="Eliminar seleccionada" Padding="12,6"/>
-          </StackPanel>
-          <DataGrid x:Name="dgScheduledUpdates" Grid.Row="5" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False">
+          </ScrollViewer>
+          <WrapPanel Grid.Row="1" Margin="0,8,0,8">
+            <Button x:Name="btnScheduleUpdate" Content="Programar actualizacion unica" Padding="12,6" Margin="0,0,8,4"/>
+            <Button x:Name="btnRefreshUpdates" Content="Refrescar lista" Padding="12,6" Margin="0,0,8,4"/>
+            <Button x:Name="btnSyncCalendar" Content="Sincronizar calendario" Padding="12,6" Margin="0,0,8,4"/>
+            <Button x:Name="btnDeleteUpdate" Content="Eliminar seleccionada" Padding="12,6" Margin="0,0,0,4"/>
+          </WrapPanel>
+          <DataGrid x:Name="dgScheduledUpdates" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False"
+                    MinHeight="120" VerticalScrollBarVisibility="Auto">
             <DataGrid.Columns>
               <DataGridTextColumn Header="Tarea" Binding="{Binding Tarea}" Width="*"/>
               <DataGridTextColumn Header="Destino" Binding="{Binding Destino}" Width="*"/>
@@ -7805,7 +8720,7 @@ function Show-SchedulerWindow {
               <DataGridTextColumn Header="Detalle" Binding="{Binding Detalle}" Width="*"/>
             </DataGrid.Columns>
           </DataGrid>
-          <TextBlock x:Name="lblUpdateMsg" Grid.Row="6" Text="" Margin="0,8,0,0" TextWrapping="Wrap"/>
+          <TextBlock x:Name="lblUpdateMsg" Grid.Row="3" Text="" Margin="0,8,0,0" TextWrapping="Wrap"/>
         </Grid>
       </TabItem>
       <TabItem Header="Validar estado">
@@ -8057,6 +8972,15 @@ function Show-SchedulerWindow {
   $txtUpdateDate.Text = (Get-Date).ToString('dd/MM/yyyy')
   $txtUpdateHour.Text = (Get-Date).AddHours(1).ToString('HH')
   $txtUpdateMin.Text = '00'
+  $txtCalSyncName = $win.FindName('txtCalSyncName'); $txtCalSyncName.Text = "$($script:Cfg.ScheduledCalendar.TaskName)"
+  $txtCalSyncHour = $win.FindName('txtCalSyncHour'); $txtCalSyncHour.Text = "$($script:Cfg.ScheduledCalendar.Hour)"
+  $txtCalSyncMin  = $win.FindName('txtCalSyncMin');  $txtCalSyncMin.Text  = "{0:00}" -f [int]$script:Cfg.ScheduledCalendar.Minute
+  $txtCalSyncDate = $win.FindName('txtCalSyncDate')
+  $savedCalDate = "$($script:Cfg.ScheduledCalendar.StartDate)".Trim()
+  $txtCalSyncDate.Text = if ($savedCalDate) { $savedCalDate } else { (Get-Date).ToString('dd/MM/yyyy') }
+  $lblCalSyncState = $win.FindName('lblCalSyncState')
+  $btnCalSyncCreate = $win.FindName('btnCalSyncCreate')
+  $btnCalSyncDelete = $win.FindName('btnCalSyncDelete')
   $txtRebootDate.Text = (Get-Date).ToString('dd/MM/yyyy')
   $txtRebootHour.Text = (Get-Date).AddHours(1).ToString('HH')
   $txtRebootMin.Text = '00'
@@ -8083,6 +9007,7 @@ function Show-SchedulerWindow {
     $names = @($records | ForEach-Object { $_.TaskName })
     if ("$($cfgRef.ScheduledReport.TaskName)".Trim()) { $names += "$($cfgRef.ScheduledReport.TaskName)" }
     if ("$($cfgRef.ScheduledConnectivity.TaskName)".Trim()) { $names += "$($cfgRef.ScheduledConnectivity.TaskName)" }
+    if ("$($cfgRef.ScheduledCalendar.TaskName)".Trim()) { $names += "$($cfgRef.ScheduledCalendar.TaskName)" }
     $map = & $fnTaskLookup $names
     $dgScheduledUpdates.ItemsSource = @(& $fnGetRows $scriptDirRef $records $map)
     $dgScheduledReboots.ItemsSource = @(& $fnGetRebootRows $scriptDirRef $records $map)
@@ -8235,7 +9160,7 @@ function Show-SchedulerWindow {
         try {
           $trigger = New-ScheduledTaskTrigger -Once -At $startAt
           $actionArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -Scheduled -JobFile `"$jobPath`""
-          $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs
+          $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs -WorkingDirectory $scriptDirRef
           $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) `
             -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
           Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action `
@@ -8252,7 +9177,8 @@ function Show-SchedulerWindow {
       } else {
         $trigger = New-ScheduledTaskTrigger -Daily -At $startAt
         $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
-                     -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -Scheduled"
+                     -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -Scheduled" `
+                     -WorkingDirectory $scriptDirRef
         $set     = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) -StartWhenAvailable
         Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
           -Settings $set -RunLevel Highest -Force | Out-Null
@@ -8324,7 +9250,7 @@ function Show-SchedulerWindow {
         $lblMsg.Text = "Listo: $count servidor(es). CSV: $path"
       }.GetNewClosure()
       & $fnReportHooks $onProgress $onDone
-      $started = & $fnStartReport -Targets $servers -PeriodMode "$($resolved.PeriodMode)" -SpecificDate "$($resolved.SpecificDate)" -WindowDate "$($resolved.WindowDate)" -Title $taskName -FullInventoryCard
+      $started = & $fnStartReport -Targets $servers -PeriodMode "$($resolved.PeriodMode)" -SpecificDate "$($resolved.SpecificDate)" -WindowDate "$($resolved.WindowDate)" -Title $taskName -TipoReporte 'Mensual' -FullInventoryCard
       if (-not $started) {
         & $fnReportHooks $null $null
         $pbReportRun.Visibility = 'Collapsed'
@@ -8434,7 +9360,7 @@ function Show-SchedulerWindow {
       try {
         $trigger = New-ScheduledTaskTrigger -Once -At $startAt
         $actionArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -ScheduledPatch -JobFile `"$jobPath`""
-        $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs
+        $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs -WorkingDirectory $scriptDirRef
         $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 8) `
           -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
         Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action `
@@ -8457,8 +9383,71 @@ function Show-SchedulerWindow {
     }
   }.GetNewClosure())
 
-  $win.FindName('btnRefreshUpdates').Add_Click({ & $refreshUpdateListAction }.GetNewClosure())
+  $refreshCalSyncStateAction = {
+    $st = & $fnGetTaskStatus "$($cfgRef.ScheduledCalendar.TaskName)"
+    $lblCalSyncState.Text = $st
+    $lblCalSyncState.Foreground = if ($st -eq 'NoExiste') { [System.Windows.Media.Brushes]::Gray }
+                                  elseif ($st -eq 'Ready') { [System.Windows.Media.Brushes]::Green }
+                                  else { [System.Windows.Media.Brushes]::DarkOrange }
+  }.GetNewClosure()
+  & $refreshCalSyncStateAction
+
+  $win.FindName('btnRefreshUpdates').Add_Click({
+    & $refreshUpdateListAction
+    & $refreshCalSyncStateAction
+  }.GetNewClosure())
   $win.FindName('btnSyncCalendar').Add_Click({ & $syncCalendarAction $true }.GetNewClosure())
+  $btnCalSyncCreate.Add_Click({
+    try {
+      $name = $txtCalSyncName.Text.Trim()
+      $h = 0; $m = 0
+      if (-not $name) { throw 'Ingresa un nombre para la tarea diaria del calendario.' }
+      if (-not [int]::TryParse($txtCalSyncHour.Text.Trim(), [ref]$h) -or
+          -not [int]::TryParse($txtCalSyncMin.Text.Trim(), [ref]$m) -or
+          $h -lt 0 -or $h -gt 23 -or $m -lt 0 -or $m -gt 59) {
+        throw 'Hora invalida (HH 0-23, MM 0-59).'
+      }
+      $startAt = & $fnParseDate $txtCalSyncDate.Text.Trim() $h $m
+      if ($startAt -lt (Get-Date).Date) { throw 'La fecha de inicio no puede ser anterior a hoy.' }
+      $trigger = New-ScheduledTaskTrigger -Daily -At $startAt
+      $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -ScheduledCalendar" `
+        -WorkingDirectory $scriptDirRef
+      $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1) `
+        -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+      Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
+        -Settings $set -RunLevel Highest -Force | Out-Null
+      $cfgRef.ScheduledCalendar.TaskName  = $name
+      $cfgRef.ScheduledCalendar.Hour      = $h
+      $cfgRef.ScheduledCalendar.Minute    = $m
+      $cfgRef.ScheduledCalendar.StartDate = & $fnFormatDate $startAt
+      $cfgRef.ScheduledCalendar.Enabled   = $true
+      & $fnSaveDef $cfgRef $configPath
+      $dateLabel = & $fnFormatDate $startAt
+      $lblUpdateMsg.Foreground = [System.Windows.Media.Brushes]::Green
+      $lblUpdateMsg.Text = "Tarea diaria '$name' creada/actualizada. Primera consulta: $dateLabel a ${h}:$("{0:00}" -f $m). Luego todos los dias, sin abrir WUU."
+      & $fnWriteLog 'INFO' "Tarea de calendario creada: $name @ $dateLabel ${h}:$("{0:00}" -f $m)"
+      & $refreshCalSyncStateAction
+    } catch {
+      $lblUpdateMsg.Foreground = [System.Windows.Media.Brushes]::Red
+      $lblUpdateMsg.Text = "Error: $($_.Exception.Message)"
+    }
+  }.GetNewClosure())
+  $btnCalSyncDelete.Add_Click({
+    $name = $txtCalSyncName.Text.Trim()
+    try {
+      Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop
+      $cfgRef.ScheduledCalendar.Enabled = $false
+      & $fnSaveDef $cfgRef $configPath
+      $lblUpdateMsg.Foreground = [System.Windows.Media.Brushes]::DarkOrange
+      $lblUpdateMsg.Text = "Tarea diaria '$name' eliminada. Sincronizar calendario sigue disponible a mano."
+      & $fnWriteLog 'INFO' "Tarea de calendario eliminada: $name"
+      & $refreshCalSyncStateAction
+    } catch {
+      $lblUpdateMsg.Foreground = [System.Windows.Media.Brushes]::Red
+      $lblUpdateMsg.Text = "Error: $($_.Exception.Message)"
+    }
+  }.GetNewClosure())
   $win.FindName('btnDeleteUpdate').Add_Click({
     $selected = $dgScheduledUpdates.SelectedItem
     if (-not $selected) {
@@ -8576,7 +9565,8 @@ function Show-SchedulerWindow {
       $groupArg = if ($extras.Count -eq 0 -and $group) { " -ConnectivityGroup `"$group`"" } else { '' }
       $trigger = New-ScheduledTaskTrigger -Daily -At $startAt
       $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
-                   -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -ScheduledConnectivity$groupArg"
+                   -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -ScheduledConnectivity$groupArg" `
+                   -WorkingDirectory $scriptDirRef
       $set     = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) -StartWhenAvailable
       Register-ScheduledTask -TaskName $name -Trigger $trigger -Action $action `
         -Settings $set -RunLevel Highest -Force | Out-Null
@@ -8718,7 +9708,7 @@ function Show-SchedulerWindow {
       try {
         $trigger = New-ScheduledTaskTrigger -Once -At $startAt
         $actionArgs = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$mainScriptPath`" -ScheduledReboot -JobFile `"$jobPath`""
-        $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs
+        $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs -WorkingDirectory $scriptDirRef
         $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 2) `
           -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
         Register-ScheduledTask -TaskName $taskName -Trigger $trigger -Action $action `
@@ -9009,18 +9999,14 @@ $miReboot.Add_Click({
     [System.Windows.MessageBox]::Show("Selecciona primero una fila (clic sobre el servidor).","WUU",'OK','Information') | Out-Null
     return
   }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   $resp = [System.Windows.MessageBox]::Show(
     "Vas a reiniciar '$($sel.Servidor)' ahora.`nEl servidor se reiniciara en 10 segundos. Continuar?",
     "WUU - Reinicio", 'YesNo', 'Warning')
   if ($resp -ne 'Yes') { return }
   Write-Log 'INFO' "Reinicio confirmado para $($sel.Servidor)"
   try {
-    $null = & $script:PsExecPath "\\$($sel.Servidor)" -accepteula -nobanner -d -s `
-              shutdown /r /t 10 /c "Reinicio iniciado desde WUU" 2>&1
+    Invoke-WuuRemoteShutdown $sel.Servidor 'Reinicio iniciado desde WUU'
     $sel.Status = 'Reinicio enviado'
     Write-Log 'INFO' "Reinicio enviado a $($sel.Servidor)"
     Cancel-AutoReboot $sel.Servidor   # cancela el countdown si habia uno pendiente
@@ -9057,10 +10043,7 @@ $miDisk.Header = "Chequear espacio en disco"
 $miDisk.Add_Click({
   $sel = $script:dg.SelectedItem
   if (-not $sel) { [System.Windows.MessageBox]::Show("Selecciona primero una fila.","WUU",'OK','Information') | Out-Null; return }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   $sel.Status = 'Consultando espacio en disco...'
   Show-DiskSpace $sel.Servidor
 })
@@ -9071,15 +10054,12 @@ $miCheck.Header = "Check for Updates"
 $miCheck.Add_Click({
   $sel = $script:dg.SelectedItem
   if (-not $sel) { [System.Windows.MessageBox]::Show("Selecciona primero una fila.","WUU",'OK','Information') | Out-Null; return }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   if ($script:Jobs.ContainsKey($sel.Servidor) -or $script:FixJobs.ContainsKey($sel.Servidor)) {
     [System.Windows.MessageBox]::Show("'$($sel.Servidor)' ya esta en proceso.","WUU",'OK','Information') | Out-Null
     return
   }
-  if (Deny-ServerPatchWithoutFlags $sel) { return }                                                                                                                                     
+  if (Deny-ServerPatchWithoutFlags $sel) { return }
   $resp = [System.Windows.MessageBox]::Show(
     "Check for Updates ejecutara el ciclo completo en '$($sel.Servidor)':`n`nBuscar parches -> Descargar -> Instalar -> Reiniciar (si aplica).`n`nContinuar?",
     "WUU - Check for Updates", 'YesNo', 'Warning')
@@ -9095,10 +10075,7 @@ $miClearCache.Header = "Limpiar cache de actualizacion"
 $miClearCache.Add_Click({
   $sel = $script:dg.SelectedItem
   if (-not $sel) { [System.Windows.MessageBox]::Show("Selecciona primero una fila.","WUU",'OK','Information') | Out-Null; return }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   if ($script:Jobs.ContainsKey($sel.Servidor) -or $script:FixJobs.ContainsKey($sel.Servidor)) {
     [System.Windows.MessageBox]::Show("'$($sel.Servidor)' ya esta en proceso.","WUU",'OK','Information') | Out-Null
     return
@@ -9118,10 +10095,7 @@ $miInstall.Header = "Instalar updates"
 $miInstall.Add_Click({
   $sel = $script:dg.SelectedItem
   if (-not $sel) { [System.Windows.MessageBox]::Show("Selecciona primero una fila.","WUU",'OK','Information') | Out-Null; return }
-  if (-not (Test-Path $script:PsExecPath)) {
-    [System.Windows.MessageBox]::Show("No se encuentra PsExec.exe en:`n$script:PsExecPath","WUU",'OK','Error') | Out-Null
-    return
-  }
+  if (-not (Test-WuuRemoteReady)) { Show-WuuNeedTransport; return }
   if ($script:Jobs.ContainsKey($sel.Servidor)) {
     [System.Windows.MessageBox]::Show("'$($sel.Servidor)' ya esta en proceso.","WUU",'OK','Information') | Out-Null
     return
@@ -9241,6 +10215,7 @@ $btnReload.Add_Click({
   $script:Suspend = $false
   $script:Servers.Clear()
   Set-ReportTaskTitle ''
+  Cancel-AutoGridReport 'recargar grupos'
   Update-GroupButtonText
   Update-ButtonStates
 })
@@ -9260,6 +10235,7 @@ $btnStop.Add_Click({
     $s.Available=''; $s.Downloaded=''; $s.DownloadPct=''
   }
   if ($script:Timer) { $script:Timer.Stop() }
+  Cancel-AutoGridReport 'detener y refrescar'
   Update-ButtonStates
   [System.Windows.MessageBox]::Show(
     "Se detuvieron todos los procesos en ejecucion.`n`nNota: una instalacion ya en curso en un servidor termina el update actual antes de detenerse, para no dejarlo a medias.",
@@ -9278,12 +10254,172 @@ try {
 #--- Limpieza al cerrar la ventana --------------------------------------------
 $Window.Add_Closing({
   Write-Log 'INFO' 'WUU cerrandose. Deteniendo procesos activos.'
+  try { Cancel-AutoGridReport } catch {}
   try { if ($script:Timer) { $script:Timer.Stop() } } catch {}
   foreach ($server in @($script:Jobs.Keys)) { try { Stop-ServerJob $server } catch {} }
   try { Stop-AllFixJobs } catch {}
   try { Stop-AllRebootMonitors } catch {}
   try { Stop-AllAutoReboots }    catch {}
 })
+
+function Invoke-HeadlessKbReport {
+  param(
+    [Parameter(Mandatory)][string[]]$Targets,
+    [string]$Title = '',
+    [string]$PeriodMode = 'CurrentMonth',
+    [string]$SpecificDate = '',
+    [string]$WindowDate = '',
+    [string]$TipoReporte = 'Ventana',
+    [switch]$SkipMonthlySummary
+  )
+  $targets = @($Targets | ForEach-Object { "$_".Trim() } | Where-Object { $_ } | Sort-Object -Unique)
+  if ($targets.Count -eq 0) {
+    Write-Log 'WARN' 'Reporte headless: sin servidores.'
+    return $null
+  }
+  if (-not "$WindowDate".Trim()) { $WindowDate = (Get-Date).ToString('yyyy-MM-dd') }
+  if (-not (Test-WuuRemoteReady)) {
+    Write-Log 'ERROR' 'Reporte headless: no hay PsExec ni WinRM.'
+    return $null
+  }
+  if (-not (Test-Path $script:LocalReportWorker)) {
+    Write-Log 'ERROR' 'Reporte headless: worker de reporte no generado.'
+    return $null
+  }
+  if (-not "$($script:AnalistaAsignado)".Trim()) { $script:AnalistaAsignado = "$env:USERNAME" }
+  $script:RepTipo = Resolve-ReportTipo $TipoReporte
+  Write-Log 'INFO' "Reporte headless | tarea=$Title | servidores=$($targets.Count) | periodo=$PeriodMode | ventana=$WindowDate | Tipo_Reporte=$($script:RepTipo)"
+
+  $bag = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
+  $pool = @()
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
+  $rjob = {
+    param($server, $psexec, $worker, $rel, $periodMode, $specificDate, $windowDate, $bag, $rmLib, $rmOn, $rmSsl, $rmPort, $rmTo, $smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
+    $obj = $null
+    try {
+      $extra = @('-PeriodMode', $periodMode)
+      if ($periodMode -in @('SpecificDate','SpecificMonth') -and $specificDate) { $extra += @('-SpecificDate', $specificDate) }
+      if ("$windowDate".Trim()) { $extra += @('-WindowDate', "$windowDate".Trim()) }
+      $raw = Invoke-WuuRemoteScript $server $worker $rel 'report.ps1' $extra 'report.json' $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+      if ("$raw".Trim()) { $obj = $raw | ConvertFrom-Json }
+    } catch {}
+    if (-not $obj) {
+      $obj = [pscustomobject]@{
+        Dominio=''; Servidor=$server; IP=''; Sistema_Operativo=''; Version_Sistema_Operativo='';
+        Fecha_Instalacion=''; KBs_Instaladas=''; KBs_Ventana=''; Fecha_Reinicio=''; Running_Time='';
+        Descripcion_Error='Falla de conexion: sin conexion o sin datos'; Disk_Space=''
+      }
+    }
+    try { $obj | Add-Member -NotePropertyName QueryName -NotePropertyValue $server -Force } catch {}
+    [void]$bag.Add($obj)
+  }
+  foreach ($sv in $targets) {
+    $rs = [runspacefactory]::CreateRunspace(); $rs.ApartmentState='MTA'; $rs.Open()
+    $ps = [powershell]::Create(); $ps.Runspace = $rs
+    $ps.AddScript($rjob.ToString()).
+        AddArgument($sv).AddArgument($script:PsExecPath).
+        AddArgument($script:LocalReportWorker).AddArgument($script:RemoteRel).
+        AddArgument($PeriodMode).AddArgument($SpecificDate).
+        AddArgument($WindowDate).
+        AddArgument($bag).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+        AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
+    $pool += @{ ps=$ps; handle=$ps.BeginInvoke(); rs=$rs }
+  }
+  $deadline = (Get-Date).AddMinutes(10)
+  while ($bag.Count -lt $targets.Count -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
+  foreach ($j in $pool) {
+    try { if ($j.handle.IsCompleted) { $j.ps.EndInvoke($j.handle) } } catch {}
+    try { $j.ps.Dispose() } catch {}
+    try { $j.rs.Close(); $j.rs.Dispose() } catch {}
+  }
+  Write-Log 'INFO' "Reporte headless: $($bag.Count)/$($targets.Count) servidor(es) respondieron."
+
+  try { Update-InventoryFromLiveData $bag } catch {
+    Write-Log 'WARN' "Reporte headless inventario: $($_.Exception.Message)"
+  }
+
+  $rows = @($bag | Sort-Object Servidor | ForEach-Object {
+    $qname = if ($_.PSObject.Properties['QueryName']) { "$($_.QueryName)" } else { '' }
+    $flags = Resolve-ProcessFlags $_.Servidor $qname
+    $descErr = Merge-ReportErrorText $_.Descripcion_Error (Get-ReportConsoleError $_.Servidor $qname)
+    [pscustomobject][ordered]@{
+      Analista="$($script:AnalistaAsignado)".Trim()
+      Grupo=(Get-InventoryGroupForServer $_.Servidor $qname)
+      Ambiente=(Get-InventoryFieldForServer $_.Servidor 'Ambiente' $qname)
+      Dominio=$_.Dominio; Servidor=$_.Servidor; IP=$_.IP
+      Sistema_Operativo=$_.Sistema_Operativo; Version_Sistema_Operativo=$_.Version_Sistema_Operativo
+      SQL_Instancia=$_.SQL_Instancia; SQL_Version=$_.SQL_Version; SQL_Ultima_Actualizacion=$_.SQL_Ultima_Actualizacion
+      Fecha_Ventana=$WindowDate
+      Fecha_Instalacion=$_.Fecha_Instalacion; KBs_Instaladas=$_.KBs_Instaladas; KBs_Ventana=$_.KBs_Ventana
+      Fecha_Reinicio=$_.Fecha_Reinicio; Running_Time=$_.Running_Time
+      Estado=(Get-ReportEstado -Kbs $_.KBs_Instaladas -ErrorText $descErr -NotaUpdates $(try { "$($_.Nota_Updates)" } catch { '' }) -Snap $flags.Snap -Confirmado $flags.Confirmado -UseProcessFlags $true)
+      Descripcion_Error=$descErr
+      Comentarios=(Join-ReportComments '' $flags.Snap $flags.Confirmado)
+      Disk_Space=$_.Disk_Space
+      Snap=(Get-SnapReportText $flags.Snap)
+      Confirmado=(Get-ConfirmadoReportText $flags.Confirmado)
+      Tipo_Reporte=(Resolve-ReportTipo $TipoReporte)
+    }
+  })
+
+  $savedPath = Save-ReportCsv $rows $Title
+  if ($savedPath) { Write-Log 'INFO' "Reporte headless: CSV $savedPath" }
+  else { Write-Log 'ERROR' "Reporte headless: no se pudo guardar CSV. $($script:RepSaveError)" }
+
+  if (-not $SkipMonthlySummary) {
+    try {
+      $sumMonth = Get-PeriodMonthKey $PeriodMode $SpecificDate $WindowDate
+      Publish-MonthlyBankSummary -ReportRows $rows -MonthKey $sumMonth | Out-Null
+    } catch {
+      Write-Log 'WARN' "Resumen mensual: $($_.Exception.Message)"
+    }
+  }
+
+  if ($script:WUUDashboardUploadEnabled -and $script:WUUDashboardUploadUrl) {
+    try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      $deduped = [ordered]@{}
+      foreach ($s in $rows) {
+        $n = "$($s.Servidor)".Trim()
+        if ($n) {
+          $deduped[$n] = [ordered]@{
+            Analista=$s.Analista; Grupo=$s.Grupo; Ambiente=$s.Ambiente
+            Dominio=$s.Dominio; Servidor=$s.Servidor; IP=$s.IP
+            Sistema_Operativo=$s.Sistema_Operativo; Version_Sistema_Operativo=$s.Version_Sistema_Operativo
+            SQL_Instancia=$s.SQL_Instancia; SQL_Version=$s.SQL_Version; SQL_Ultima_Actualizacion=$s.SQL_Ultima_Actualizacion
+            Fecha_Ventana=$s.Fecha_Ventana; Fecha_Instalacion=$s.Fecha_Instalacion
+            KBs_Instaladas=$s.KBs_Instaladas; KBs_Ventana=$s.KBs_Ventana
+            Fecha_Reinicio=$s.Fecha_Reinicio; Running_Time=$s.Running_Time
+            Estado=$s.Estado; Descripcion_Error=$s.Descripcion_Error; Comentarios=$s.Comentarios
+            Disk_Space=$s.Disk_Space; Snap=$s.Snap; Confirmado=$s.Confirmado
+            Tipo_Reporte=$s.Tipo_Reporte
+          }
+        }
+      }
+      $vServers = @($deduped.Values)
+      $payload = $vServers | ConvertTo-Json -Depth 5
+      if ($vServers.Count -eq 1 -and $payload -notmatch '^\s*\[') { $payload = "[$payload]" }
+      Invoke-WebRequest -Uri $script:WUUDashboardUploadUrl -Method Post -Body $payload `
+        -ContentType 'application/json; charset=utf-8' -TimeoutSec 120 -UseBasicParsing | Out-Null
+      $tipoLog = Resolve-ReportTipo $TipoReporte
+      Write-Log 'INFO' "Reporte headless: Centro de Control actualizado ($($vServers.Count) servidores, Tipo_Reporte=$tipoLog)."
+    } catch {
+      Write-Log 'ERROR' "Reporte headless Centro de Control: $($_.Exception.Message)"
+    }
+  }
+
+  Save-History -Rows @($rows | ForEach-Object {
+    [pscustomobject]@{ Servidor=$_.Servidor; IP=$_.IP; State='Report'
+      Status='Reporte de ventana programada'; Error=$_.Descripcion_Error; RunningTime=$_.Running_Time }
+  }) -Type 'ReporteProgramado'
+  return $savedPath
+}
 
 function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   if (-not $DefinitionPath -or -not (Test-Path $DefinitionPath)) {
@@ -9313,9 +10449,9 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
     Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -GrupoHint "$($definition.TargetValue)"
     return 2
   }
-  if (-not (Test-Path $script:PsExecPath)) {
+  if (-not (Test-WuuRemoteReady)) {
     $definition.Status = 'Error'
-    $definition.LastMessage = "No se encuentra PsExec.exe: $($script:PsExecPath)"
+    $definition.LastMessage = 'No hay transporte remoto (PsExec ni WinRM).'
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' $definition.LastMessage
     Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
@@ -9327,13 +10463,17 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   $definition.LastMessage = "Iniciando parcheo de $($servers.Count) servidor(es)."
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Ventana programada iniciada: $($definition.TaskName) | destino=$($definition.TargetValue) | servidores=$($servers.Count)"
-  Send-WindowCard -Phase Inicio -TaskName "$($definition.TaskName)" -Servers $servers
+  $notifyUrl = Get-DashboardNotifyUrl
+  Write-Log 'INFO' "Tarjeta Inicio: Dashboard.Enabled=$([bool]$script:Cfg.Dashboard.Enabled) | URL=$notifyUrl"
+  Send-WindowCard -Phase Inicio -TaskName "$($definition.TaskName)" -Servers $servers -GrupoHint "$($definition.TargetValue)"
 
   $scheduledRemoteRel = "$($script:RemoteRel.TrimEnd('\'))\Scheduled\$($definition.JobId)"
   $scheduledResults = [hashtable]::Synchronized(@{})
   $pool = @()
+  $rm = Get-WuuRmPack
   $scheduledWorker = {
-    param($server,$psexec,$worker,$rel,$timeoutSec,$autoReboot,$rebootDelay,$cleanup,$scheduledResults)
+    param($server,$psexec,$worker,$rel,$timeoutSec,$autoReboot,$rebootDelay,$cleanup,$scheduledResults,$rmLib,$rmOn,$rmSsl,$rmPort,$rmTo,$waitSec)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $started = Get-Date
     $serverMutex = $null
     $serverMutexTaken = $false
@@ -9347,30 +10487,10 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
       catch [System.Threading.AbandonedMutexException] { $serverMutexTaken = $true }
       if (-not $serverMutexTaken) { throw 'Otra ventana programada ya esta procesando este servidor.' }
 
-      $reachable = $false
-      $tcp = New-Object System.Net.Sockets.TcpClient
-      try {
-        $iar = $tcp.BeginConnect($server,445,$null,$null)
-        $reachable = $iar.AsyncWaitHandle.WaitOne($timeoutSec * 1000) -and $tcp.Connected
-      } finally { try { $tcp.Close() } catch {} }
-      if (-not $reachable) { throw "Sin conectividad (puerto 445, timeout ${timeoutSec}s)" }
-
-      $remoteDir = "\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\status.json" -Force -ErrorAction SilentlyContinue
-      Remove-Item "$remoteDir\stop.flag" -Force -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\worker.ps1" -Force -ErrorAction Stop
-      $output = & $psexec "\\$server" -accepteula -nobanner -s powershell.exe `
-        -ExecutionPolicy Bypass -NonInteractive -File "C:\$rel\worker.ps1" -Mode Install 2>&1
-      $exitCode = $LASTEXITCODE
-
+      $raw = Invoke-WuuRemoteScript $server $worker $rel 'worker.ps1' @('-Mode','Install') 'status.json' $psexec $timeoutSec $rmOn $rmSsl $rmPort $rmTo $waitSec
       $statusObj = $null
-      if (Test-Path "$remoteDir\status.json") {
-        try { $statusObj = Get-Content "$remoteDir\status.json" -Raw | ConvertFrom-Json } catch {}
-      }
-      if (-not $statusObj) {
-        throw "Sin estado remoto. PsExec codigo $exitCode. $(($output | Select-Object -Last 2) -join ' ')"
-      }
+      if ("$raw".Trim()) { try { $statusObj = $raw | ConvertFrom-Json } catch {} }
+      if (-not $statusObj) { throw 'Sin estado remoto (SMB/WinRM)' }
 
       $result.IP = "$($statusObj.ip)"
       $result.Status = "$($statusObj.status)"
@@ -9381,26 +10501,29 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
         'stopped' { $result.State = 'Stopped' }
         default   { $result.State = 'Error' }
       }
-      if ($exitCode -ne 0 -and -not $result.Error) {
-        $result.Error = "PsExec codigo $exitCode"
-        $result.State = 'Error'
-      }
 
       if ("$($statusObj.stage)" -eq 'reboot' -and $autoReboot) {
         if ($rebootDelay -gt 0) { Start-Sleep -Seconds $rebootDelay }
-        $rebootOutput = & $psexec "\\$server" -accepteula -nobanner -d -s `
-          shutdown /r /t 10 /c "Reinicio automatico por ventana programada WUU" 2>&1
-        $rebootExit = $LASTEXITCODE
-        if ($rebootExit -eq 0) {
+        try {
+          $null = Invoke-WuuRmShutdown $server $psexec 'Reinicio automatico por ventana programada WUU' $timeoutSec $rmOn $rmSsl $rmPort $rmTo
           $result.Status = "$($result.Status). Reinicio automatico enviado."
-        } else {
+        } catch {
           $result.State = 'Error'
-          $rebootError = "Reinicio no enviado: PsExec codigo $rebootExit. $(($rebootOutput | Select-Object -Last 2) -join ' ')"
+          $rebootError = "Reinicio no enviado: $($_.Exception.Message)"
           $result.Error = if ($result.Error) { "$($result.Error) | $rebootError" } else { $rebootError }
         }
       }
       if ($cleanup -and $result.State -ne 'Error' -and "$($statusObj.stage)" -in @('done','reboot')) {
+        $remoteDir = "\\$server\C`$\$rel"
         Remove-Item $remoteDir -Recurse -Force -ErrorAction SilentlyContinue
+        if ($rmOn -and -not (Test-Path -LiteralPath $remoteDir)) {
+          $cs = $null
+          try {
+            $cs = New-WuuRmSession $server $rmSsl $rmPort $rmTo
+            Remove-WuuRmPath $cs $rel
+          } catch {}
+          finally { if ($cs) { try { Remove-PSSession $cs } catch {} } }
+        }
       }
     } catch {
       $result.State = 'Error'
@@ -9427,6 +10550,7 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
     $definition.LastMessage = "No se pudo iniciar el pool de ejecucion: $($_.Exception.Message)"
     Save-ScheduledUpdateDefinition $definition $DefinitionPath
     Write-Log 'ERROR' $definition.LastMessage
+    Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers -GrupoHint "$($definition.TargetValue)"
     return 2
   }
 
@@ -9442,7 +10566,10 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
         AddArgument([bool]$script:Cfg.AutoReboot.Enabled).
         AddArgument([int]$script:Cfg.AutoReboot.DelaySeconds).
         AddArgument([bool]$script:Cfg.CleanupRemoteOnSuccess).
-        AddArgument($scheduledResults) | Out-Null
+        AddArgument($scheduledResults).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).AddArgument([int]$rm.To).
+        AddArgument([int]$script:Cfg.PatchTimeoutMinutes * 60) | Out-Null
       $pool += @{ Server=$server; ps=$ps; handle=$ps.BeginInvoke() }
     } catch {
       if ($ps) { try { $ps.Dispose() } catch {} }
@@ -9484,7 +10611,28 @@ function Invoke-ScheduledPatchJob([string]$DefinitionPath) {
   $definition.Results = @($results)
   Save-ScheduledUpdateDefinition $definition $DefinitionPath
   Write-Log 'INFO' "Ventana programada finalizada: $($definition.TaskName) | $($definition.LastMessage)"
-  Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers
+
+  $reportTitle = "$($definition.TaskName)".Trim()
+  if (-not $reportTitle) { $reportTitle = "Ventana $(Get-Date -Format 'yyyy-MM-dd')" }
+  $windowDate = (Get-Date).ToString('yyyy-MM-dd')
+  try {
+    $definition.LastMessage = "$($definition.LastMessage) Generando reporte automatico..."
+    Save-ScheduledUpdateDefinition $definition $DefinitionPath
+    $reportPath = Invoke-HeadlessKbReport -Targets $servers -Title $reportTitle `
+      -PeriodMode 'CurrentMonth' -WindowDate $windowDate -TipoReporte 'Ventana'
+    if ($reportPath) {
+      $definition.LastMessage = "$($results.Count) procesado(s), $($errors.Count) con error. Reporte: $reportPath"
+    } else {
+      $definition.LastMessage = "$($results.Count) procesado(s), $($errors.Count) con error. Reporte no generado."
+    }
+    Save-ScheduledUpdateDefinition $definition $DefinitionPath
+  } catch {
+    Write-Log 'ERROR' "Reporte automatico de ventana programada: $($_.Exception.Message)"
+    $definition.LastMessage = "$($results.Count) procesado(s), $($errors.Count) con error. Reporte: $($_.Exception.Message)"
+    Save-ScheduledUpdateDefinition $definition $DefinitionPath
+  }
+
+  Send-WindowCard -Phase Fin -TaskName "$($definition.TaskName)" -Servers $servers -GrupoHint "$($definition.TargetValue)"
   return $(if ($errors.Count -eq 0) { 0 } else { 1 })
 }
 
@@ -9549,7 +10697,11 @@ function Invoke-ScheduledRebootJob([string]$DefinitionPath) {
 }
 
 #--- Arranque -----------------------------------------------------------------
-if ($ScheduledConnectivity) {
+if ($ScheduledCalendar) {
+  Write-Log 'INFO' 'Modo headless (-ScheduledCalendar) iniciado.'
+  $calExit = Invoke-ScheduledCalendarSync
+  exit [int]$calExit
+} elseif ($ScheduledConnectivity) {
   Write-Log 'INFO' "Modo headless (-ScheduledConnectivity) iniciado."
   $connExit = Invoke-ScheduledConnectivityJob -Group $ConnectivityGroup -JobFile $JobFile
   exit [int]$connExit
@@ -9563,6 +10715,8 @@ if ($ScheduledConnectivity) {
   #  MODO HEADLESS (-ScheduledPatch): parcheo normal de una sola ejecucion
   #============================================================================
   Write-Log 'INFO' "Modo headless (-ScheduledPatch) iniciado. JobFile=$JobFile"
+  Load-ProcessFlags
+  Load-Csv
   $patchExitCode = Invoke-ScheduledPatchJob $JobFile
   exit [int]$patchExitCode
 } elseif ($Scheduled) {
@@ -9571,6 +10725,7 @@ if ($ScheduledConnectivity) {
   #  Ejecutado por la tarea programada del Programador de Windows.
   #============================================================================
   Write-Log 'INFO' 'Modo headless (-Scheduled) iniciado.'
+  $script:RepTipo = 'Mensual'
   Load-ProcessFlags
   $reportJobDef = $null
   if ("$JobFile".Trim() -and (Test-Path -LiteralPath $JobFile)) {
@@ -9622,26 +10777,25 @@ if ($ScheduledConnectivity) {
   # Correr el worker de reporte en paralelo (mismo mecanismo que el boton Reporte)
   $bag  = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
   $pool = @()
+  $rm = Get-WuuRmPack
+  $smbTo = 3
+  try { $smbTo = [int]$script:Cfg.ConnectivityTimeoutSec } catch {}
+  if ($smbTo -lt 1) { $smbTo = 3 }
   $rjob = {
-    param($server,$psexec,$worker,$rel,$periodMode,$specificDate,$bag)
+    param($server,$psexec,$worker,$rel,$periodMode,$specificDate,$windowDate,$bag,$rmLib,$rmOn,$rmSsl,$rmPort,$rmTo,$smbTo)
+    if ($rmLib) { Invoke-Expression $rmLib }
     $obj=$null
     try {
-      $remoteDir="\\$server\C`$\$rel"
-      New-Item -ItemType Directory -Path $remoteDir -Force -ErrorAction Stop | Out-Null
-      Remove-Item "$remoteDir\report.json" -ErrorAction SilentlyContinue
-      Copy-Item -Path $worker -Destination "$remoteDir\report.ps1" -Force -ErrorAction Stop
-      $reportArgs = @('-ExecutionPolicy','Bypass','-NonInteractive','-File',"C:\$rel\report.ps1",'-PeriodMode',$periodMode)
-      if ($periodMode -in @('SpecificDate','SpecificMonth') -and $specificDate) { $reportArgs += @('-SpecificDate',$specificDate) }
-      $null=& $psexec "\\$server" -accepteula -nobanner -s powershell.exe @reportArgs 2>&1
-      if (Test-Path "$remoteDir\report.json") {
-        $raw=Get-Content "$remoteDir\report.json" -Raw
-        if ($raw) { $obj=$raw|ConvertFrom-Json }
-      }
+      $extra = @('-PeriodMode', $periodMode)
+      if ($periodMode -in @('SpecificDate','SpecificMonth') -and $specificDate) { $extra += @('-SpecificDate', $specificDate) }
+      if ("$windowDate".Trim()) { $extra += @('-WindowDate', "$windowDate".Trim()) }
+      $raw = Invoke-WuuRemoteScript $server $worker $rel 'report.ps1' $extra 'report.json' $psexec $smbTo $rmOn $rmSsl $rmPort $rmTo
+      if ("$raw".Trim()) { $obj = $raw | ConvertFrom-Json }
     } catch {}
     if (-not $obj) {
       $obj=[pscustomobject]@{
         Dominio='';Servidor=$server;IP='';Sistema_Operativo='';Version_Sistema_Operativo='';
-        Fecha_Instalacion='';KBs_Instaladas='';Fecha_Reinicio='';Running_Time='';
+        Fecha_Instalacion='';KBs_Instaladas='';KBs_Ventana='';Fecha_Reinicio='';Running_Time='';
         Descripcion_Error='Falla de conexion: sin conexion o sin datos';Disk_Space=''
       }
     }
@@ -9655,7 +10809,11 @@ if ($ScheduledConnectivity) {
         AddArgument($sv).AddArgument($script:PsExecPath).
         AddArgument($script:LocalReportWorker).AddArgument($script:RemoteRel).
         AddArgument($reportPeriodMode).AddArgument($reportSpecificDate).
-        AddArgument($bag) | Out-Null
+        AddArgument($reportWindowDate).
+        AddArgument($bag).
+        AddArgument($script:WuuRmLib).AddArgument([bool]$rm.On).
+        AddArgument([bool]$rm.Ssl).AddArgument([int]$rm.Port).
+        AddArgument([int]$rm.To).AddArgument($smbTo) | Out-Null
     $pool+=@{ps=$ps;handle=$ps.BeginInvoke();rs=$rs}
   }
   # Esperar con timeout de 10 minutos
@@ -9674,6 +10832,7 @@ if ($ScheduledConnectivity) {
   $rows = @($bag | Sort-Object Servidor | ForEach-Object {
     $qname = if ($_.PSObject.Properties['QueryName']) { "$($_.QueryName)" } else { '' }
     $flags = Resolve-ProcessFlags $_.Servidor $qname
+    $descErr = Merge-ReportErrorText $_.Descripcion_Error (Get-ReportConsoleError $_.Servidor $qname)
     [pscustomobject][ordered]@{
       Analista="$($script:AnalistaAsignado)".Trim()
       Grupo=(Get-InventoryGroupForServer $_.Servidor $qname)
@@ -9682,14 +10841,15 @@ if ($ScheduledConnectivity) {
       Sistema_Operativo=$_.Sistema_Operativo;Version_Sistema_Operativo=$_.Version_Sistema_Operativo
       SQL_Instancia=$_.SQL_Instancia;SQL_Version=$_.SQL_Version;SQL_Ultima_Actualizacion=$_.SQL_Ultima_Actualizacion
       Fecha_Ventana=$reportWindowDate
-      Fecha_Instalacion=$_.Fecha_Instalacion;KBs_Instaladas=$_.KBs_Instaladas
+      Fecha_Instalacion=$_.Fecha_Instalacion;KBs_Instaladas=$_.KBs_Instaladas;KBs_Ventana=$_.KBs_Ventana
       Fecha_Reinicio=$_.Fecha_Reinicio;Running_Time=$_.Running_Time
-      Estado=(Get-ReportEstado -Kbs $_.KBs_Instaladas -ErrorText $_.Descripcion_Error -NotaUpdates $(try { "$($_.Nota_Updates)" } catch { '' }) -Snap $flags.Snap -Confirmado $flags.Confirmado -UseProcessFlags $true)
-      Descripcion_Error=$_.Descripcion_Error
+      Estado=(Get-ReportEstado -Kbs $_.KBs_Instaladas -ErrorText $descErr -NotaUpdates $(try { "$($_.Nota_Updates)" } catch { '' }) -Snap $flags.Snap -Confirmado $flags.Confirmado -UseProcessFlags $true)
+      Descripcion_Error=$descErr
       Comentarios=(Join-ReportComments '' $flags.Snap $flags.Confirmado)
       Disk_Space=$_.Disk_Space
       Snap=(Get-SnapReportText $flags.Snap)
       Confirmado=(Get-ConfirmadoReportText $flags.Confirmado)
+      Tipo_Reporte='Mensual'
     }
   })
   $reportDir = Join-Path $script:ScriptDir 'Reportes'
@@ -9713,6 +10873,7 @@ if ($ScheduledConnectivity) {
       $vServers = @($bag | ForEach-Object {
         $qname = if ($_.PSObject.Properties['QueryName']) { "$($_.QueryName)" } else { '' }
         $flags = Resolve-ProcessFlags $_.Servidor $qname
+        $descErr = Merge-ReportErrorText $_.Descripcion_Error (Get-ReportConsoleError $_.Servidor $qname)
         [ordered]@{
           Analista="$($script:AnalistaAsignado)".Trim()
           Grupo=(Get-InventoryGroupForServer $_.Servidor $qname)
@@ -9721,14 +10882,15 @@ if ($ScheduledConnectivity) {
           Sistema_Operativo=$_.Sistema_Operativo; Version_Sistema_Operativo=$_.Version_Sistema_Operativo
           SQL_Instancia=$_.SQL_Instancia; SQL_Version=$_.SQL_Version; SQL_Ultima_Actualizacion=$_.SQL_Ultima_Actualizacion
           Fecha_Ventana=$reportWindowDate
-          Fecha_Instalacion=$_.Fecha_Instalacion; KBs_Instaladas=$_.KBs_Instaladas
+          Fecha_Instalacion=$_.Fecha_Instalacion; KBs_Instaladas=$_.KBs_Instaladas; KBs_Ventana=$_.KBs_Ventana
           Fecha_Reinicio=$_.Fecha_Reinicio; Running_Time=$_.Running_Time
-          Estado=(Get-ReportEstado -Kbs $_.KBs_Instaladas -ErrorText $_.Descripcion_Error -NotaUpdates $(try { "$($_.Nota_Updates)" } catch { '' }) -Snap $flags.Snap -Confirmado $flags.Confirmado -UseProcessFlags $true)
-          Descripcion_Error=$_.Descripcion_Error
+          Estado=(Get-ReportEstado -Kbs $_.KBs_Instaladas -ErrorText $descErr -NotaUpdates $(try { "$($_.Nota_Updates)" } catch { '' }) -Snap $flags.Snap -Confirmado $flags.Confirmado -UseProcessFlags $true)
+          Descripcion_Error=$descErr
           Comentarios=(Join-ReportComments '' $flags.Snap $flags.Confirmado)
           Disk_Space=$_.Disk_Space
           Snap=(Get-SnapReportText $flags.Snap)
           Confirmado=(Get-ConfirmadoReportText $flags.Confirmado)
+          Tipo_Reporte='Mensual'
         }
       })
       # Deduplicar por nombre de servidor
@@ -9739,7 +10901,7 @@ if ($ScheduledConnectivity) {
       if ($vServers.Count -eq 1 -and $payload -notmatch '^\s*\[') { $payload = "[$payload]" }
       Invoke-WebRequest -Uri $script:WUUDashboardUploadUrl -Method Post -Body $payload `
         -ContentType 'application/json; charset=utf-8' -TimeoutSec 120 -UseBasicParsing | Out-Null
-      Write-Log 'INFO' "Headless: sincronizacion Centro de Control de Parcheo correcta ($($vServers.Count) servidores)."
+      Write-Log 'INFO' "Headless: sincronizacion Centro de Control de Parcheo correcta ($($vServers.Count) servidores, Tipo_Reporte=Mensual)."
     } catch { Write-Log 'ERROR' "Headless Centro de Control de Parcheo: $($_.Exception.Message)" }
   }
 

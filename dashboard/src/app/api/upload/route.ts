@@ -75,6 +75,16 @@ export async function POST(req: Request) {
         ? `${rawServerName} (${rawDomain})` 
         : rawServerName;
 
+      const rawTipo = String(
+        item.Tipo_Reporte || item["Tipo reporte"] || item.tipoReporte || item.tipo_reporte || body?.tipoReporte || ""
+      ).trim();
+      const isMensual = rawTipo.toLowerCase() === "mensual";
+
+      const explicitMonth = extractMonthFromFechaVentana(
+        item.Mes || item.Periodo || item.Month || item.Target_Month || item.targetMonth || body?.month || body?.targetMonth
+      );
+      const targetMonth = explicitMonth ?? extractMonthFromFechaVentana(fechaVentana) ?? defaultTargetMonth;
+
       return {
         serverName: finalServerName,
         grupo: item.Grupo ? String(item.Grupo) : null,
@@ -98,13 +108,63 @@ export async function POST(req: Request) {
         snap: item.Snap ? String(item.Snap) : null,
         confirmado: item.Confirmado ? String(item.Confirmado) : null,
         status,
-        targetMonth: extractMonthFromFechaVentana(fechaVentana) ?? defaultTargetMonth,
+        tipoReporte: rawTipo,
+        isMensual,
+        targetMonth,
       };
     });
 
-    const syncRun = await prisma.syncRun.create({
-      data: { total: items.length, success, errors, noData },
-    });
+    // Filtro para parcheo diario: NO sumar registros mensuales al contador de parcheo diario
+    const dailyItems = items.filter((item: any) => !item.isMensual);
+
+    let syncRun: any = null;
+    if (dailyItems.length > 0) {
+      let dailySuccess = 0, dailyErrors = 0, dailyNoData = 0;
+      for (const d of dailyItems) {
+        const st = d.status.toLowerCase();
+        if (st === "ok" || st === "actualizado") dailySuccess++;
+        else if (st === "error" || st === "no actualizado") dailyErrors++;
+        else if (st !== "sin datos" && st !== "nodata") dailySuccess++;
+        else dailyNoData++;
+      }
+
+      syncRun = await prisma.syncRun.create({
+        data: {
+          total: dailyItems.length,
+          success: dailySuccess,
+          errors: dailyErrors,
+          noData: dailyNoData,
+        },
+      });
+
+      await prisma.syncHistory.createMany({
+        data: dailyItems.map((item: any) => ({
+          syncRunId: syncRun.id,
+          serverName: item.serverName,
+          grupo: item.grupo,
+          ambiente: item.ambiente,
+          domain: item.domain,
+          ip: item.ip,
+          os: item.os,
+          osVersion: item.osVersion,
+          analista: item.analista,
+          sqlInstancia: item.sqlInstancia,
+          sqlVersion: item.sqlVersion,
+          sqlUltimaActualizacion: item.sqlUltimaActualizacion,
+          fechaVentana: item.fechaVentana,
+          installDate: item.installDate,
+          installedKBs: item.installedKBs,
+          rebootDate: item.rebootDate,
+          runningTime: item.runningTime,
+          diskSpace: item.diskSpace,
+          errorDescription: item.errorDescription,
+          comentarios: item.comentarios,
+          snap: item.snap,
+          confirmado: item.confirmado,
+          status: item.status,
+        })),
+      });
+    }
 
     const frozenMonths = await resolveFrozenMonths(
       prisma,
@@ -143,8 +203,8 @@ export async function POST(req: Request) {
         create: { serverName: item.serverName, ...payload },
       });
 
-      // Only update MonthlyServerStatus if the target month is not frozen/closed
-      if (!frozenMonths.has(item.targetMonth)) {
+      // Update MonthlyServerStatus if target month is open OR if this is an explicit monthly report
+      if (!frozenMonths.has(item.targetMonth) || item.isMensual) {
         await prisma.monthlyServerStatus.upsert({
           where: {
             month_serverName: {
@@ -163,58 +223,54 @@ export async function POST(req: Request) {
       }
     }
 
-    if (items.length > 0) {
-      await prisma.syncHistory.createMany({
-        data: items.map((item: any) => ({
+    // Despachar notificación
+    const analistaStr = items.find((i: any) => i.analista)?.analista || "WUU";
+    if (dailyItems.length > 0 && syncRun) {
+      createAndDispatchNotification({
+        type: "SYNC_NEW",
+        title: "Nueva sincronización en Historial",
+        message: `Se sincronizaron exitosamente ${dailyItems.length} servidores en el Centro de Control de Parcheo.`,
+        taskName: `Sincronización por ${analistaStr}`,
+        cliente: "Todos los bancos",
+        periodo: currentMonthStr,
+        fechaHora: now.toLocaleString("es-AR"),
+        grupo: "Inventario General",
+        servidores: dailyItems.length,
+        metadata: {
           syncRunId: syncRun.id,
-          serverName: item.serverName,
-          grupo: item.grupo,
-          ambiente: item.ambiente,
-          domain: item.domain,
-          ip: item.ip,
-          os: item.os,
-          osVersion: item.osVersion,
-          analista: item.analista,
-          sqlInstancia: item.sqlInstancia,
-          sqlVersion: item.sqlVersion,
-          sqlUltimaActualizacion: item.sqlUltimaActualizacion,
-          fechaVentana: item.fechaVentana,
-          installDate: item.installDate,
-          installedKBs: item.installedKBs,
-          rebootDate: item.rebootDate,
-          runningTime: item.runningTime,
-          diskSpace: item.diskSpace,
-          errorDescription: item.errorDescription,
-          comentarios: item.comentarios,
-          snap: item.snap,
-          confirmado: item.confirmado,
-          status: item.status,
-        })),
-      });
+          total: dailyItems.length,
+          success: dailyItems.filter((i: any) => i.status.toLowerCase() === "actualizado" || i.status.toLowerCase() === "ok").length,
+          errors: dailyItems.filter((i: any) => i.status.toLowerCase() === "error" || i.status.toLowerCase() === "no actualizado").length,
+        },
+      }).catch((e) => console.warn("[Upload] Error al enviar notificación:", e));
+    } else if (items.length > 0) {
+      createAndDispatchNotification({
+        type: "SYNC_NEW",
+        title: "Reporte Mensual consolidado",
+        message: `Se consolidó el reporte mensual de ${items.length} servidores en el Centro de Control de Parcheo (no computado en parcheos diarios).`,
+        taskName: `Reporte Mensual por ${analistaStr}`,
+        cliente: "Todos los bancos",
+        periodo: currentMonthStr,
+        fechaHora: now.toLocaleString("es-AR"),
+        grupo: "Reporte Mensual",
+        servidores: items.length,
+        metadata: {
+          tipo: "Mensual",
+          total: items.length,
+          success,
+          errors,
+          noData,
+        },
+      }).catch((e) => console.warn("[Upload] Error al enviar notificación:", e));
     }
 
-    // Despachar notificación y correo de nueva sincronización
-    const analistaStr = items.find((i: any) => i.analista)?.analista || "WUU";
-    createAndDispatchNotification({
-      type: "SYNC_NEW",
-      title: "Nueva sincronización en Historial",
-      message: `Se sincronizaron exitosamente ${items.length} servidores en el Centro de Control de Parcheo.`,
-      taskName: `Sincronización por ${analistaStr}`,
-      cliente: "Todos los bancos",
-      periodo: currentMonthStr,
-      fechaHora: now.toLocaleString("es-AR"),
-      grupo: "Inventario General",
-      servidores: items.length,
-      metadata: {
-        syncRunId: syncRun.id,
-        total: items.length,
-        success,
-        errors,
-        noData,
-      },
-    }).catch((e) => console.warn("[Upload] Error al enviar notificación:", e));
-
-    return NextResponse.json({ success: true, count: items.length, syncRunId: syncRun.id });
+    return NextResponse.json({
+      success: true,
+      count: items.length,
+      dailySyncCount: dailyItems.length,
+      syncRunId: syncRun?.id ?? null,
+      tipoReporte: items[0]?.tipoReporte || "Ventana",
+    });
   } catch (error: any) {
     console.error("Upload API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
